@@ -2917,17 +2917,20 @@ async function refresh(isInitial) {
 
       await Promise.allSettled([leadsPromise, scPromise]);
       console.log(`📌 allLeads: ${allLeads.length} | Total: ${((performance.now() - t0)/1000).toFixed(1)}s`);
-      trendInitAll().catch(e => console.error('Trend init error:', e));
     } finally {
       document.getElementById('loadingOverlay').classList.add('hidden');
     }
-  } else {
-    // Even when skipping live API, init trend charts from cached data
-    trendInitAll().catch(e => {});
   }
 
   isRefreshing = false;
   document.getElementById('loadingOverlay').classList.add('hidden');
+
+  // ── ALWAYS init trend charts AFTER all data & rendering is settled ──
+  // Use requestAnimationFrame to ensure DOM/canvas layout is complete before Chart.js init
+  requestAnimationFrame(() => {
+    console.log(`📊 Trend init: booked.mtd=${scBookedData.mtd.length}, sales.mtd=${scSalesData.mtd.length}, leads=${allLeads.length}`);
+    trendInitAll().catch(e => console.error('Trend init error:', e));
+  });
 }
 
 ['filterDate', 'filterSource', 'filterCompany', 'filterBranch'].forEach(id => {
