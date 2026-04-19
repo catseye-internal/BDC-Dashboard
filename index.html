@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BDC Dashboard | Catseye & USX Pest</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -1039,6 +1039,12 @@ let allLeads = [];
 let refreshTimer = null;
 let isRefreshing = false; // guard against overlapping refreshes
 
+// ── Mobile Performance ──
+const isMobile = window.innerWidth <= 768 || /Mobi|Android/i.test(navigator.userAgent);
+if (isMobile) console.log('📱 Mobile mode — animations disabled, trend charts lazy-loaded');
+// Flag: trend charts init deferred until visible on mobile
+let trendChartsReady = false;
+
 // ── Quick test: call from browser console → testWorkWave() ──
 window.testWorkWave = async function(take = 3) {
   console.log('🔄 Calling WorkWave via proxy...');
@@ -1386,6 +1392,7 @@ function getFilteredLeads() {
 
 // ── Shared Doughnut Builder ──
 function buildDoughnutChart(canvasId, leads, existingInstance, colorMap, colorFallback, labelFn, centerLabel) {
+  if (typeof Chart === 'undefined') return existingInstance; // Chart.js not loaded yet
   const counts = {};
   leads.forEach(l => {
     const key = labelFn(l);
@@ -1449,6 +1456,7 @@ function buildDoughnutChart(canvasId, leads, existingInstance, colorMap, colorFa
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: isMobile ? false : undefined,
       cutout: '60%',
       layout: { padding: { right: document.body.classList.contains('wallboard') ? 2 : 10 } },
       plugins: {
@@ -2617,7 +2625,7 @@ function trendRender(section, items, from, to, valueField) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      animation: { duration: 300 },
+      animation: isMobile ? false : { duration: 300 },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -2733,7 +2741,28 @@ document.querySelector('.master-trend-apply').addEventListener('click', async ()
 
 // Initial trend render (after data loads)
 async function trendInitAll() {
+  if (typeof Chart === 'undefined') {
+    console.log('⏳ Chart.js not loaded yet, deferring trendInitAll');
+    return;
+  }
+  trendChartsReady = true;
   await Promise.allSettled([trendUpdate('booked'), trendUpdate('sales'), trendUpdate('inbound')]);
+}
+
+// ── Lazy-load trend charts on mobile (IntersectionObserver) ──
+let _trendObserver = null;
+function setupTrendObserver() {
+  if (!isMobile || _trendObserver) return;
+  const target = document.getElementById('masterTrendFilter');
+  if (!target) return;
+  _trendObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !trendChartsReady) {
+      console.log('📊 Trend charts scrolled into view — initializing');
+      trendInitAll().catch(e => console.error('Lazy trend init error:', e));
+      _trendObserver.disconnect();
+    }
+  }, { rootMargin: '200px' }); // start loading 200px before visible
+  _trendObserver.observe(target);
 }
 
 // ── Persistent Cache (localStorage — survives browser close) ──
@@ -2935,11 +2964,15 @@ async function refresh(isInitial) {
   isRefreshing = false;
   document.getElementById('loadingOverlay').classList.add('hidden');
 
-  // ── ALWAYS init trend charts AFTER all data & rendering is settled ──
-  // Use requestAnimationFrame to ensure DOM/canvas layout is complete before Chart.js init
+  // ── Init trend charts AFTER all data & rendering is settled ──
   requestAnimationFrame(() => {
     console.log(`📊 Trend init: booked.mtd=${scBookedData.mtd.length}, sales.mtd=${scSalesData.mtd.length}, leads=${allLeads.length}`);
-    trendInitAll().catch(e => console.error('Trend init error:', e));
+    if (isMobile && !trendChartsReady) {
+      // On mobile: defer trend charts until user scrolls down to them
+      setupTrendObserver();
+    } else {
+      trendInitAll().catch(e => console.error('Trend init error:', e));
+    }
   });
 }
 
