@@ -1,0 +1,2856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BDC Dashboard | Catseye & USX Pest</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1C1A18;
+    --bg-card: #262320;
+    --bg-card-hover: #2E2B27;
+    --bg-table-row: #222019;
+    --bg-table-alt: #1C1A18;
+    --border: #3A3632;
+    --text: #F5F0EB;
+    --text-muted: #9B948A;
+    --text-dim: #6B645A;
+    --orange: #F47B20;
+    --orange-dim: rgba(244, 123, 32, 0.15);
+    --green: #34D399;
+    --green-dim: rgba(52, 211, 153, 0.15);
+    --yellow: #FBBF24;
+    --yellow-dim: rgba(251, 191, 36, 0.15);
+    --red: #F87171;
+    --red-dim: rgba(248, 113, 113, 0.15);
+    --blue: #60A5FA;
+    --blue-dim: rgba(96, 165, 250, 0.15);
+    --gray: #9CA3AF;
+    --gray-dim: rgba(156, 163, 175, 0.15);
+    --purple: #A78BFA;
+    --purple-dim: rgba(167, 139, 250, 0.15);
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: auto;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .header-title span { color: var(--orange); }
+  .header-badge {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--orange); background: var(--orange-dim);
+    padding: 4px 10px; border-radius: 4px;
+  }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .refresh-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .refresh-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .last-updated { font-size: 12px; color: var(--text-dim); }
+
+  /* ── Main Layout ── */
+  .main { padding: 12px 32px; }
+
+  /* ── Section Headers ── */
+  .section-label {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-dim); margin-bottom: 12px;
+  }
+
+  /* ── KPI Grid — Today + MTD side by side ── */
+  .kpi-dual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .kpi-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .kpi-section-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .kpi-section-title .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .kpi-section-title .dot.today { background: var(--orange); }
+  .kpi-section-title .dot.mtd { background: var(--purple); }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .kpi-item { text-align: center; }
+  .kpi-item-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--text-dim); margin-bottom: 6px;
+  }
+  .kpi-item-value {
+    font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1;
+  }
+  .kpi-item-value.orange { color: var(--orange); }
+  .kpi-item-value.yellow { color: var(--yellow); }
+  .kpi-item-value.green { color: var(--green); }
+  .kpi-item-value.blue { color: var(--blue); }
+  .kpi-item-value.red { color: var(--red); }
+  .kpi-item-value.purple { color: var(--purple); }
+  .kpi-item-value.white { color: var(--text); }
+
+  /* ── Charts Row ── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .inbound-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .sc-conv-kpi { display: none; }
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .chart-card-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px;
+  }
+  .chart-container {
+    position: relative;
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chart-dual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .chart-dual-half {}
+  .chart-dual-half .chart-sub-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-dim); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .chart-dual-half .chart-sub-title .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  /* ── Branch Breakdown ── */
+  .branch-grid {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .branch-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 70px;
+    flex: 1;
+  }
+  .branch-count {
+    font-size: 22px; font-weight: 800; color: var(--orange);
+    letter-spacing: -0.5px; line-height: 1;
+  }
+  .branch-name {
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .branch-sub {
+    font-size: 9px; color: var(--text-dim); margin-top: 2px;
+  }
+  .branch-card-conversion {
+    border-color: rgba(251, 191, 36, 0.3);
+    background: rgba(251, 191, 36, 0.06);
+  }
+
+  /* ── Trend Line Charts ── */
+  .trend-block {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; margin-top: 8px;
+  }
+  .trend-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+  }
+  .trend-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted);
+  }
+  .trend-toggle {
+    display: flex; gap: 4px; position: relative;
+  }
+  .trend-btn {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .trend-btn:hover { border-color: var(--text-dim); color: var(--text); }
+  .trend-btn.active {
+    background: var(--orange); color: #fff; border-color: var(--orange);
+  }
+  .trend-date-range {
+    display: none; position: absolute; top: 100%; right: 0; z-index: 100;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; gap: 8px; flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-top: 4px;
+  }
+  .trend-date-range.visible { display: flex; }
+  .trend-chart-wrap {
+    position: relative; height: 180px;
+  }
+
+  /* ── Sales Center Rows (Leads Booked + Sales Closed/Won) ── */
+  .sc-section { margin-bottom: 6px; }
+  .sc-section-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 5px;
+  }
+  .sc-section-title {
+    font-size: 14px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text);
+  }
+  .sc-section-title span { color: var(--orange); }
+  .sc-period-toggle { display: flex; gap: 4px; margin-left: auto; position: relative; }
+  .sc-period-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; padding: 5px 14px; border-radius: 5px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+  }
+  .sc-period-btn.active {
+    background: var(--orange-dim); color: var(--orange); border-color: var(--orange);
+  }
+  .sc-date-range {
+    display: none; position: absolute; top: 100%; right: 0; z-index: 100;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; gap: 8px; flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    margin-top: 4px;
+  }
+  .sc-date-range.visible { display: flex; }
+  .sc-date-row { display: flex; align-items: center; gap: 6px; }
+  .sc-date-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; min-width: 32px; }
+  .sc-date-input {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px; font-weight: 600;
+    padding: 5px 8px; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); cursor: pointer;
+    color-scheme: dark; width: 140px;
+  }
+  .sc-date-input:focus { border-color: var(--orange); outline: none; }
+  .sc-date-apply {
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 6px 16px; border-radius: 5px; border: none; cursor: pointer;
+    background: var(--orange); color: #fff; transition: opacity 0.2s;
+    width: 100%;
+  }
+  .sc-date-apply:hover { opacity: 0.85; }
+  .sc-blocks {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  }
+  .sc-block {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 2px 4px 1px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .sc-block-header {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 2px;
+  }
+  .sc-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .sc-dot.catseye { background: var(--orange); }
+  .sc-dot.usx { background: var(--blue); }
+  .sc-dot.combined { background: var(--green); }
+  .sc-block-label {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted);
+  }
+  /* Hero totals row */
+  .sc-hero {
+    display: flex; gap: 16px; justify-content: space-between;
+    margin-bottom: 18px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sc-hero-item { flex: 1; text-align: center; }
+  .sc-hero-value {
+    font-size: 24px; font-weight: 800; letter-spacing: -0.5px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .sc-hero-value.initial { color: var(--blue); }
+  .sc-hero-value.annual { color: var(--green); }
+  .sc-hero-value.total { color: var(--orange); }
+  .sc-hero-label {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-dim); margin-top: 5px;
+  }
+  /* Branch rows with bars */
+  .sc-branch-list { display: flex; flex-direction: column; gap: 10px; }
+  .sc-branch-row {}
+  .sc-branch-name {
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .sc-branch-total-tag {
+    font-size: 12px; font-weight: 800; color: var(--orange);
+    letter-spacing: -0.3px; font-variant-numeric: tabular-nums;
+  }
+  .sc-bar-track {
+    height: 20px; background: var(--bg); border-radius: 4px;
+    overflow: hidden; display: flex; position: relative;
+  }
+  .sc-bar-seg {
+    height: 100%; transition: width 0.5s ease;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: rgba(0,0,0,0.7);
+    letter-spacing: 0.3px; overflow: hidden; white-space: nowrap;
+    min-width: 0;
+  }
+  .sc-bar-seg.initial { background: var(--blue); }
+  .sc-bar-seg.annual { background: var(--green); }
+  /* Legend */
+  .sc-legend {
+    display: flex; gap: 14px; justify-content: center;
+    margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(58,54,50,0.3);
+  }
+  .sc-legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .sc-legend-swatch {
+    width: 10px; height: 10px; border-radius: 2px;
+  }
+  /* Leads Booked — compact count row */
+  .sc-booked-row {
+    display: flex; align-items: flex-end; justify-content: space-evenly;
+    gap: 0; padding: 2px 0; width: 100%; flex: 1;
+  }
+  .sc-booked-item {
+    text-align: center; flex: 1; padding: 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .sc-booked-count {
+    font-size: 22px; font-weight: 800; color: var(--green);
+    letter-spacing: -0.5px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .sc-booked-label {
+    font-size: 8px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-dim); margin-top: 3px;
+    white-space: nowrap;
+  }
+  .sc-booked-total-item {
+    border-left: 1px solid var(--border);
+  }
+  .sc-booked-total-val { color: var(--orange); }
+  /* Sales cards — branch + company totals */
+  .sc-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0;
+  }
+  .sc-card.sc-card-total {
+    border-color: rgba(244, 123, 32, 0.35);
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(244, 123, 32, 0.06) 100%);
+  }
+  .sc-card-name {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 3px;
+  }
+  .sc-card-total .sc-card-name { color: var(--orange); }
+  .sc-card-metrics {
+    display: flex; justify-content: space-evenly; gap: 8px;
+  }
+  .sc-card-metric { text-align: center; flex: 1; min-width: 0; }
+  .sc-card-val {
+    font-size: 18px; font-weight: 800; letter-spacing: -0.5px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .sc-card-val.initial { color: var(--blue); }
+  .sc-card-val.annual { color: var(--green); }
+  .sc-card-val.total { color: var(--orange); }
+  .sc-card-label {
+    font-size: 8px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--text-dim); margin-top: 2px;
+  }
+  .sc-subcards {
+    display: flex; flex-direction: column; gap: 0;
+    width: 100%;
+  }
+  .sc-subcards .sc-card {
+    background: var(--bg); border-color: rgba(58, 54, 50, 0.5);
+    padding: 4px 0;
+    display: flex; flex-direction: column; justify-content: center;
+    width: 100%; box-sizing: border-box;
+    border-left: none; border-right: none; border-radius: 0;
+    border-top: 1px solid rgba(58, 54, 50, 0.5);
+    border-bottom: none;
+  }
+  .sc-subcards .sc-card:first-child { border-top: none; }
+  .sc-card-total-pinned {
+    margin-top: auto;
+    padding: 3px 0 0 0;
+    border-top: 2px solid rgba(244, 123, 32, 0.4);
+    width: 100%;
+  }
+  .sc-card-total-pinned .sc-card {
+    background: transparent; border: none; border-radius: 0;
+    padding: 4px 0;
+  }
+  .sc-block > div:last-child { flex: 1; display: flex; flex-direction: column; }
+  .sc-no-data {
+    text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 13px;
+    flex: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .sc-loading {
+    text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 13px;
+    flex: 1; display: flex; align-items: center; justify-content: center;
+  }
+
+  .sc-blocks-sales {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  /* ── Sales Center Responsive ── */
+  @media (max-width: 1100px) {
+    .sc-blocks, .sc-blocks-sales { grid-template-columns: 1fr; }
+    .sc-section-header { flex-wrap: wrap; }
+  }
+  @media (max-width: 768px) {
+    .sc-section-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .sc-period-toggle { margin-left: 0; flex-wrap: wrap; }
+    .sc-date-range.visible { margin-top: 4px; }
+    .sc-blocks, .sc-blocks-sales { gap: 8px; }
+    .sc-block { padding: 6px 8px 4px; border-radius: 8px; }
+    .sc-block-header { margin-bottom: 4px; }
+    .sc-block-label { font-size: 11px; }
+    .sc-booked-count { font-size: 22px; }
+    .sc-booked-label { font-size: 8px; }
+    .sc-card-val { font-size: 18px; }
+    .sc-card-name { font-size: 10px; margin-bottom: 6px; }
+    .sc-card-label { font-size: 8px; }
+    .sc-subcards .sc-card { padding: 8px 0; }
+    .sc-card-total-pinned { padding: 8px 0 0 0; }
+  }
+  @media (max-width: 480px) {
+    .sc-booked-count { font-size: 18px; }
+    .sc-booked-label { font-size: 7px; letter-spacing: 0.3px; }
+    .sc-card-val { font-size: 15px; }
+    .sc-card-name { font-size: 9px; }
+    .sc-card-label { font-size: 7px; }
+    .sc-period-btn { font-size: 10px; padding: 4px 10px; }
+    .sc-section-title { font-size: 13px; }
+  }
+
+  /* ── Filters ── */
+  .filter-bar {
+    display: flex; gap: 12px; margin-bottom: 20px;
+    flex-wrap: wrap; align-items: center;
+  }
+  .filter-bar select, .filter-bar input {
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
+    padding: 8px 12px; border-radius: 6px; outline: none; min-width: 140px;
+  }
+  .filter-bar select:focus, .filter-bar input:focus { border-color: var(--orange); }
+  .filter-bar select option { background: var(--bg-card); }
+  .filter-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-dim);
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .sort-btn {
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+    padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--text); cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .sort-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .sort-panel {
+    display: none; position: absolute; top: 100%; right: 0; z-index: 200;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; min-width: 280px; margin-top: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .sort-panel.visible { display: block; }
+  .sort-rule {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+  }
+  .sort-rule select {
+    font-family: 'Inter', sans-serif; font-size: 12px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 8px; border-radius: 5px; outline: none;
+  }
+  .sort-rule select:focus { border-color: var(--orange); }
+  .sort-rule-remove {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: 16px; padding: 0 4px; line-height: 1;
+  }
+  .sort-rule-remove:hover { color: #ef4444; }
+  .sort-add-btn {
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    background: none; border: 1px dashed var(--border); color: var(--text-muted);
+    padding: 5px 10px; border-radius: 5px; cursor: pointer; width: 100%;
+    margin-bottom: 8px;
+  }
+  .sort-add-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .sort-apply-btn {
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700;
+    background: var(--orange); color: #fff; border: none;
+    padding: 6px 16px; border-radius: 6px; cursor: pointer; width: 100%;
+  }
+  .sort-apply-btn:hover { opacity: 0.85; }
+
+  /* ── Table ── */
+  .table-container {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  table { min-width: 1200px; width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: #1A1816; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted);
+    padding: 14px 16px; text-align: left; border-bottom: 2px solid var(--border);
+    white-space: nowrap; position: sticky; top: 0; z-index: 10;
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(58, 54, 50, 0.5); transition: background 0.15s;
+  }
+  tbody tr:hover { background: var(--bg-card-hover); }
+  tbody tr:nth-child(even) { background: var(--bg-table-alt); }
+  tbody tr:nth-child(even):hover { background: var(--bg-card-hover); }
+  td {
+    padding: 12px 16px; white-space: nowrap;
+    max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+  }
+  td.wrap { white-space: normal; max-width: 260px; }
+
+  /* ── Status Badges ── */
+  .status-badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 4px 10px; border-radius: 4px;
+  }
+  .status-open { color: var(--yellow); background: var(--yellow-dim); }
+  .status-booked { color: var(--green); background: var(--green-dim); }
+  .status-disqualified { color: var(--red); background: var(--red-dim); }
+  .status-bdc-sale { color: var(--blue); background: var(--blue-dim); }
+  .status-current-customer { color: var(--gray); background: var(--gray-dim); }
+
+  /* ── Type & Source Badges ── */
+  .source-badge {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 3px 8px; border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .no-data {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-dim); font-size: 15px;
+  }
+
+  /* ── Loading ── */
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: rgba(28, 26, 24, 0.85);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border); border-top: 3px solid var(--orange);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-overlay.hidden { display: none; }
+
+  /* ── View Toggle Tabs ── */
+  .view-tabs {
+    display: flex; gap: 2px; background: var(--bg); border-radius: 6px;
+    padding: 2px; border: 1px solid var(--border);
+  }
+  .view-tab {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; padding: 6px 18px; border-radius: 4px;
+    border: none; background: transparent;
+    color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+  }
+  .view-tab.active {
+    background: var(--orange-dim); color: var(--orange);
+  }
+  .view-tab:hover:not(.active) { color: var(--text); }
+  .view-container { display: none; }
+  .view-container.active { display: block; }
+
+  /* ── Wallboard Mode (?wallboard) — fills exactly one screen ── */
+  body.wallboard { overflow: hidden; }
+  body.wallboard .header { padding: 8px 32px; }
+  body.wallboard .header-title { font-size: 20px; }
+  body.wallboard .main { padding: 8px 32px 4px; height: calc(100vh - 46px); overflow: hidden; }
+  body.wallboard #viewDashboard {
+    display: flex; flex-direction: column; height: 100%;
+  }
+  body.wallboard #viewDashboard.active { display: flex; }
+  body.wallboard .sc-section { margin-bottom: 4px; flex-shrink: 0; }
+  body.wallboard .sc-section-header { margin-bottom: 4px; }
+  body.wallboard .sc-section-title { font-size: 13px; }
+  body.wallboard .sc-blocks { gap: 6px; align-items: stretch; }
+  body.wallboard .sc-block { justify-content: center; min-height: 52px; }
+  body.wallboard .sc-card-val { font-size: 16px; }
+  body.wallboard .sc-card-name { font-size: 9px; margin-bottom: 1px; }
+  body.wallboard .sc-card-label { font-size: 7px; margin-top: 1px; }
+  body.wallboard .sc-booked-label { font-size: 8px; }
+  body.wallboard .sc-period-btn { font-size: 8px; padding: 3px 8px; letter-spacing: 0.5px; }
+  body.wallboard .sc-date-range { font-size: 10px; }
+  body.wallboard .sc-date-input { font-size: 10px; padding: 3px 4px; }
+  body.wallboard .sc-date-apply { font-size: 9px; padding: 4px 10px; }
+  body.wallboard .sc-period-toggle { gap: 3px; }
+  body.wallboard .sc-subcards .sc-card { padding: 3px 0; }
+  body.wallboard .sc-card-total-pinned { padding: 2px 0 0 0; }
+  body.wallboard .sc-card-metrics { gap: 2px; }
+  body.wallboard .sc-booked-count { font-size: 20px; }
+
+  body.wallboard .trend-block { display: none; }
+
+  /* Inbound section fills remaining space */
+  body.wallboard div[style*="border-top"] { margin: 2px 0 2px !important; }
+  body.wallboard .sc-section-header[style] { margin-bottom: 2px !important; }
+  body.wallboard .inbound-row {
+    gap: 6px; margin-bottom: 2px; flex: 1; min-height: 0; overflow: hidden;
+  }
+  body.wallboard .chart-card {
+    padding: 4px 8px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  body.wallboard .chart-card-title { font-size: 12px; margin-bottom: 4px; }
+  body.wallboard .chart-container { flex: 1; min-height: 0; height: auto; }
+  body.wallboard .chart-dual-half .chart-sub-title { display: none; }
+  body.wallboard .inbound-branch-card { display: none; }
+  body.wallboard .inbound-row { grid-template-columns: 1fr 1fr; }
+  body.wallboard .sc-conv-kpi { display: block; }
+
+  /* Leads view in wallboard mode */
+  body.wallboard #viewLeads {
+    display: flex; flex-direction: column; height: 100%;
+  }
+  body.wallboard #viewLeads.active { display: flex; }
+  body.wallboard .filter-bar { flex-shrink: 0; margin-bottom: 8px; }
+  body.wallboard .table-container { flex: 1; overflow-y: auto; min-height: 0; }
+
+  /* ── Responsive ── */
+  @media (max-width: 1200px) {
+    .kpi-dual { grid-template-columns: 1fr; }
+    .inbound-row { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+    .chart-dual { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .header { flex-direction: column; gap: 8px; padding: 12px 16px; }
+    .header-left { flex-wrap: wrap; justify-content: center; }
+    .header-title { font-size: 18px; }
+    .header-right { flex-wrap: wrap; justify-content: center; }
+    .main { padding: 12px; }
+    .filter-bar { flex-direction: column; }
+    table { min-width: 800px; font-size: 12px; }
+    .view-tab { font-size: 11px; padding: 5px 14px; }
+    .sc-blocks, .sc-blocks-sales { grid-template-columns: 1fr !important; }
+    .inbound-row { grid-template-columns: 1fr 1fr !important; }
+    .chart-container { height: 130px; }
+    .chart-card { padding: 8px 12px; }
+    .chart-card-title { font-size: 11px; margin-bottom: 4px; }
+    .branch-grid { gap: 4px; }
+    .branch-item { padding: 4px 6px; }
+    .trend-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .trend-toggle { flex-wrap: wrap; }
+    .trend-chart-wrap { height: 150px; }
+    .sc-section { margin-bottom: 4px; }
+    .sc-section-header { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .sc-period-toggle { margin-left: 0; flex-wrap: wrap; }
+  }
+  @media (max-width: 480px) {
+    .header { padding: 10px 12px; }
+    .header-title { font-size: 16px; }
+    .header-badge { font-size: 9px; padding: 3px 8px; }
+    .header-right { font-size: 10px; }
+    .main { padding: 8px; }
+    table { min-width: 600px; font-size: 11px; }
+    th, td { padding: 6px 8px; }
+    .view-tab { font-size: 10px; padding: 4px 12px; }
+    .sc-section-title { font-size: 12px; }
+    .sc-period-btn { font-size: 9px; padding: 3px 8px; }
+    .trend-btn { font-size: 9px; padding: 3px 8px; }
+    .trend-chart-wrap { height: 130px; }
+    .inbound-row { grid-template-columns: 1fr !important; }
+    .chart-container { height: 110px; }
+    .inbound-branch-card { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-title"><span>BDC</span> Dashboard</div>
+    <div class="header-badge">Live</div>
+    <div class="view-tabs">
+      <button class="view-tab active" data-view="dashboard">Dashboard</button>
+      <button class="view-tab" data-view="leads">Leads</button>
+      <button class="view-tab" data-view="wallboard">Wallboard</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="refresh-indicator">
+      <div class="refresh-dot"></div>
+      <span>Auto-refresh 60s</span>
+    </div>
+    <div class="last-updated" id="lastUpdated"></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- VIEW 1: DASHBOARD (wallboard / KPIs)   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="view-container active" id="viewDashboard">
+
+  <!-- ══ ROW 1: Leads Booked ══ -->
+  <div class="sc-section" id="scLeadsBooked">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Leads</span> Booked</div>
+      <div class="sc-period-toggle">
+        <button class="sc-period-btn" data-section="booked" data-period="yesterday">Yesterday</button>
+        <button class="sc-period-btn active" data-section="booked" data-period="today">Today</button>
+        <button class="sc-period-btn" data-section="booked" data-period="wk">WK</button>
+        <button class="sc-period-btn" data-section="booked" data-period="mtd">MTD</button>
+        <button class="sc-period-btn" data-section="booked" data-period="ytd">YTD</button>
+        <button class="sc-period-btn" data-section="booked" data-period="custom">Custom</button>
+        <div class="sc-date-range" id="dateRangeBooked">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromBooked"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToBooked"></div>
+          <button class="sc-date-apply" data-section="booked">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="sc-blocks">
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot catseye"></div><div class="sc-block-label">Catseye</div></div>
+        <div id="bookedCatseye" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot usx"></div><div class="sc-block-label">USX Pest</div></div>
+        <div id="bookedUSX" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
+        <div id="bookedCombined" class="sc-loading">Loading...</div>
+      </div>
+    </div>
+    <!-- Conv % (wallboard only) -->
+    <div class="sc-conv-kpi" id="bookedConvKpi" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin-top:6px;text-align:center;">
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--yellow);">Conv %</span>
+      <span id="bookedConvPct" style="font-size:22px;font-weight:800;color:var(--yellow);margin-left:8px;"></span>
+    </div>
+  </div>
+
+  <!-- ══ ROW 2: Sales Closed/Won ══ -->
+  <div class="sc-section" id="scSalesClosed">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Sales</span> Closed/Won</div>
+      <div class="sc-period-toggle">
+        <button class="sc-period-btn" data-section="sales" data-period="yesterday">Yesterday</button>
+        <button class="sc-period-btn active" data-section="sales" data-period="today">Today</button>
+        <button class="sc-period-btn" data-section="sales" data-period="wk">WK</button>
+        <button class="sc-period-btn" data-section="sales" data-period="mtd">MTD</button>
+        <button class="sc-period-btn" data-section="sales" data-period="ytd">YTD</button>
+        <button class="sc-period-btn" data-section="sales" data-period="custom">Custom</button>
+        <div class="sc-date-range" id="dateRangeSales">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromSales"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToSales"></div>
+          <button class="sc-date-apply" data-section="sales">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="sc-blocks sc-blocks-sales">
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot catseye"></div><div class="sc-block-label">Catseye</div></div>
+        <div id="salesCatseye" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot usx"></div><div class="sc-block-label">USX Pest</div></div>
+        <div id="salesUSX" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
+        <div id="salesCombined" class="sc-loading">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Divider between Sales Center rows and BDC Leads ── -->
+  <div style="border-top: 2px solid var(--border); margin: 8px 0 12px; opacity: 0.5;"></div>
+  <div class="sc-section" id="scInboundLeads">
+    <div class="sc-section-header" style="margin-bottom: 8px;">
+      <div class="sc-section-title"><span>Inbound</span> Leads</div>
+      <div class="sc-period-toggle">
+        <button class="sc-period-btn" data-section="inbound" data-period="yesterday">Yesterday</button>
+        <button class="sc-period-btn active" data-section="inbound" data-period="today">Today</button>
+        <button class="sc-period-btn" data-section="inbound" data-period="wk">WK</button>
+        <button class="sc-period-btn" data-section="inbound" data-period="mtd">MTD</button>
+        <button class="sc-period-btn" data-section="inbound" data-period="ytd">YTD</button>
+        <button class="sc-period-btn" data-section="inbound" data-period="custom">Custom</button>
+        <div class="sc-date-range" id="dateRangeInbound">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromInbound"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToInbound"></div>
+          <button class="sc-date-apply" data-section="inbound">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Inbound Leads: side-by-side blocks ── -->
+  <div class="inbound-row">
+    <div class="chart-card">
+      <div class="chart-card-title">Leads by Type</div>
+      <div class="chart-container" style="flex:1;min-height:0;">
+        <canvas id="typeChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Leads by Source</div>
+      <div class="chart-container" style="flex:1;min-height:0;">
+        <canvas id="sourceChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card inbound-branch-card">
+      <div class="chart-card-title">Count by Branch</div>
+      <div class="branch-grid" id="branchGrid">
+        <div class="no-data" style="padding:40px">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Trend Line Charts (bottom of Dashboard) ── -->
+  <div style="border-top: 2px solid var(--border); margin: 12px 0 8px; opacity: 0.5;"></div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Booked</span> Trend</div>
+      <div class="trend-toggle">
+        <button class="trend-btn" data-trend="booked" data-range="wk">WK</button>
+        <button class="trend-btn active" data-trend="booked" data-range="mtd">MTD</button>
+        <button class="trend-btn" data-trend="booked" data-range="ytd">YTD</button>
+        <button class="trend-btn" data-trend="booked" data-range="custom">Custom</button>
+        <div class="trend-date-range" id="trendDateRangeBooked">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromBooked"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToBooked"></div>
+          <button class="sc-date-apply trend-apply" data-trend="booked">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartBooked"></canvas></div>
+  </div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Sales</span> Trend</div>
+      <div class="trend-toggle">
+        <button class="trend-btn" data-trend="sales" data-range="wk">WK</button>
+        <button class="trend-btn active" data-trend="sales" data-range="mtd">MTD</button>
+        <button class="trend-btn" data-trend="sales" data-range="ytd">YTD</button>
+        <button class="trend-btn" data-trend="sales" data-range="custom">Custom</button>
+        <div class="trend-date-range" id="trendDateRangeSales">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromSales"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToSales"></div>
+          <button class="sc-date-apply trend-apply" data-trend="sales">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartSales"></canvas></div>
+  </div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Leads</span> Trend</div>
+      <div class="trend-toggle">
+        <button class="trend-btn" data-trend="inbound" data-range="wk">WK</button>
+        <button class="trend-btn active" data-trend="inbound" data-range="mtd">MTD</button>
+        <button class="trend-btn" data-trend="inbound" data-range="ytd">YTD</button>
+        <button class="trend-btn" data-trend="inbound" data-range="custom">Custom</button>
+        <div class="trend-date-range" id="trendDateRangeInbound">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromInbound"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToInbound"></div>
+          <button class="sc-date-apply trend-apply" data-trend="inbound">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartInbound"></canvas></div>
+  </div>
+
+  </div><!-- /viewDashboard -->
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- VIEW 2: LEADS (table + filters)        -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="view-container" id="viewLeads">
+
+  <!-- ── Filters ── -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Date</span>
+      <select id="filterDate">
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+        <option value="all" selected>All Time</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Type</span>
+      <select id="filterSource">
+        <option value="all">All Types</option>
+        <option value="CallRail">Calls</option>
+        <option value="Podium">Texts</option>
+        <option value="Webform">Webforms</option>
+        <option value="LSA">LSA</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Company</span>
+      <select id="filterCompany">
+        <option value="all">All</option>
+        <option value="Catseye">Catseye</option>
+        <option value="USX">USX</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Branch</span>
+      <select id="filterBranch">
+        <option value="all">All Branches</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Search</span>
+      <input type="text" id="filterSearch" placeholder="Name, phone...">
+    </div>
+    <div class="filter-group" style="margin-left:auto;">
+      <span class="filter-label">Sort</span>
+      <div style="position:relative;">
+        <button id="sortToggle" class="sort-btn" onclick="toggleSortPanel()">Date ↓ <span style="font-size:10px;opacity:0.6;margin-left:4px;">▾</span></button>
+        <div id="sortPanel" class="sort-panel">
+          <div id="sortRules"></div>
+          <button class="sort-add-btn" onclick="addSortRule()">+ Add sort</button>
+          <button class="sort-apply-btn" onclick="applySortRules()">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Lead Table ── -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Medium</th>
+          <th>Customer</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>City/State</th>
+          <th>Pest Problem</th>
+          <th>Branch</th>
+        </tr>
+      </thead>
+      <tbody id="leadTableBody">
+        <tr><td colspan="11" class="no-data">Loading leads...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  </div><!-- /viewLeads -->
+
+</div><!-- /main -->
+
+<script>
+// ── PASTE YOUR DEPLOYED APPS SCRIPT URL HERE ──
+const API_URL = 'https://script.google.com/macros/s/AKfycbxeTKxUYTQAre70xrSur8fUwc7bv7yqwt29kvzGDwGy7-bM7So1WlR6rIgsiKORUXe4Zg/exec';
+const API_TOKEN = 'catseye-bdc-2026';
+
+let allLeads = [];
+// chart instances managed inside renderTypeChart / renderSourceChart
+let refreshTimer = null;
+let isRefreshing = false; // guard against overlapping refreshes
+
+// ── Quick test: call from browser console → testWorkWave() ──
+window.testWorkWave = async function(take = 3) {
+  console.log('🔄 Calling WorkWave via proxy...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        token: API_TOKEN,
+        action: 'workwave_opportunities',
+        take: take
+      })
+    });
+    const json = await res.json();
+    if (json.error) {
+      console.error('❌ Error:', json.error, json.details || '');
+      return json;
+    }
+    console.log('✅ Success! Response shape:', json);
+    if (json.data && Array.isArray(json.data)) {
+      console.log('📋 Records returned:', json.data.length);
+      if (json.data[0]) console.log('📄 First record fields:', Object.keys(json.data[0]));
+      console.table(json.data.slice(0, 3));
+    } else if (json.data) {
+      console.log('📋 Data type:', typeof json.data);
+      console.log('📄 Data keys:', Object.keys(json.data));
+      if (json.data.items) {
+        console.log('📋 Items count:', json.data.items.length);
+        if (json.data.items[0]) console.log('📄 First item fields:', Object.keys(json.data.items[0]));
+        console.table(json.data.items.slice(0, 3));
+      }
+    }
+    return json;
+  } catch (err) {
+    console.error('❌ Fetch failed:', err.message);
+    return { error: err.message };
+  }
+};
+
+// ── CSV Parser ──
+function parseCSV(csv) {
+  const rows = [];
+  let current = '', inQuotes = false, row = [];
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+    if (inQuotes) {
+      if (ch === '"' && csv[i + 1] === '"') { current += '"'; i++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { row.push(current.trim()); current = ''; }
+      else if (ch === '\n' || (ch === '\r' && csv[i + 1] === '\n')) {
+        row.push(current.trim()); current = '';
+        if (row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
+        if (ch === '\r') i++;
+      } else { current += ch; }
+    }
+  }
+  if (current || row.length) { row.push(current.trim()); rows.push(row); }
+  return rows;
+}
+
+// ── Fetch Data ──
+async function fetchLeads() {
+  try {
+    const t0 = performance.now();
+    const url = `${API_URL}?token=${API_TOKEN}`;
+    const resp = await fetch(url);
+    console.log(`⏱️ fetchLeads network: ${((performance.now() - t0)/1000).toFixed(1)}s`);
+    console.log('🔍 Leads response status:', resp.status);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    console.log('🔍 Leads response (first 500 chars):', text.substring(0, 500));
+    const data = JSON.parse(text);
+    if (!Array.isArray(data) || data.length === 0) {
+      console.warn('⚠️ Leads data is empty or not an array. Type:', typeof data, 'IsArray:', Array.isArray(data));
+      if (data && data.error) console.error('⚠️ API returned error:', data.error);
+      allLeads = [];
+      return;
+    }
+    console.log('🔍 Raw leads count:', data.length);
+    allLeads = data.filter(l => l.DATE_RECEIVED || l.CUSTOMER_NAME || l.PHONE);
+    // Dedup Podium leads: keep only the first message per contact per day
+    const podiumSeen = new Set();
+    allLeads = allLeads.filter(l => {
+      if (l.LEAD_SOURCE !== 'Podium') return true;
+      const key = `${(l.CUSTOMER_NAME||'').trim().toLowerCase()}|${l.DATE_RECEIVED||''}`;
+      if (podiumSeen.has(key)) return false;
+      podiumSeen.add(key);
+      return true;
+    });
+    allLeads.sort((a, b) => parseLeadDate(b) - parseLeadDate(a));
+    console.log('✅ Final allLeads count:', allLeads.length);
+  } catch (err) { console.error('❌ Fetch error:', err); }
+}
+
+function parseLeadDate(lead) {
+  try {
+    const raw = lead.DATE_RECEIVED || '';
+    if (!raw) return 0;
+    let d;
+
+    // Format 1: "M/d/yyyy" (e.g., "4/14/2026")
+    const parts = raw.split('/');
+    if (parts.length === 3 && parts[0].length <= 2) {
+      d = new Date(`${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}T00:00:00`);
+    } else {
+      // Format 2: Full date string (e.g., "Tue Apr 14 2026 00:00:00 GMT-0400 ...")
+      d = new Date(raw);
+    }
+
+    if (isNaN(d.getTime())) return 0;
+
+    const timeStr = lead.TIME_RECEIVED || '';
+    if (timeStr) {
+      // Try parsing as full datetime first
+      const td = new Date(timeStr);
+      if (!isNaN(td.getTime())) {
+        d.setHours(td.getHours(), td.getMinutes(), td.getSeconds());
+      } else {
+        // Try "H:MM AM" or "H:MMAM" format
+        const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (match) {
+          let h = parseInt(match[1]); const m = parseInt(match[2]);
+          const ampm = match[3].toUpperCase();
+          if (ampm === 'PM' && h < 12) h += 12;
+          if (ampm === 'AM' && h === 12) h = 0;
+          d.setHours(h, m);
+        }
+      }
+    }
+    return d.getTime();
+  } catch { return 0; }
+}
+
+// ── Time Helpers ──
+function getStartOfToday() {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+}
+function getStartOfMonth() {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), 1).getTime();
+}
+
+function getStartOfYesterday() {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1).getTime();
+}
+function getStartOfYear() {
+  const n = new Date();
+  return new Date(n.getFullYear(), 0, 1).getTime();
+}
+
+function filterByPeriod(leads, period) {
+  if (period === 'today') {
+    const start = getStartOfToday();
+    return leads.filter(l => parseLeadDate(l) >= start);
+  }
+  if (period === 'yesterday') {
+    const start = getStartOfYesterday();
+    const end = getStartOfToday();
+    return leads.filter(l => { const t = parseLeadDate(l); return t >= start && t < end; });
+  }
+  if (period === 'wk') {
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+    start.setHours(0,0,0,0);
+    return leads.filter(l => parseLeadDate(l) >= start);
+  }
+  if (period === 'mtd') {
+    const start = getStartOfMonth();
+    return leads.filter(l => parseLeadDate(l) >= start);
+  }
+  if (period === 'ytd') {
+    const start = getStartOfYear();
+    return leads.filter(l => parseLeadDate(l) >= start);
+  }
+  // fallback: all
+  return leads;
+}
+
+function getInboundFilteredLeads() {
+  if (inboundPeriod === 'custom') {
+    const from = document.getElementById('dateFromInbound').value;
+    const to = document.getElementById('dateToInbound').value;
+    if (!from && !to) return allLeads;
+    return allLeads.filter(l => {
+      const ts = parseLeadDate(l);
+      if (!ts) return false;
+      const d = new Date(ts);
+      const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      if (from && ds < from) return false;
+      if (to && ds > to) return false;
+      return true;
+    });
+  }
+  return filterByPeriod(allLeads, inboundPeriod);
+}
+
+// ── Multi-Column Sort ──
+const SORT_COLUMNS = [
+  { key: 'date', label: 'Date' },
+  { key: 'time', label: 'Time' },
+  { key: 'company', label: 'Company' },
+  { key: 'type', label: 'Type' },
+  { key: 'medium', label: 'Medium' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'city', label: 'City/State' },
+  { key: 'pest', label: 'Pest Problem' },
+  { key: 'branch', label: 'Branch' }
+];
+
+let sortRules = [{ column: 'date', dir: 'desc' }];
+
+function toggleSortPanel() {
+  const panel = document.getElementById('sortPanel');
+  panel.classList.toggle('visible');
+  if (panel.classList.contains('visible')) renderSortRules();
+}
+
+function renderSortRules() {
+  const container = document.getElementById('sortRules');
+  container.innerHTML = sortRules.map((rule, i) => {
+    const colOpts = SORT_COLUMNS.map(c =>
+      `<option value="${c.key}" ${c.key === rule.column ? 'selected' : ''}>${c.label}</option>`
+    ).join('');
+    return `<div class="sort-rule">
+      <select onchange="sortRules[${i}].column=this.value">${colOpts}</select>
+      <select onchange="sortRules[${i}].dir=this.value">
+        <option value="asc" ${rule.dir === 'asc' ? 'selected' : ''}>A→Z / 0→9</option>
+        <option value="desc" ${rule.dir === 'desc' ? 'selected' : ''}>Z→A / 9→0</option>
+      </select>
+      ${sortRules.length > 1 ? `<button class="sort-rule-remove" onclick="removeSortRule(${i})">×</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function addSortRule() {
+  const used = sortRules.map(r => r.column);
+  const next = SORT_COLUMNS.find(c => !used.includes(c.key));
+  if (next) { sortRules.push({ column: next.key, dir: 'asc' }); renderSortRules(); }
+}
+
+function removeSortRule(i) {
+  sortRules.splice(i, 1);
+  renderSortRules();
+}
+
+function applySortRules() {
+  document.getElementById('sortPanel').classList.remove('visible');
+  updateSortLabel();
+  render();
+}
+
+function updateSortLabel() {
+  const btn = document.getElementById('sortToggle');
+  if (sortRules.length === 1) {
+    const col = SORT_COLUMNS.find(c => c.key === sortRules[0].column);
+    const arrow = sortRules[0].dir === 'desc' ? '↓' : '↑';
+    btn.innerHTML = `${col ? col.label : ''} ${arrow} <span style="font-size:10px;opacity:0.6;margin-left:4px;">▾</span>`;
+  } else {
+    btn.innerHTML = `${sortRules.length} sorts <span style="font-size:10px;opacity:0.6;margin-left:4px;">▾</span>`;
+  }
+}
+
+function getSortValue(lead, key) {
+  switch (key) {
+    case 'date': return parseLeadDate(lead) || 0;
+    case 'time': return parseLeadDate(lead) || 0;
+    case 'company': return (companyFromLead(lead) || '').toLowerCase();
+    case 'type': return (lead.LEAD_SOURCE || '').toLowerCase();
+    case 'medium': return (lead.MEDIUM || '').toLowerCase();
+    case 'customer': return (lead.CUSTOMER_NAME || '').toLowerCase();
+    case 'city': return (lead.CITY_STATE || '').toLowerCase();
+    case 'pest': return (lead.PEST_PROBLEM || '').toLowerCase();
+    case 'branch': return (abbrevBranch(lead.BRANCH, lead) || '').toLowerCase();
+    default: return '';
+  }
+}
+
+function multiSort(a, b) {
+  for (const rule of sortRules) {
+    const va = getSortValue(a, rule.column);
+    const vb = getSortValue(b, rule.column);
+    let cmp = 0;
+    if (typeof va === 'number' && typeof vb === 'number') {
+      cmp = va - vb;
+    } else {
+      cmp = String(va).localeCompare(String(vb));
+    }
+    if (cmp !== 0) return rule.dir === 'desc' ? -cmp : cmp;
+  }
+  return 0;
+}
+
+// Close sort panel on outside click
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('sortPanel');
+  if (panel && !e.target.closest('.filter-group') && panel.classList.contains('visible')) {
+    panel.classList.remove('visible');
+  }
+});
+
+// ── Filters ──
+function getFilteredLeads() {
+  const dateFilter = document.getElementById('filterDate').value;
+  const sourceFilter = document.getElementById('filterSource').value;
+  const companyFilter = document.getElementById('filterCompany').value;
+  const branchFilter = document.getElementById('filterBranch').value;
+  const search = document.getElementById('filterSearch').value.toLowerCase();
+  const now = new Date();
+
+  return allLeads.filter(lead => {
+    if (dateFilter !== 'all') {
+      const leadDate = parseLeadDate(lead);
+      if (!leadDate) return false;
+      const sot = getStartOfToday();
+      if (dateFilter === 'today' && leadDate < sot) return false;
+      if (dateFilter === 'yesterday') {
+        if (leadDate < sot - 86400000 || leadDate >= sot) return false;
+      }
+      if (dateFilter === '7d' && leadDate < sot - 7 * 86400000) return false;
+      if (dateFilter === '30d' && leadDate < sot - 30 * 86400000) return false;
+    }
+    if (sourceFilter !== 'all') {
+      if (sourceFilter === 'LSA') {
+        const m = (lead.MEDIUM || '').toLowerCase();
+        if (!m.includes('lsa') && !m.includes('local service ad')) return false;
+      } else if (lead.LEAD_SOURCE !== sourceFilter) return false;
+    }
+    if (companyFilter !== 'all' && companyFromLead(lead) !== companyFilter) return false;
+    if (branchFilter !== 'all' && abbrevBranch(lead.BRANCH, lead) !== branchFilter) return false;
+    if (search) {
+      const s = [lead.CUSTOMER_NAME, lead.PHONE, lead.EMAIL, lead.CITY_STATE, lead.PEST_PROBLEM, lead.NOTES, lead.MEDIUM, lead.COMPANY].join(' ').toLowerCase();
+      if (!s.includes(search)) return false;
+    }
+    return true;
+  }).sort(multiSort);
+}
+
+// (KPI block removed — Leads Booked / Sales now handled by Sales Center rows)
+
+// ── Shared Doughnut Builder ──
+function buildDoughnutChart(canvasId, leads, existingInstance, colorMap, colorFallback, labelFn, centerLabel) {
+  const counts = {};
+  leads.forEach(l => {
+    const key = labelFn(l);
+    counts[key] = (counts[key] || 0) + 1;
+  });
+
+  const labels = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const data = labels.map(l => counts[l]);
+  const colors = labels.map(l => colorMap[l] || colorFallback);
+
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  if (existingInstance) existingInstance.destroy();
+
+  if (data.length === 0) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = '#6B645A';
+    ctx.font = '14px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText('No data yet', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    return null;
+  }
+
+  const total = data.reduce((a, b) => a + b, 0);
+  const centerTextPlugin = {
+    id: 'centerText_' + canvasId,
+    afterDraw: function(chart) {
+      const { ctx: c } = chart;
+      c.save();
+      const chartH = chart.chartArea.bottom - chart.chartArea.top;
+      const numSz = Math.max(12, Math.min(18, chartH * 0.18));
+      const lblSz = Math.max(6, Math.min(8, chartH * 0.08));
+      c.font = '800 ' + numSz + 'px Inter';
+      c.fillStyle = '#F5F0EB';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+      const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+      c.fillText(total, centerX, centerY - lblSz * 0.5);
+      c.font = '600 ' + lblSz + 'px Inter';
+      c.fillStyle = '#9B948A';
+      c.fillText(centerLabel || 'LEADS', centerX, centerY + numSz * 0.6);
+      c.restore();
+    }
+  };
+
+  return new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: colors,
+        borderColor: '#1C1A18',
+        borderWidth: 3,
+        hoverBorderColor: '#F5F0EB',
+        hoverBorderWidth: 2,
+        borderRadius: 3,
+      }]
+    },
+    plugins: [centerTextPlugin],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      layout: { padding: { right: document.body.classList.contains('wallboard') ? 2 : 10 } },
+      plugins: {
+        legend: {
+          position: document.body.classList.contains('wallboard') ? 'bottom' : 'right',
+          align: 'start',
+          labels: {
+            color: '#F5F0EB',
+            font: { family: 'Inter', size: document.body.classList.contains('wallboard') ? 11 : 11, weight: '600' },
+            padding: document.body.classList.contains('wallboard') ? 6 : 10,
+            usePointStyle: true,
+            pointStyleWidth: document.body.classList.contains('wallboard') ? 8 : 10,
+            generateLabels: function(chart) {
+              const dataset = chart.data.datasets[0];
+              const t = dataset.data.reduce((a, b) => a + b, 0);
+              const wb = document.body.classList.contains('wallboard');
+              return chart.data.labels.map((label, i) => {
+                const pct = t ? Math.round(dataset.data[i]/t*100) : 0;
+                return {
+                  text: `${label}  ${dataset.data[i]}  (${pct}%)`,
+                  fillStyle: dataset.backgroundColor[i],
+                  strokeStyle: 'transparent',
+                  fontColor: '#F5F0EB',
+                  pointStyle: 'rectRounded',
+                  index: i,
+                };
+              });
+            }
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(38, 35, 32, 0.95)',
+          titleColor: '#F5F0EB',
+          bodyColor: '#F5F0EB',
+          borderColor: 'rgba(244, 123, 32, 0.3)',
+          borderWidth: 1,
+          titleFont: { family: 'Inter', size: 13, weight: '700' },
+          bodyFont: { family: 'Inter', size: 12 },
+          padding: 14,
+          cornerRadius: 8,
+          displayColors: true,
+          boxWidth: 10,
+          boxHeight: 10,
+          boxPadding: 6,
+          callbacks: {
+            label: function(ctx) {
+              const t = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = t ? Math.round(ctx.raw / t * 100) : 0;
+              return ` ${ctx.raw} leads  (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Leads by Type (Calls / Texts / Webforms) ──
+const TYPE_COLORS = {
+  'Call': '#F47B20',
+  'Text': '#60A5FA',
+  'Form': '#A78BFA',
+  'LSA': '#34D399',
+};
+const TYPE_FALLBACK = '#9CA3AF';
+const TYPE_MAP = {'CallRail':'Call', 'Podium':'Text', 'Webform':'Form', 'LSA':'LSA'};
+
+let typeChartInstance = null;
+
+const PERIOD_LABELS = { today: 'TODAY', yesterday: 'YESTERDAY', wk: 'WK', mtd: 'MTD', ytd: 'YTD', custom: 'CUSTOM' };
+
+function renderTypeChart() {
+  const leads = getInboundFilteredLeads();
+  typeChartInstance = buildDoughnutChart('typeChart', leads, typeChartInstance, TYPE_COLORS, TYPE_FALLBACK, l => TYPE_MAP[l.LEAD_SOURCE] || l.LEAD_SOURCE || 'Other', PERIOD_LABELS[inboundPeriod] || 'TODAY');
+}
+
+// ── Leads by Source (LSA / Paid / Organic / Direct / etc.) ──
+const MKTG_COLORS = {
+  'LSA': '#34D399',
+  'Paid': '#F47B20',
+  'Organic': '#60A5FA',
+  'Direct': '#FBBF24',
+  'Listings': '#9CA3AF',
+  'Webchat': '#A78BFA',
+  'Webform': '#EC4899',
+  'Other': '#6B645A',
+};
+const MKTG_FALLBACK = '#6B645A';
+
+function categorizeSource(medium, leadSource) {
+  if ((!medium || medium === '') && leadSource === 'Webform') return 'Webform';
+  if (!medium || medium === '') return 'Direct';
+  const m = medium.toLowerCase();
+  if (m.includes('lsa') || m.includes('local service ad')) return 'LSA';
+  if (m.includes('paid') || m.includes('ppc') || m.includes('pmax') || m.includes('google ads')) return 'Paid';
+  if (m.includes('organic') || m.includes('gmb')) return 'Organic';
+  if (m.includes('online listings') || m.includes('traditional')) return 'Listings';
+  if (m === 'webchat') return 'Webchat';
+  if (m.includes('form submission') || m.includes('schedule inspection') || m.includes('contact form') || m.includes('request a call') || m.includes('catseyepest.com') || m.includes('usxpest.com')) return 'Webform';
+  if (m.includes('1-855') || m.includes('toll-free') || m.includes('toll free') || m.includes('website pool') || m.includes('national general') || m.includes('us exclusion') || m.includes('office number') || m.includes('online phone') || m.includes('providence online') || m.includes('local number')) return 'Direct';
+  return 'Direct';
+}
+
+let sourceChartInstance = null;
+
+function renderSourceChart() {
+  const leads = getInboundFilteredLeads();
+  sourceChartInstance = buildDoughnutChart('sourceChart', leads, sourceChartInstance, MKTG_COLORS, MKTG_FALLBACK, l => categorizeSource(l.MEDIUM, l.LEAD_SOURCE), PERIOD_LABELS[inboundPeriod] || 'TODAY');
+}
+
+// ── Zip-Code Territory Lookup ──
+// USX covers: Upstate NY (Warren, Washington, Saratoga, Fulton, Montgomery,
+//   Schenectady, Albany, Greene, Columbia, Dutchess, Ulster, Rensselaer)
+//   + Western MA (Berkshire, Franklin, Hampshire, Hampden)
+// Catseye covers: rest of MA, all of RI, all of CT, Southern NH (south of Concord)
+
+const USX_ZIP_RANGES = [
+  // ── Upstate NY counties ──
+  // Albany County
+  [12007,12007],[12009,12009],[12023,12023],[12041,12041],[12045,12047],[12054,12054],
+  [12059,12059],[12067,12067],[12077,12077],[12084,12084],[12107,12110],[12120,12120],
+  [12128,12128],[12143,12143],[12158,12161],[12183,12183],[12186,12186],[12189,12189],
+  [12193,12193],[12201,12212],[12214,12214],[12220,12220],[12222,12228],[12230,12233],
+  [12234,12234],[12236,12237],[12238,12242],[12243,12246],[12247,12250],[12255,12257],
+  [12260,12261],
+  // Rensselaer County
+  [12017,12017],[12033,12033],[12040,12040],[12052,12052],[12056,12056],[12061,12061],
+  [12070,12070],[12121,12121],[12138,12138],[12144,12144],[12148,12148],[12153,12154],
+  [12168,12169],[12173,12173],[12175,12175],[12180,12182],[12185,12185],[12196,12196],
+  // Saratoga County
+  [12008,12008],[12010,12010],[12018,12020],[12065,12066],[12118,12118],[12148,12148],
+  [12151,12151],[12170,12170],[12188,12188],[12803,12803],[12804,12804],[12810,12810],
+  [12831,12831],[12833,12835],[12863,12863],[12866,12866],[12871,12871],
+  // Warren County
+  [12801,12801],[12804,12804],[12808,12808],[12810,12810],[12812,12812],[12814,12817],
+  [12824,12824],[12836,12836],[12838,12838],[12842,12842],[12844,12845],[12853,12853],
+  [12860,12860],[12862,12862],[12874,12874],[12878,12878],[12884,12887],
+  // Washington County
+  [12809,12809],[12811,12811],[12816,12816],[12819,12823],[12827,12828],[12832,12832],
+  [12834,12834],[12837,12837],[12839,12839],[12841,12841],[12843,12843],[12846,12846],
+  [12848,12849],[12857,12857],[12861,12861],[12865,12865],[12868,12868],[12870,12871],
+  [12873,12873],[12879,12879],[12883,12883],[12887,12887],
+  // Schenectady County
+  [12054,12054],[12137,12137],[12141,12141],[12147,12148],[12150,12150],[12157,12157],
+  [12301,12309],[12325,12325],[12345,12345],
+  // Montgomery County
+  [12010,12010],[12068,12068],[12070,12070],[12072,12072],[12078,12078],[12094,12095],
+  [12117,12117],[12125,12125],[12134,12134],[13317,13317],[13339,13339],[13428,13428],
+  [13452,13452],
+  // Fulton County
+  [12010,12010],[12032,12032],[12068,12068],[12070,12070],[12072,12072],[12078,12078],
+  [12095,12095],[12117,12117],[12134,12134],[12164,12164],[13320,13320],[13329,13329],
+  [13339,13339],[13452,13452],
+  // Greene County
+  [12051,12051],[12058,12058],[12064,12064],[12076,12076],[12083,12083],[12087,12087],
+  [12174,12174],[12176,12176],[12192,12192],[12405,12405],[12407,12407],[12411,12411],
+  [12414,12414],[12418,12418],[12422,12422],[12427,12427],[12431,12431],[12436,12436],
+  [12439,12439],[12442,12442],[12444,12444],[12451,12451],[12463,12463],[12468,12468],
+  [12482,12482],[12492,12492],
+  // Columbia County
+  [12015,12016],[12024,12024],[12029,12029],[12037,12037],[12042,12042],[12050,12050],
+  [12060,12060],[12062,12062],[12075,12075],[12106,12106],[12115,12115],[12125,12125],
+  [12130,12130],[12132,12132],[12136,12136],[12165,12165],[12172,12174],[12184,12184],
+  [12195,12195],[12502,12502],[12513,12513],[12516,12517],[12521,12523],[12526,12526],
+  [12529,12529],[12534,12534],[12544,12544],[12565,12565],
+  // Dutchess County
+  [12501,12501],[12503,12504],[12506,12508],[12510,12512],[12514,12514],[12522,12522],
+  [12524,12524],[12527,12527],[12531,12533],[12537,12538],[12540,12540],[12545,12546],
+  [12564,12564],[12567,12567],[12569,12572],[12574,12575],[12578,12578],[12580,12581],
+  [12583,12583],[12585,12585],[12590,12594],[12601,12604],
+  // Ulster County
+  [12401,12401],[12404,12404],[12406,12406],[12409,12412],[12416,12417],[12419,12420],
+  [12428,12430],[12432,12434],[12440,12441],[12443,12443],[12446,12449],[12456,12458],
+  [12461,12461],[12464,12466],[12471,12473],[12477,12477],[12480,12481],[12484,12484],
+  [12486,12487],[12489,12491],[12493,12495],[12498,12498],[12515,12515],[12525,12525],
+  [12528,12528],[12550,12550],[12561,12561],[12566,12566],
+  // ── Western MA counties ──
+  // Berkshire County
+  [1201,1201],[1220,1220],[1222,1227],[1229,1230],[1235,1240],[1242,1242],
+  [1244,1245],[1247,1247],[1252,1253],[1255,1259],[1262,1264],[1266,1267],[1270,1270],
+  // Franklin County
+  [1301,1301],[1330,1331],[1337,1342],[1344,1344],[1346,1347],[1349,1351],
+  [1354,1355],[1360,1360],[1364,1364],[1366,1368],[1370,1370],[1373,1376],
+  [1378,1380],
+  // Hampshire County
+  [1002,1003],[1007,1007],[1010,1012],[1026,1027],[1032,1033],[1035,1035],
+  [1038,1039],[1050,1050],[1053,1054],[1059,1060],[1062,1063],[1066,1066],
+  [1070,1070],[1072,1073],[1075,1075],[1080,1082],[1084,1085],[1093,1093],
+  // Hampden County
+  [1001,1001],[1005,1005],[1008,1009],[1013,1014],[1020,1022],[1028,1030],
+  [1034,1034],[1036,1036],[1040,1040],[1050,1050],[1056,1057],[1069,1069],
+  [1071,1071],[1077,1077],[1079,1079],[1085,1086],[1088,1090],[1095,1095],
+  [1101,1109],[1111,1111],[1115,1116],[1118,1119],[1128,1129],[1133,1133],
+  [1138,1139],[1144,1144],[1151,1152],[1195,1195],[1199,1199],
+];
+
+// Southern NH: south of Concord. Covers Hillsborough, Rockingham, Cheshire, Strafford, Merrimack (south)
+const NH_ZIP_RANGES = [
+  // Hillsborough County
+  [3031,3031],[3033,3033],[3038,3038],[3043,3043],[3045,3045],[3048,3049],
+  [3051,3051],[3054,3055],[3057,3057],[3060,3064],[3070,3071],[3076,3076],
+  [3082,3082],[3084,3084],[3086,3087],[3101,3111],
+  // Rockingham County
+  [3032,3032],[3034,3034],[3036,3036],[3038,3038],[3040,3042],[3044,3044],
+  [3053,3053],[3073,3074],[3077,3077],[3079,3079],[3087,3087],[3801,3801],
+  [3802,3803],[3805,3805],[3809,3809],[3811,3811],[3819,3819],[3826,3827],
+  [3833,3833],[3840,3842],[3844,3844],[3848,3848],[3856,3858],[3862,3862],
+  [3865,3865],[3867,3870],[3873,3874],[3878,3878],[3884,3887],[3901,3901],
+  // Cheshire County
+  [3431,3431],[3435,3435],[3440,3441],[3443,3443],[3445,3445],[3447,3448],
+  [3450,3452],[3455,3458],[3461,3462],[3464,3470],
+  // Strafford County
+  [3820,3820],[3823,3825],[3830,3830],[3835,3835],[3838,3839],[3843,3843],
+  [3849,3851],[3853,3853],[3855,3855],[3861,3861],[3866,3868],[3878,3878],
+  // Southern Merrimack (south of Concord)
+  [3034,3034],[3038,3038],[3044,3044],[3046,3046],[3048,3048],[3054,3054],
+  [3057,3057],[3060,3060],[3076,3076],[3079,3079],[3087,3087],[3229,3229],
+  [3234,3234],[3242,3242],[3244,3244],[3253,3253],[3255,3258],[3261,3261],
+  [3275,3275],[3278,3278],[3281,3281],[3290,3290],
+];
+
+// CT zip ranges (all of Connecticut)
+const CT_ZIP_RANGES = [[6001,6389],[6401,6498],[6501,6928]];
+
+// RI zip ranges (all of Rhode Island)
+const RI_ZIP_RANGES = [[2801,2841],[2852,2896],[2898,2898],[2901,2921],[2940,2940]];
+
+function zipInRanges(zip5, ranges) {
+  for (const [lo, hi] of ranges) {
+    if (zip5 >= lo && zip5 <= hi) return true;
+  }
+  return false;
+}
+
+function territoryFromZip(zipStr) {
+  if (!zipStr) return null;
+  // Extract 5-digit zip from CITY_STATE field (may contain city name)
+  const match = zipStr.match(/\b(\d{4,5})\b/);
+  if (!match) return null;
+  let z = match[1];
+  if (z.length === 4) z = '0' + z; // restore leading zero
+  const zip5 = parseInt(z, 10);
+  if (isNaN(zip5)) return null;
+
+  if (zipInRanges(zip5, USX_ZIP_RANGES)) return 'USX';
+  if (zipInRanges(zip5, CT_ZIP_RANGES)) return 'CT';
+  if (zipInRanges(zip5, RI_ZIP_RANGES)) return 'RI';
+  if (zipInRanges(zip5, NH_ZIP_RANGES)) return 'NH';
+  // Remaining MA zips (01xxx–02xxx not covered by USX western MA)
+  if (zip5 >= 1000 && zip5 <= 2799) return 'MA';
+  return null;
+}
+
+// ── Area Code → Territory ──
+const AREA_CODE_MAP = {
+  // Massachusetts
+  '617': 'MA', '508': 'MA', '781': 'MA', '978': 'MA', '339': 'MA', '351': 'MA',
+  '774': 'MA', '857': 'MA',
+  // Western MA (USX territory)
+  '413': 'USX',
+  // Connecticut
+  '203': 'CT', '860': 'CT', '475': 'CT', '959': 'CT',
+  // Rhode Island
+  '401': 'RI',
+  // New Hampshire
+  '603': 'NH',
+  // Upstate New York (USX territory)
+  '518': 'USX', '845': 'USX', '914': 'USX',
+  '315': 'USX', '585': 'USX', '607': 'USX',
+};
+
+function territoryFromAreaCode(phone) {
+  if (!phone) return null;
+  // Strip non-digits, handle +1 prefix
+  const digits = phone.replace(/\D/g, '');
+  let areaCode;
+  if (digits.length === 11 && digits.startsWith('1')) {
+    areaCode = digits.substring(1, 4);
+  } else if (digits.length >= 10) {
+    areaCode = digits.substring(0, 3);
+  } else {
+    return null;
+  }
+  return AREA_CODE_MAP[areaCode] || null;
+}
+
+// ── Branch Name Abbreviation ──
+function abbrevBranch(branch, lead) {
+  // If branch text is populated, use it
+  if (branch) {
+    const lower = branch.toLowerCase().trim();
+    if (lower.includes(' ct') || lower.includes('connecticut') || lower.includes('hartford')) return 'CT';
+    if (lower.includes(' nh') || lower.includes('new hampshire') || lower.includes('southern nh')) return 'NH';
+    if (lower.includes('rhode island') || lower.includes(' ri')) return 'RI';
+    if (lower.includes('usx') || lower.includes('pittsfield') || lower.includes('latham')) return 'USX';
+    if (lower.includes('boston') || lower.includes('eastern mass') || lower.includes('mass') || lower.includes('catseye')) return 'MA';
+    if (lower !== '' && lower !== 'other') return branch.length > 8 ? branch.substring(0, 8) + '…' : branch;
+  }
+  // Fallback 1: derive territory from zip code in CITY_STATE
+  if (lead && lead.CITY_STATE) {
+    const territory = territoryFromZip(lead.CITY_STATE);
+    if (territory) return territory;
+  }
+  // Fallback 2: derive territory from phone area code (helps Podium/text leads)
+  if (lead && lead.PHONE) {
+    const territory = territoryFromAreaCode(lead.PHONE);
+    if (territory) return territory;
+  }
+  // Fallback 3: check MEDIUM field for location hints
+  if (lead && lead.MEDIUM) {
+    const med = lead.MEDIUM.toLowerCase();
+    if (med.includes(' ct') || med.includes('connecticut') || med.includes('hartford')) return 'CT';
+    if (med.includes(' nh') || med.includes('new hampshire')) return 'NH';
+    if (med.includes('rhode island') || med.includes(' ri') || med.includes('providence')) return 'RI';
+    if (med.includes('usx') || med.includes('pittsfield') || med.includes('latham') || med.includes('upstate')) return 'USX';
+    if (med.includes('boston') || med.includes('mass') || med.includes('catseye')) return 'MA';
+  }
+  return 'Other';
+}
+
+// ── Company from lead data ──
+function companyFromLead(lead) {
+  const co = (lead.COMPANY || '').toLowerCase();
+  if (co.includes('usx')) return 'USX';
+  if (co.includes('catseye')) return 'Catseye';
+  // Fallback: derive from branch
+  const br = (lead.BRANCH || '').toLowerCase();
+  if (br.includes('usx')) return 'USX';
+  if (br) return 'Catseye';
+  // Final fallback: derive from zip territory
+  const territory = territoryFromZip(lead.CITY_STATE);
+  if (territory === 'USX') return 'USX';
+  return 'Catseye';
+}
+
+// ── Deduplication helper (by phone + name) ──
+function dedupeLeads(leads) {
+  const seen = new Set();
+  return leads.filter(l => {
+    const phone = (l.PHONE || '').replace(/\D/g, '');
+    const name = (l.CUSTOMER_NAME || '').toLowerCase().trim();
+    if (!phone && !name) return true; // can't dedupe without identifiers
+    const key = phone + '|' + name;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// ── Render Branch Breakdown ──
+function buildBranchGrid(gridId, leads, period) {
+  const counts = {};
+  const openCounts = {};
+  leads.forEach(l => {
+    const abbrev = abbrevBranch(l.BRANCH, l);
+    counts[abbrev] = (counts[abbrev] || 0) + 1;
+    if (l.STATUS === 'Open') openCounts[abbrev] = (openCounts[abbrev] || 0) + 1;
+  });
+
+  const branches = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const grid = document.getElementById(gridId);
+
+  if (branches.length === 0) {
+    grid.innerHTML = '<div class="no-data" style="grid-column:1/-1;padding:40px">No data yet</div>';
+    return;
+  }
+
+  // Force consistent ordering: MA, CT, RI, NH, USX, then any extras
+  const ORDER = ['MA', 'CT', 'RI', 'NH', 'USX'];
+  const ordered = ORDER.filter(b => counts[b]);
+  branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
+
+  // Calculate conversion %: booked leads / inbound leads
+  const bookedItems = scBookedData[period] || scBookedData['mtd'] || [];
+  const totalBooked = bookedItems.length;
+  const totalInbound = leads.length;
+  const convPct = totalInbound > 0 ? Math.round((totalBooked / totalInbound) * 100) : 0;
+
+  let html = ordered.map(branch => `
+    <div class="branch-card">
+      <div class="branch-count">${counts[branch]}</div>
+      <div class="branch-name">${branch}</div>
+      <div class="branch-sub">${openCounts[branch] || 0} open</div>
+    </div>
+  `).join('');
+
+  // Add conversion % card
+  html += `
+    <div class="branch-card branch-card-conversion">
+      <div class="branch-count" style="color: var(--yellow)">${convPct}%</div>
+      <div class="branch-name">Conv.</div>
+    </div>
+  `;
+
+  grid.innerHTML = html;
+}
+
+function renderBranchGrid() {
+  const leads = getInboundFilteredLeads();
+  buildBranchGrid('branchGrid', leads, inboundPeriod);
+}
+
+// ── Render Table ──
+function statusBadge(status) {
+  const s = (status || '').toLowerCase().replace(/\s+/g, '-');
+  return `<span class="status-badge status-${s}">${status || '—'}</span>`;
+}
+const TYPE_BADGE_MAP = {'CallRail':'Call', 'Podium':'Text', 'Webform':'Form', 'LSA':'LSA'};
+const TYPE_BADGE_COLORS = {'Call':'#F47B20', 'Text':'#60A5FA', 'Form':'#A78BFA', 'LSA':'#34D399'};
+function typeBadge(source) {
+  const label = TYPE_BADGE_MAP[source] || source || '—';
+  const color = TYPE_BADGE_COLORS[label] || 'var(--text-muted)';
+  return label !== '—' ? `<span class="source-badge" style="background:${color}22;color:${color}">${label}</span>` : '—';
+}
+const SRC_BADGE_COLORS = {'LSA':'#34D399', 'Paid':'#F47B20', 'Organic':'#60A5FA', 'Direct':'#FBBF24', 'Listings':'#9CA3AF', 'Webchat':'#A78BFA', 'Webform':'#EC4899', 'Other':'#6B645A'};
+function mktgSourceBadge(medium, leadSource) {
+  const label = categorizeSource(medium, leadSource);
+  const color = SRC_BADGE_COLORS[label] || 'var(--text-muted)';
+  return `<span class="source-badge" style="background:${color}22;color:${color}">${label}</span>`;
+}
+function fixZip(val) {
+  if (!val) return '—';
+  const v = val.trim();
+  // 4-digit number = NE zip missing leading zero
+  if (/^\d{4}$/.test(v)) return '0' + v;
+  return v;
+}
+function truncate(str, len) {
+  if (!str) return '—';
+  return str.length > len ? str.slice(0, len) + '...' : str;
+}
+function formatDateDisplay(raw) {
+  if (!raw) return '—';
+  // Already short format? Return as-is
+  const parts = raw.split('/');
+  if (parts.length === 3 && parts[0].length <= 2) return raw;
+  // Full date string — convert to M/d/yyyy
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+}
+function formatTimeDisplay(raw) {
+  if (!raw) return '—';
+  // Already a short time like "2:30 PM" or "14:30"? Return as-is
+  if (/^\d{1,2}:\d{2}\s*(AM|PM)?$/i.test(raw.trim())) return raw.trim();
+  // Full date string — extract time portion
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function renderTable(leads) {
+  const tbody = document.getElementById('leadTableBody');
+  if (leads.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" class="no-data">No leads match your filters</td></tr>';
+    return;
+  }
+  tbody.innerHTML = leads.map(lead => `
+    <tr>
+      <td style="font-size:12px;font-weight:600">${companyFromLead(lead)}</td>
+      <td>${formatDateDisplay(lead.DATE_RECEIVED)}</td>
+      <td>${formatTimeDisplay(lead.TIME_RECEIVED)}</td>
+      <td>${typeBadge(lead.LEAD_SOURCE)}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${lead.MEDIUM || '—'}</td>
+      <td style="font-weight:600">${lead.CUSTOMER_NAME || '—'}</td>
+      <td style="font-family:monospace;font-size:12px">${lead.PHONE || '—'}</td>
+      <td style="font-size:12px">${lead.EMAIL || '—'}</td>
+      <td style="font-size:12px">${fixZip(lead.CITY_STATE)}</td>
+      <td class="wrap" title="${(lead.PEST_PROBLEM||'').replace(/"/g,'&quot;')}">${truncate(lead.PEST_PROBLEM, 50)}</td>
+      <td>${abbrevBranch(lead.BRANCH, lead)}</td>
+    </tr>
+  `).join('');
+}
+
+function populateBranches() {
+  const abbrevs = [...new Set(allLeads.map(l => abbrevBranch(l.BRANCH, l)).filter(b => b && b !== 'Other'))];
+  const ORDER = ['MA', 'CT', 'RI', 'NH', 'USX'];
+  const ordered = ORDER.filter(b => abbrevs.includes(b));
+  abbrevs.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
+  const sel = document.getElementById('filterBranch');
+  const current = sel.value;
+  sel.innerHTML = '<option value="all">All Branches</option>';
+  ordered.forEach(b => { sel.innerHTML += `<option value="${b}">${b}</option>`; });
+  sel.value = current || 'all';
+}
+
+// ── Master Render ──
+function render() {
+  renderTypeChart();
+  renderSourceChart();
+  renderBranchGrid();
+  const filtered = getFilteredLeads();
+  renderTable(filtered);
+  populateBranches();
+  document.getElementById('lastUpdated').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── SALES CENTER: Leads Booked + Sales Closed/Won ──
+// ══════════════════════════════════════════════════════════════════
+
+// Branch config
+const SC_CATSEYE_BRANCHES = ['Eastern Mass', 'Connecticut', 'Rhode Island'];
+const SC_USX_BRANCHES = ['USX - Western Mass', 'USX - Upstate New York'];
+const SC_ALL_BRANCHES = [...SC_CATSEYE_BRANCHES, ...SC_USX_BRANCHES];
+
+// State
+let scBookedData = { today: [], yesterday: [], mtd: [], ytd: [] };
+let scSalesData  = { today: [], yesterday: [], mtd: [], ytd: [] };
+let scBookedPeriod = 'today';
+let scSalesPeriod = 'today';
+let inboundPeriod = 'today';
+
+// Formatters
+const scFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+const SC_BRANCH_NAMES = {
+  'Eastern Mass': 'E. Mass',
+  'Connecticut': 'CT',
+  'Rhode Island': 'RI',
+  'USX - Western Mass': 'W. Mass',
+  'USX - Upstate New York': 'Upstate NY',
+};
+const SC_BRANCH_SHORT = {
+  'Eastern Mass': 'E. Mass',
+  'Connecticut': 'CT',
+  'Rhode Island': 'RI',
+  'USX - Western Mass': 'W. Mass',
+  'USX - Upstate New York': 'Upst. NY',
+};
+
+// ═══════════════════════════════════════════
+// LEADS BOOKED — count-based rendering
+// ═══════════════════════════════════════════
+
+function scCountByBranch(items, branches) {
+  const counts = {};
+  branches.forEach(b => { counts[b] = 0; });
+  items.forEach(item => {
+    if (branches.includes(item.branch)) counts[item.branch]++;
+  });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { counts, total };
+}
+
+function scRenderBookedBlock(containerId, items, branches) {
+  const el = document.getElementById(containerId);
+  const { counts, total } = scCountByBranch(items, branches);
+
+  if (total === 0) {
+    el.innerHTML = '<div class="sc-no-data">No data</div>';
+    return;
+  }
+
+  let html = '<div class="sc-booked-row">';
+  branches.forEach(b => {
+    const c = counts[b];
+    const name = SC_BRANCH_SHORT[b] || b;
+    html += `<div class="sc-booked-item">
+      <div class="sc-booked-count">${c}</div>
+      <div class="sc-booked-label">${name}</div>
+    </div>`;
+  });
+  // Total
+  html += `<div class="sc-booked-item sc-booked-total-item">
+    <div class="sc-booked-count sc-booked-total-val">${total}</div>
+    <div class="sc-booked-label">Total</div>
+  </div>`;
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+// SALES CLOSED/WON — dollar-based rendering
+// ═══════════════════════════════════════════
+
+function scAggregate(opportunities, branches) {
+  const result = {};
+  branches.forEach(b => { result[b] = { initial: 0, annual: 0, total: 0, count: 0 }; });
+
+  opportunities.forEach(opp => {
+    const branch = opp.branch || '';
+    if (!branches.includes(branch)) return;
+    result[branch].initial += (opp.initialValue || 0);
+    result[branch].annual  += (opp.annualValue || 0);
+    result[branch].total   += (opp.totalValue || 0);
+    result[branch].count   += 1;
+  });
+
+  const totals = { initial: 0, annual: 0, total: 0, count: 0 };
+  Object.values(result).forEach(v => {
+    totals.initial += v.initial;
+    totals.annual  += v.annual;
+    totals.total   += v.total;
+    totals.count   += v.count;
+  });
+
+  return { branches: result, totals };
+}
+
+// ── Build a single sales card HTML ──
+function scBuildCard(name, data, isTotal) {
+  const cls = isTotal ? 'sc-card sc-card-total' : 'sc-card';
+  return `<div class="${cls}">
+    <div class="sc-card-name">${name}</div>
+    <div class="sc-card-metrics">
+      <div class="sc-card-metric">
+        <div class="sc-card-val initial">${scFmt.format(data.initial)}</div>
+        <div class="sc-card-label">Initial</div>
+      </div>
+      <div class="sc-card-metric">
+        <div class="sc-card-val annual">${scFmt.format(data.annual)}</div>
+        <div class="sc-card-label">Annual</div>
+      </div>
+      <div class="sc-card-metric">
+        <div class="sc-card-val total">${scFmt.format(data.total)}</div>
+        <div class="sc-card-label">Total</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Render sub-cards inside a block ──
+function scRenderSalesBlock(containerId, opportunities, branches) {
+  const el = document.getElementById(containerId);
+  const agg = scAggregate(opportunities, branches);
+
+  if (agg.totals.count === 0) {
+    el.innerHTML = '<div class="sc-no-data">No data</div>';
+    return;
+  }
+
+  let html = '<div class="sc-subcards">';
+  branches.forEach(b => {
+    html += scBuildCard(SC_BRANCH_NAMES[b] || b, agg.branches[b], false);
+  });
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+// Section renderers + toggle handlers
+// ═══════════════════════════════════════════
+
+function scRenderBookedSection(period) {
+  let items;
+  if (period === 'wk') {
+    // Build WK from the best available pool (YTD if loaded, else MTD)
+    _scBuildDates();
+    const pool = _scYtdLoaded ? scBookedData.ytd : scBookedData.mtd;
+    items = pool.filter(i => i.date >= _scWkStart);
+  } else {
+    items = scBookedData[period] || [];
+  }
+  scRenderBookedBlock('bookedCatseye', items, SC_CATSEYE_BRANCHES);
+  scRenderBookedBlock('bookedUSX', items, SC_USX_BRANCHES);
+  scRenderBookedBlock('bookedCombined', items, SC_ALL_BRANCHES);
+  // Conv% KPI (wallboard only): booked leads / inbound leads for same period
+  const inboundCount = (period === 'custom') ? getInboundFilteredLeads().length : filterByPeriod(allLeads, period).length;
+  const totalBooked = items.length;
+  const convPct = inboundCount > 0 ? Math.round((totalBooked / inboundCount) * 100) : 0;
+  const convEl = document.getElementById('bookedConvPct');
+  if (convEl) convEl.textContent = convPct + '%';
+}
+
+function scRenderSalesCombined(containerId, opportunities) {
+  const el = document.getElementById(containerId);
+  const aggAll = scAggregate(opportunities, SC_ALL_BRANCHES);
+  const aggCatseye = scAggregate(opportunities, SC_CATSEYE_BRANCHES);
+  const aggUSX = scAggregate(opportunities, SC_USX_BRANCHES);
+
+  if (aggAll.totals.count === 0) {
+    el.innerHTML = '<div class="sc-no-data">No data</div>';
+    return;
+  }
+
+  let html = '<div class="sc-subcards">';
+  html += scBuildCard('Catseye Total', aggCatseye.totals, false);
+  html += scBuildCard('USX Total', aggUSX.totals, false);
+  html += '</div>';
+  html += '<div class="sc-card-total-pinned">' + scBuildCard('All Companies', aggAll.totals, true) + '</div>';
+
+  el.innerHTML = html;
+}
+
+function scRenderSalesSection(period) {
+  let opps;
+  if (period === 'wk') {
+    _scBuildDates();
+    const pool = _scYtdLoaded ? scSalesData.ytd : scSalesData.mtd;
+    opps = pool.filter(i => i.date >= _scWkStart);
+  } else {
+    opps = scSalesData[period] || [];
+  }
+  scRenderSalesBlock('salesCatseye', opps, SC_CATSEYE_BRANCHES);
+  scRenderSalesBlock('salesUSX', opps, SC_USX_BRANCHES);
+  scRenderSalesCombined('salesCombined', opps);
+}
+
+// Toggle handlers
+document.querySelectorAll('.sc-period-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const section = btn.dataset.section;
+    const period = btn.dataset.period;
+    btn.parentElement.querySelectorAll('.sc-period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Close all date dropdowns first
+    document.querySelectorAll('.sc-date-range.visible').forEach(el => el.classList.remove('visible'));
+
+    if (period === 'custom') {
+      // Just open the dropdown — don't apply until user clicks Apply
+      const dateRangeId = section === 'booked' ? 'dateRangeBooked' : section === 'sales' ? 'dateRangeSales' : 'dateRangeInbound';
+      document.getElementById(dateRangeId).classList.add('visible');
+      if (section === 'booked') scBookedPeriod = 'custom';
+      else if (section === 'sales') scSalesPeriod = 'custom';
+      else inboundPeriod = 'custom';
+      return;
+    }
+
+    // Lazy-load YTD data for Sales Center sections when needed
+    if ((period === 'ytd') && (section === 'booked' || section === 'sales')) {
+      await fetchSalesCenterYTD();
+    }
+    // WK may span a month boundary — load YTD if week start is before this month
+    if ((period === 'wk') && (section === 'booked' || section === 'sales')) {
+      _scBuildDates();
+      if (_scWkStart < _scMtdStart) await fetchSalesCenterYTD();
+    }
+
+    if (section === 'booked') {
+      scBookedPeriod = period;
+      scRenderBookedSection(period);
+    } else if (section === 'sales') {
+      scSalesPeriod = period;
+      scRenderSalesSection(period);
+    } else if (section === 'inbound') {
+      inboundPeriod = period;
+      render();
+    }
+  });
+});
+
+// Custom date range filtering
+function scApplyCustomFilter(section) {
+  const fromId = section === 'booked' ? 'dateFromBooked' : 'dateFromSales';
+  const toId = section === 'booked' ? 'dateToBooked' : 'dateToSales';
+  const from = document.getElementById(fromId).value;
+  const to = document.getElementById(toId).value;
+
+  if (section === 'booked') {
+    let items = scBookedData.ytd || [];
+    if (from || to) {
+      items = items.filter(d => {
+        if (!d.date) return true;
+        if (from && d.date < from) return false;
+        if (to && d.date > to) return false;
+        return true;
+      });
+    }
+    scRenderBookedBlock('bookedCatseye', items, SC_CATSEYE_BRANCHES);
+    scRenderBookedBlock('bookedUSX', items, SC_USX_BRANCHES);
+    scRenderBookedBlock('bookedCombined', items, SC_ALL_BRANCHES);
+  } else {
+    let opps = scSalesData.ytd || [];
+    if (from || to) {
+      opps = opps.filter(d => {
+        if (!d.date) return true;
+        if (from && d.date < from) return false;
+        if (to && d.date > to) return false;
+        return true;
+      });
+    }
+    scRenderSalesBlock('salesCatseye', opps, SC_CATSEYE_BRANCHES);
+    scRenderSalesBlock('salesUSX', opps, SC_USX_BRANCHES);
+    scRenderSalesCombined('salesCombined', opps);
+  }
+}
+
+// Apply button handlers for custom date ranges
+document.querySelectorAll('.sc-date-apply').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const section = btn.dataset.section;
+    const dateRange = btn.closest('.sc-date-range');
+    dateRange.classList.remove('visible');
+
+    if (section === 'booked' || section === 'sales') {
+      await fetchSalesCenterYTD();
+      scApplyCustomFilter(section);
+    } else if (section === 'inbound') {
+      render();
+    }
+  });
+});
+
+// Close date dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.sc-period-toggle')) {
+    document.querySelectorAll('.sc-date-range.visible').forEach(el => el.classList.remove('visible'));
+  }
+});
+
+// ── Fetch Sales Center data from WorkWave API (via Apps Script proxy) ──
+
+// Shared date strings (computed once per refresh)
+let _scNow, _scTodayStr, _scYesterdayStr, _scWkStart, _scMtdStart, _scTomorrowStr, _scYtdStart;
+function _scBuildDates() {
+  _scNow = new Date();
+  _scTodayStr = _scNow.getFullYear() + '-' + String(_scNow.getMonth()+1).padStart(2,'0') + '-' + String(_scNow.getDate()).padStart(2,'0');
+  const y = new Date(_scNow); y.setDate(y.getDate()-1);
+  _scYesterdayStr = y.getFullYear() + '-' + String(y.getMonth()+1).padStart(2,'0') + '-' + String(y.getDate()).padStart(2,'0');
+  const w = new Date(_scNow); w.setDate(w.getDate()-6);
+  _scWkStart = w.getFullYear() + '-' + String(w.getMonth()+1).padStart(2,'0') + '-' + String(w.getDate()).padStart(2,'0');
+  _scMtdStart = _scNow.getFullYear() + '-' + String(_scNow.getMonth()+1).padStart(2,'0') + '-01';
+  const t = new Date(_scNow); t.setDate(t.getDate()+1);
+  _scTomorrowStr = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+  _scYtdStart = _scNow.getFullYear() + '-01-01';
+}
+
+// Paginated fetch helper
+async function fetchAllOpps(params) {
+  const results = [];
+  let skip = 0;
+  const take = 500;
+  let hasMore = true;
+  const t0 = performance.now();
+  while (hasMore) {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(Object.assign({}, params, {
+        token: API_TOKEN,
+        action: 'workwave_opportunities',
+        take, skip
+      }))
+    });
+    const json = await res.json();
+    console.log(`⏱️ fetchAllOpps page skip=${skip} took ${((performance.now() - t0)/1000).toFixed(1)}s (${json.data ? (json.data.items||[]).length : 0} items)`);
+    if (json.error || !json.data) {
+      console.error('Sales Center page error:', json.error || 'No data');
+      break;
+    }
+    const items = json.data.items || [];
+    results.push(...items);
+    skip += take;
+    hasMore = items.length === take && skip < (json.data.count || 0);
+  }
+  return results;
+}
+
+// Process raw opps into buckets
+function _scProcessOpp(opp, isBooked) {
+  const branch = opp.branch || '';
+  if (isBooked) {
+    const created = (opp.createdDate || '').split('T')[0];
+    let countAsLead = true;
+    if (opp.countAsLeadRun === false || opp.countAsLeadRun === 'No' || opp.countAsLeadRun === 'no') countAsLead = false;
+    if (Array.isArray(opp.customFields)) {
+      opp.customFields.forEach(cf => {
+        const name = (cf.name || cf.label || cf.key || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (name.indexOf('countaslead') > -1) {
+          const v = String(cf.value || cf.answer || '').toLowerCase();
+          if (v === 'no' || v === 'false') countAsLead = false;
+        }
+      });
+    }
+    if (!countAsLead) return null;
+    return { branch, date: created };
+  } else {
+    const stage = (opp.salesFunnelStage || '').toLowerCase();
+    if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
+    const closedDateStr = opp.closedDate ? opp.closedDate.split('T')[0] : null;
+    if (!closedDateStr) return null;
+    return { branch, date: closedDateStr, initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
+  }
+}
+
+function _scBucketItems(items) {
+  const today = [], yesterday = [], wk = [], mtd = [], ytd = [];
+  items.forEach(item => {
+    ytd.push(item);
+    if (item.date >= _scMtdStart) mtd.push(item);
+    if (item.date >= _scWkStart) wk.push(item);
+    if (item.date === _scTodayStr) today.push(item);
+    if (item.date === _scYesterdayStr) yesterday.push(item);
+  });
+  return { today, yesterday, wk, mtd, ytd };
+}
+
+let _scYtdLoaded = false;
+
+// Fast initial fetch: MTD only (covers today + yesterday + mtd)
+async function fetchSalesCenterData() {
+  try {
+    _scBuildDates();
+
+    // Fetch MTD — both in parallel
+    const [createdResult, closedResult] = await Promise.allSettled([
+      fetchAllOpps({ fromCreatedTime: _scMtdStart + 'T00:00:00Z', toCreatedTime: _scTomorrowStr + 'T00:00:00Z' }),
+      fetchAllOpps({ fromDateClosed: _scMtdStart + 'T00:00:00Z', toDateClosed: _scTomorrowStr + 'T00:00:00Z' })
+    ]);
+    const createdOpps = createdResult.status === 'fulfilled' ? createdResult.value : [];
+    const closedOpps = closedResult.status === 'fulfilled' ? closedResult.value : [];
+    if (createdResult.status === 'rejected') console.error('Created opps fetch failed:', createdResult.reason);
+    if (closedResult.status === 'rejected') console.error('Closed opps fetch failed:', closedResult.reason);
+
+    const bookedItems = createdOpps.map(o => _scProcessOpp(o, true)).filter(Boolean);
+    const salesItems = closedOpps.map(o => _scProcessOpp(o, false)).filter(Boolean);
+
+    scBookedData = _scBucketItems(bookedItems);
+    scSalesData = _scBucketItems(salesItems);
+    _scYtdLoaded = false;
+
+    console.log(`📋 Booked MTD: ${bookedItems.length} | Won MTD: ${salesItems.length}`);
+  } catch (err) { console.error('Sales Center fetch error:', err); }
+}
+
+// ── YTD Stale-While-Revalidate Cache ──
+// Serves cached data INSTANTLY (even if stale), then silently refreshes in the background.
+// First-ever load still takes ~72s, but every load after that is instant.
+function _scYtdCacheGet() {
+  const c = cacheGet('bdc_sc_ytd');
+  return c ? { ts: c.ts, booked: c.data.booked, sales: c.data.sales } : null;
+}
+function _scYtdCacheSet(booked, sales) {
+  cacheSet('bdc_sc_ytd', { ts: Date.now(), booked, sales });
+}
+
+// Background refresh: always runs on page load, updates cache silently
+let _scYtdRefreshPromise = null;
+function _scYtdBackgroundRefresh() {
+  if (_scYtdRefreshPromise) return _scYtdRefreshPromise;
+  _scYtdRefreshPromise = (async () => {
+    try {
+      _scBuildDates();
+      const t0 = performance.now();
+      const [createdPreResult, closedPreResult] = await Promise.allSettled([
+        fetchAllOpps({ fromCreatedTime: _scYtdStart + 'T00:00:00Z', toCreatedTime: _scMtdStart + 'T00:00:00Z' }),
+        fetchAllOpps({ fromDateClosed: _scYtdStart + 'T00:00:00Z', toDateClosed: _scMtdStart + 'T00:00:00Z' })
+      ]);
+      const createdPre = createdPreResult.status === 'fulfilled' ? createdPreResult.value : [];
+      const closedPre = closedPreResult.status === 'fulfilled' ? closedPreResult.value : [];
+      const freshBooked = createdPre.map(o => _scProcessOpp(o, true)).filter(Boolean);
+      const freshSales = closedPre.map(o => _scProcessOpp(o, false)).filter(Boolean);
+      _scYtdCacheSet(freshBooked, freshSales);
+
+      // If YTD is already displayed, hot-swap the data and re-render
+      if (_scYtdLoaded) {
+        const preBooked = freshBooked.filter(i => i.date < _scMtdStart);
+        const preSales = freshSales.filter(i => i.date < _scMtdStart);
+        scBookedData.ytd = [...preBooked, ...scBookedData.mtd];
+        scSalesData.ytd = [...preSales, ...scSalesData.mtd];
+        try { renderSalesCenter(); } catch(e) {}
+      }
+
+      console.log(`📊 YTD background refresh done: ${freshBooked.length} booked, ${freshSales.length} won (${((performance.now() - t0)/1000).toFixed(1)}s)`);
+    } catch(e) { console.error('YTD background refresh error:', e); }
+  })();
+  return _scYtdRefreshPromise;
+}
+
+// YTD fetch: serves from localStorage instantly, waits for live only on first-ever load
+async function fetchSalesCenterYTD() {
+  if (_scYtdLoaded) return;
+  _scYtdLoaded = true;
+  const t0 = performance.now();
+  try {
+    _scBuildDates();
+
+    // Serve from cache immediately (even if hours old — background refresh will correct it)
+    const cached = _scYtdCacheGet();
+    if (cached) {
+      const preBookedItems = cached.booked.filter(i => i.date < _scMtdStart);
+      const preSalesItems = cached.sales.filter(i => i.date < _scMtdStart);
+      scBookedData.ytd = [...preBookedItems, ...scBookedData.ytd];
+      scSalesData.ytd = [...preSalesItems, ...scSalesData.ytd];
+      const age = Math.round((Date.now() - cached.ts) / 60000);
+      console.log(`📊 YTD loaded from cache (${age}m old): ${scBookedData.ytd.length} booked, ${scSalesData.ytd.length} won (${((performance.now() - t0)/1000).toFixed(1)}s)`);
+      return;
+    }
+
+    // First-ever load — no cache exists yet, must wait for live fetch
+    console.log('📊 No YTD cache found — fetching live (first time only)...');
+    await _scYtdBackgroundRefresh();
+    const fresh = _scYtdCacheGet();
+    if (fresh) {
+      const preBookedItems = fresh.booked.filter(i => i.date < _scMtdStart);
+      const preSalesItems = fresh.sales.filter(i => i.date < _scMtdStart);
+      scBookedData.ytd = [...preBookedItems, ...scBookedData.ytd];
+      scSalesData.ytd = [...preSalesItems, ...scSalesData.ytd];
+      console.log(`📊 YTD loaded (first fetch): ${scBookedData.ytd.length} booked, ${scSalesData.ytd.length} won (${((performance.now() - t0)/1000).toFixed(1)}s)`);
+    }
+  } catch (err) { console.error('YTD fetch error:', err); }
+}
+
+function renderSalesCenter() {
+  scRenderBookedSection(scBookedPeriod);
+  scRenderSalesSection(scSalesPeriod);
+}
+
+// ═══════════════════════════════════════════
+// TREND LINE CHARTS
+// ═══════════════════════════════════════════
+
+// Compute trend date range from a range key — fully self-contained, no external deps
+function trendComputeRange(range) {
+  const n = new Date();
+  const pad = (v) => String(v).padStart(2, '0');
+  const fmt = (d) => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  const today = fmt(n);
+  switch (range) {
+    case 'wk': { const d = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 6); return { from: fmt(d), to: today }; }
+    case 'mtd': return { from: n.getFullYear() + '-' + pad(n.getMonth()+1) + '-01', to: today };
+    case 'ytd': return { from: n.getFullYear() + '-01-01', to: today };
+    default: return { from: today, to: today };
+  }
+}
+
+// State per trend section
+const trendState = {
+  booked:  { range: 'mtd', chartInstance: null },
+  sales:   { range: 'mtd', chartInstance: null },
+  inbound: { range: 'mtd', chartInstance: null }
+};
+
+// Cache for API fetches keyed by date range
+const _trendCache = {};
+
+// Helper: generate array of YYYY-MM-DD strings between from..to (inclusive)
+function trendDateSeq(from, to) {
+  const dates = [];
+  const d = new Date(from + 'T12:00:00');
+  const end = new Date(to + 'T12:00:00');
+  while (d <= end) {
+    const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    dates.push(ds);
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
+// Aggregate items into daily buckets
+function trendAggregate(items, allDates, valueField) {
+  const map = {};
+  allDates.forEach(d => map[d] = 0);
+  items.forEach(item => {
+    const d = item.date;
+    if (d && map[d] !== undefined) {
+      map[d] += valueField ? valueField(item) : 1;
+    }
+  });
+  return allDates.map(d => map[d]);
+}
+
+// Collapse daily → weekly
+function trendToWeekly(dates, values) {
+  const wl = [], wv = [];
+  let sum = 0, ws = null;
+  dates.forEach((d, i) => {
+    if (!ws) ws = d;
+    sum += values[i];
+    if (new Date(d + 'T12:00:00').getDay() === 0 || i === dates.length - 1) {
+      wl.push(ws); wv.push(sum); sum = 0; ws = null;
+    }
+  });
+  return { labels: wl, values: wv };
+}
+
+// Format date label
+function trendFmtLabel(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  return (d.getMonth()+1) + '/' + d.getDate();
+}
+
+// Fetch SC items for a date range — uses existing data pools or fetches fresh
+async function trendFetchItems(section, from, to) {
+  _scBuildDates();
+  const pool = section === 'booked' ? scBookedData : scSalesData;
+
+  // Try MTD pool first (fastest)
+  if (from >= _scMtdStart) {
+    return (pool.mtd || []).filter(i => i.date >= from && i.date <= to);
+  }
+
+  // Try YTD pool (lazy-loads if needed)
+  if (from >= _scYtdStart) {
+    if (!_scYtdLoaded) await fetchSalesCenterYTD();
+    return (pool.ytd || []).filter(i => i.date >= from && i.date <= to);
+  }
+
+  // Beyond YTD — direct API fetch with cache
+  const key = section + ':' + from + ':' + to;
+  if (_trendCache[key]) return _trendCache[key];
+  const params = section === 'booked'
+    ? { fromCreatedTime: from + 'T00:00:00Z', toCreatedTime: to + 'T23:59:59Z' }
+    : { fromDateClosed: from + 'T00:00:00Z', toDateClosed: to + 'T23:59:59Z' };
+  const opps = await fetchAllOpps(params);
+  const items = opps.map(o => _scProcessOpp(o, section === 'booked')).filter(Boolean);
+  _trendCache[key] = items;
+  return items;
+}
+
+// Render / update a trend line chart
+function trendRender(section, items, from, to, valueField) {
+  const allDates = trendDateSeq(from, to);
+  const daily = trendAggregate(items, allDates, valueField);
+  const useWeekly = allDates.length >= 60;
+  const { labels, values } = useWeekly ? trendToWeekly(allDates, daily) : { labels: allDates, values: daily };
+  const fmtLabels = labels.map(trendFmtLabel);
+
+  const state = trendState[section];
+  const canvasId = 'trendChart' + section.charAt(0).toUpperCase() + section.slice(1);
+  const canvas = document.getElementById(canvasId);
+
+  // Update existing chart if possible (avoids canvas sizing bugs on destroy/recreate)
+  if (state.chartInstance) {
+    state.chartInstance.data.labels = fmtLabels;
+    state.chartInstance.data.datasets[0].data = values;
+    state.chartInstance.data.datasets[0].pointRadius = labels.length > 60 ? 0 : 3;
+    state.chartInstance.update('none');
+    return;
+  }
+
+  // First render — create chart
+  const color = section === 'sales' ? '#22c55e' : '#f97316';
+  const label = section === 'booked' ? 'Leads Booked' : section === 'sales' ? 'Revenue ($)' : 'Inbound Leads';
+
+  state.chartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: fmtLabels,
+      datasets: [{
+        label, data: values,
+        borderColor: color, backgroundColor: color + '22',
+        fill: true, tension: 0.3,
+        pointRadius: labels.length > 60 ? 0 : 3,
+        pointHoverRadius: 5, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 300 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (tip) => {
+              const v = tip.parsed.y;
+              return section === 'sales' ? '$' + v.toLocaleString() : v.toLocaleString() + ' leads';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#888', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#888', font: { size: 10 },
+            callback: (v) => section === 'sales' ? '$' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) : v
+          },
+          grid: { color: 'rgba(255,255,255,0.08)' }
+        }
+      }
+    }
+  });
+}
+
+// Convert inbound lead → { date }
+function trendLeadToItem(l) {
+  const ts = parseLeadDate(l);
+  if (!ts) return null;
+  const d = new Date(ts);
+  return { date: d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') };
+}
+
+// Main trend update
+async function trendUpdate(section) {
+  const state = trendState[section];
+  let from, to;
+
+  if (state.range === 'custom') {
+    const cap = section.charAt(0).toUpperCase() + section.slice(1);
+    from = document.getElementById('trendFrom' + cap).value;
+    to = document.getElementById('trendTo' + cap).value;
+    if (!from || !to) return;
+  } else {
+    const r = trendComputeRange(state.range);
+    from = r.from;
+    to = r.to;
+  }
+
+  try {
+    if (section === 'inbound') {
+      const items = allLeads.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
+      trendRender('inbound', items, from, to, null);
+    } else {
+      const items = await trendFetchItems(section, from, to);
+      const vf = section === 'sales' ? (item => item.totalValue || 0) : null;
+      trendRender(section, items, from, to, vf);
+    }
+  } catch (err) {
+    console.error('Trend update error (' + section + '):', err);
+  }
+}
+
+// Trend button toggle handlers
+document.querySelectorAll('.trend-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const section = btn.dataset.trend;
+    const range = btn.dataset.range;
+    btn.parentElement.querySelectorAll('.trend-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Close all trend date dropdowns
+    document.querySelectorAll('.trend-date-range.visible').forEach(el => el.classList.remove('visible'));
+
+    if (range === 'custom') {
+      const panelId = 'trendDateRange' + section.charAt(0).toUpperCase() + section.slice(1);
+      document.getElementById(panelId).classList.add('visible');
+      trendState[section].range = 'custom';
+      return;
+    }
+
+    trendState[section].range = range;
+    await trendUpdate(section);
+  });
+});
+
+// Trend Apply button handlers
+document.querySelectorAll('.trend-apply').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const section = btn.dataset.trend;
+    btn.closest('.trend-date-range').classList.remove('visible');
+    await trendUpdate(section);
+  });
+});
+
+// Close trend dropdowns on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.trend-toggle')) {
+    document.querySelectorAll('.trend-date-range.visible').forEach(el => el.classList.remove('visible'));
+  }
+});
+
+// Initial trend render (after data loads)
+async function trendInitAll() {
+  await Promise.allSettled([trendUpdate('booked'), trendUpdate('sales'), trendUpdate('inbound')]);
+}
+
+// ── Persistent Cache (localStorage — survives browser close) ──
+function cacheSet(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+}
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw); // never expires — stale-while-revalidate
+  } catch(e) { return null; }
+}
+
+// ── Init & Refresh ──
+async function refresh(isInitial) {
+  if (isRefreshing) { console.log('⏳ Refresh already in progress, skipping'); return; }
+  isRefreshing = true;
+  const t0 = performance.now();
+
+  // On EVERY load, show cached data INSTANTLY — then refresh in background
+  if (isInitial) {
+    const cachedLeads = cacheGet('bdc_leads');
+    const cachedBooked = cacheGet('bdc_booked');
+    const cachedSales = cacheGet('bdc_sales');
+    const cachedYtd = cacheGet('bdc_sc_ytd');
+
+    if (cachedLeads) {
+      allLeads = cachedLeads.data;
+      try { render(); } catch(e) {}
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      const age = Math.round((Date.now() - cachedLeads.ts) / 60000);
+      console.log(`⚡ Loaded ${allLeads.length} cached leads (${age}m old)`);
+    }
+    if (cachedBooked && cachedSales) {
+      scBookedData = cachedBooked.data;
+      scSalesData = cachedSales.data;
+      // Also restore YTD into the booked/sales pools if available
+      if (cachedYtd) {
+        _scBuildDates();
+        const ytdBooked = cachedYtd.data.booked || [];
+        const ytdSales = cachedYtd.data.sales || [];
+        const preBooked = ytdBooked.filter(i => i.date < _scMtdStart);
+        const preSales = ytdSales.filter(i => i.date < _scMtdStart);
+        scBookedData.ytd = [...preBooked, ...scBookedData.mtd];
+        scSalesData.ytd = [...preSales, ...scSalesData.mtd];
+        _scYtdLoaded = true;
+        const ytdAge = Math.round((Date.now() - cachedYtd.data.ts) / 60000);
+        console.log(`⚡ Loaded cached YTD: ${scBookedData.ytd.length} booked, ${scSalesData.ytd.length} won (${ytdAge}m old)`);
+      }
+      try { renderSalesCenter(); } catch(e) {}
+      console.log('⚡ Loaded cached Sales Center data');
+    }
+  }
+
+  try {
+    // Fetch fresh leads + Sales Center in parallel (background refresh)
+    const leadsPromise = fetchLeads().then(() => {
+      console.log(`⏱️ Leads refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
+      cacheSet('bdc_leads', allLeads);
+      try { render(); } catch(e) { console.error('render() error:', e); }
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    });
+
+    const scPromise = fetchSalesCenterData().then(() => {
+      console.log(`⏱️ Sales Center refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
+      cacheSet('bdc_booked', scBookedData);
+      cacheSet('bdc_sales', scSalesData);
+      try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
+      // Always refresh YTD in background — keeps cache fresh for instant YTD loads
+      _scYtdBackgroundRefresh();
+    });
+
+    await Promise.allSettled([leadsPromise, scPromise]);
+    console.log(`📌 allLeads: ${allLeads.length} | Total: ${((performance.now() - t0)/1000).toFixed(1)}s`);
+
+    // Trend charts (non-blocking)
+    trendInitAll().catch(e => console.error('Trend init error:', e));
+  } finally {
+    isRefreshing = false;
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }
+}
+
+['filterDate', 'filterSource', 'filterCompany', 'filterBranch'].forEach(id => {
+  document.getElementById(id).addEventListener('change', render);
+});
+document.getElementById('filterSearch').addEventListener('input', render);
+
+refresh(true).then(() => { refreshTimer = setInterval(() => refresh(false), 60000); });
+
+// ═══════════════════════════════════════════
+// VIEW TOGGLE + WALLBOARD AUTO-CYCLE
+// ═══════════════════════════════════════════
+
+const viewTabs = document.querySelectorAll('.view-tab');
+const viewContainers = document.querySelectorAll('.view-container');
+let cycleTimer = null;
+const CYCLE_INTERVAL = 30000; // 30 seconds per view in wallboard mode
+let wallboardCycleView = 'dashboard'; // tracks which sub-view wallboard is showing
+
+function switchView(viewName) {
+  // Update tab highlighting
+  viewTabs.forEach(t => t.classList.toggle('active', t.dataset.view === viewName));
+
+  // Determine which content container to show
+  if (viewName === 'wallboard') {
+    // Wallboard shows Dashboard content with wallboard styling
+    document.body.classList.add('wallboard');
+    viewContainers.forEach(c => c.classList.remove('active'));
+    document.getElementById('viewDashboard').classList.add('active');
+    wallboardCycleView = 'dashboard';
+    startCycle();
+    // Re-render charts so legends resize for wallboard
+    render();
+  } else {
+    const wasWallboard = document.body.classList.contains('wallboard');
+    // Normal views — remove wallboard mode
+    document.body.classList.remove('wallboard');
+    stopCycle();
+    viewContainers.forEach(c => c.classList.toggle('active',
+      c.id === 'view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)));
+    // Re-render charts if leaving wallboard so legends restore
+    if (wasWallboard) render();
+  }
+}
+
+function startCycle() {
+  if (cycleTimer) clearInterval(cycleTimer);
+  cycleTimer = setInterval(() => {
+    // Toggle between Dashboard and Leads content while staying in wallboard mode
+    if (wallboardCycleView === 'dashboard') {
+      wallboardCycleView = 'leads';
+      viewContainers.forEach(c => c.classList.remove('active'));
+      document.getElementById('viewLeads').classList.add('active');
+    } else {
+      wallboardCycleView = 'dashboard';
+      viewContainers.forEach(c => c.classList.remove('active'));
+      document.getElementById('viewDashboard').classList.add('active');
+    }
+  }, CYCLE_INTERVAL);
+}
+
+function stopCycle() {
+  if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; }
+}
+
+viewTabs.forEach(tab => {
+  tab.addEventListener('click', () => switchView(tab.dataset.view));
+});
+
+// URL param support: ?view=leads or ?wallboard
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('view') === 'leads') switchView('leads');
+if (urlParams.has('wallboard')) switchView('wallboard');
+</script>
+</body>
+</html>
