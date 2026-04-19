@@ -624,6 +624,19 @@
   body.wallboard .sc-booked-count { font-size: 20px; }
 
   body.wallboard .trend-block { display: none; }
+  body.wallboard .master-trend-filter { display: none; }
+  body.wallboard .trend-divider { display: none; }
+
+  /* ── Master Filter Bars ── */
+  .master-filter {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .master-filter-label {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-dim); white-space: nowrap;
+  }
+  body.wallboard .master-filter { margin-bottom: 4px; }
+  body.wallboard .master-filter-label { font-size: 10px; }
 
   /* Inbound section fills remaining space */
   body.wallboard div[style*="border-top"] { margin: 2px 0 2px !important; }
@@ -781,23 +794,28 @@
   <!-- ═══════════════════════════════════════ -->
   <div class="view-container active" id="viewDashboard">
 
+  <!-- ══ Master Date Filter: Top Sections ══ -->
+  <div class="master-filter" id="masterDashFilter">
+    <div class="master-filter-label">Period</div>
+    <div class="sc-period-toggle">
+      <button class="sc-period-btn master-dash-btn" data-period="yesterday">Yesterday</button>
+      <button class="sc-period-btn master-dash-btn active" data-period="today">Today</button>
+      <button class="sc-period-btn master-dash-btn" data-period="wk">WK</button>
+      <button class="sc-period-btn master-dash-btn" data-period="mtd">MTD</button>
+      <button class="sc-period-btn master-dash-btn" data-period="ytd">YTD</button>
+      <button class="sc-period-btn master-dash-btn" data-period="custom">Custom</button>
+      <div class="sc-date-range" id="dateRangeMasterDash">
+        <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromMasterDash"></div>
+        <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToMasterDash"></div>
+        <button class="sc-date-apply master-dash-apply">Apply</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ ROW 1: Leads Booked ══ -->
   <div class="sc-section" id="scLeadsBooked">
     <div class="sc-section-header">
       <div class="sc-section-title"><span>Leads</span> Booked</div>
-      <div class="sc-period-toggle">
-        <button class="sc-period-btn" data-section="booked" data-period="yesterday">Yesterday</button>
-        <button class="sc-period-btn active" data-section="booked" data-period="today">Today</button>
-        <button class="sc-period-btn" data-section="booked" data-period="wk">WK</button>
-        <button class="sc-period-btn" data-section="booked" data-period="mtd">MTD</button>
-        <button class="sc-period-btn" data-section="booked" data-period="ytd">YTD</button>
-        <button class="sc-period-btn" data-section="booked" data-period="custom">Custom</button>
-        <div class="sc-date-range" id="dateRangeBooked">
-          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromBooked"></div>
-          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToBooked"></div>
-          <button class="sc-date-apply" data-section="booked">Apply</button>
-        </div>
-      </div>
     </div>
     <div class="sc-blocks">
       <div class="sc-block">
@@ -824,19 +842,6 @@
   <div class="sc-section" id="scSalesClosed">
     <div class="sc-section-header">
       <div class="sc-section-title"><span>Sales</span> Closed/Won</div>
-      <div class="sc-period-toggle">
-        <button class="sc-period-btn" data-section="sales" data-period="yesterday">Yesterday</button>
-        <button class="sc-period-btn active" data-section="sales" data-period="today">Today</button>
-        <button class="sc-period-btn" data-section="sales" data-period="wk">WK</button>
-        <button class="sc-period-btn" data-section="sales" data-period="mtd">MTD</button>
-        <button class="sc-period-btn" data-section="sales" data-period="ytd">YTD</button>
-        <button class="sc-period-btn" data-section="sales" data-period="custom">Custom</button>
-        <div class="sc-date-range" id="dateRangeSales">
-          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromSales"></div>
-          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToSales"></div>
-          <button class="sc-date-apply" data-section="sales">Apply</button>
-        </div>
-      </div>
     </div>
     <div class="sc-blocks sc-blocks-sales">
       <div class="sc-block">
@@ -859,19 +864,6 @@
   <div class="sc-section" id="scInboundLeads">
     <div class="sc-section-header" style="margin-bottom: 8px;">
       <div class="sc-section-title"><span>Inbound</span> Leads</div>
-      <div class="sc-period-toggle">
-        <button class="sc-period-btn" data-section="inbound" data-period="yesterday">Yesterday</button>
-        <button class="sc-period-btn active" data-section="inbound" data-period="today">Today</button>
-        <button class="sc-period-btn" data-section="inbound" data-period="wk">WK</button>
-        <button class="sc-period-btn" data-section="inbound" data-period="mtd">MTD</button>
-        <button class="sc-period-btn" data-section="inbound" data-period="ytd">YTD</button>
-        <button class="sc-period-btn" data-section="inbound" data-period="custom">Custom</button>
-        <div class="sc-date-range" id="dateRangeInbound">
-          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromInbound"></div>
-          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToInbound"></div>
-          <button class="sc-date-apply" data-section="inbound">Apply</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -898,22 +890,27 @@
   </div>
 
   <!-- ── Trend Line Charts (bottom of Dashboard) ── -->
-  <div style="border-top: 2px solid var(--border); margin: 12px 0 8px; opacity: 0.5;"></div>
+  <div class="trend-divider" style="border-top: 2px solid var(--border); margin: 12px 0 8px; opacity: 0.5;"></div>
+
+  <!-- ══ Master Date Filter: Trend Charts ══ -->
+  <div class="master-filter master-trend-filter" id="masterTrendFilter">
+    <div class="master-filter-label">Trends</div>
+    <div class="trend-toggle">
+      <button class="trend-btn master-trend-btn" data-range="wk">WK</button>
+      <button class="trend-btn master-trend-btn active" data-range="mtd">MTD</button>
+      <button class="trend-btn master-trend-btn" data-range="ytd">YTD</button>
+      <button class="trend-btn master-trend-btn" data-range="custom">Custom</button>
+      <div class="trend-date-range" id="trendDateRangeMaster">
+        <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromMaster"></div>
+        <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToMaster"></div>
+        <button class="sc-date-apply master-trend-apply">Apply</button>
+      </div>
+    </div>
+  </div>
 
   <div class="trend-block">
     <div class="trend-header">
       <div class="trend-title"><span style="color:var(--orange)">Booked</span> Trend</div>
-      <div class="trend-toggle">
-        <button class="trend-btn" data-trend="booked" data-range="wk">WK</button>
-        <button class="trend-btn active" data-trend="booked" data-range="mtd">MTD</button>
-        <button class="trend-btn" data-trend="booked" data-range="ytd">YTD</button>
-        <button class="trend-btn" data-trend="booked" data-range="custom">Custom</button>
-        <div class="trend-date-range" id="trendDateRangeBooked">
-          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromBooked"></div>
-          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToBooked"></div>
-          <button class="sc-date-apply trend-apply" data-trend="booked">Apply</button>
-        </div>
-      </div>
     </div>
     <div class="trend-chart-wrap"><canvas id="trendChartBooked"></canvas></div>
   </div>
@@ -921,17 +918,6 @@
   <div class="trend-block">
     <div class="trend-header">
       <div class="trend-title"><span style="color:var(--orange)">Sales</span> Trend</div>
-      <div class="trend-toggle">
-        <button class="trend-btn" data-trend="sales" data-range="wk">WK</button>
-        <button class="trend-btn active" data-trend="sales" data-range="mtd">MTD</button>
-        <button class="trend-btn" data-trend="sales" data-range="ytd">YTD</button>
-        <button class="trend-btn" data-trend="sales" data-range="custom">Custom</button>
-        <div class="trend-date-range" id="trendDateRangeSales">
-          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromSales"></div>
-          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToSales"></div>
-          <button class="sc-date-apply trend-apply" data-trend="sales">Apply</button>
-        </div>
-      </div>
     </div>
     <div class="trend-chart-wrap"><canvas id="trendChartSales"></canvas></div>
   </div>
@@ -939,17 +925,6 @@
   <div class="trend-block">
     <div class="trend-header">
       <div class="trend-title"><span style="color:var(--orange)">Leads</span> Trend</div>
-      <div class="trend-toggle">
-        <button class="trend-btn" data-trend="inbound" data-range="wk">WK</button>
-        <button class="trend-btn active" data-trend="inbound" data-range="mtd">MTD</button>
-        <button class="trend-btn" data-trend="inbound" data-range="ytd">YTD</button>
-        <button class="trend-btn" data-trend="inbound" data-range="custom">Custom</button>
-        <div class="trend-date-range" id="trendDateRangeInbound">
-          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromInbound"></div>
-          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToInbound"></div>
-          <button class="sc-date-apply trend-apply" data-trend="inbound">Apply</button>
-        </div>
-      </div>
     </div>
     <div class="trend-chart-wrap"><canvas id="trendChartInbound"></canvas></div>
   </div>
@@ -1245,9 +1220,9 @@ function filterByPeriod(leads, period) {
 }
 
 function getInboundFilteredLeads() {
-  if (inboundPeriod === 'custom') {
-    const from = document.getElementById('dateFromInbound').value;
-    const to = document.getElementById('dateToInbound').value;
+  if (masterPeriod === 'custom') {
+    const from = masterCustomFrom;
+    const to = masterCustomTo;
     if (!from && !to) return allLeads;
     return allLeads.filter(l => {
       const ts = parseLeadDate(l);
@@ -1259,7 +1234,7 @@ function getInboundFilteredLeads() {
       return true;
     });
   }
-  return filterByPeriod(allLeads, inboundPeriod);
+  return filterByPeriod(allLeads, masterPeriod);
 }
 
 // ── Multi-Column Sort ──
@@ -1543,7 +1518,7 @@ const PERIOD_LABELS = { today: 'TODAY', yesterday: 'YESTERDAY', wk: 'WK', mtd: '
 
 function renderTypeChart() {
   const leads = getInboundFilteredLeads();
-  typeChartInstance = buildDoughnutChart('typeChart', leads, typeChartInstance, TYPE_COLORS, TYPE_FALLBACK, l => TYPE_MAP[l.LEAD_SOURCE] || l.LEAD_SOURCE || 'Other', PERIOD_LABELS[inboundPeriod] || 'TODAY');
+  typeChartInstance = buildDoughnutChart('typeChart', leads, typeChartInstance, TYPE_COLORS, TYPE_FALLBACK, l => TYPE_MAP[l.LEAD_SOURCE] || l.LEAD_SOURCE || 'Other', PERIOD_LABELS[masterPeriod] || 'TODAY');
 }
 
 // ── Leads by Source (LSA / Paid / Organic / Direct / etc.) ──
@@ -1577,7 +1552,7 @@ let sourceChartInstance = null;
 
 function renderSourceChart() {
   const leads = getInboundFilteredLeads();
-  sourceChartInstance = buildDoughnutChart('sourceChart', leads, sourceChartInstance, MKTG_COLORS, MKTG_FALLBACK, l => categorizeSource(l.MEDIUM, l.LEAD_SOURCE), PERIOD_LABELS[inboundPeriod] || 'TODAY');
+  sourceChartInstance = buildDoughnutChart('sourceChart', leads, sourceChartInstance, MKTG_COLORS, MKTG_FALLBACK, l => categorizeSource(l.MEDIUM, l.LEAD_SOURCE), PERIOD_LABELS[masterPeriod] || 'TODAY');
 }
 
 // ── Zip-Code Territory Lookup ──
@@ -1869,7 +1844,7 @@ function buildBranchGrid(gridId, leads, period) {
 
 function renderBranchGrid() {
   const leads = getInboundFilteredLeads();
-  buildBranchGrid('branchGrid', leads, inboundPeriod);
+  buildBranchGrid('branchGrid', leads, masterPeriod);
 }
 
 // ── Render Table ──
@@ -1980,9 +1955,15 @@ const SC_ALL_BRANCHES = [...SC_CATSEYE_BRANCHES, ...SC_USX_BRANCHES];
 // State
 let scBookedData = { today: [], yesterday: [], mtd: [], ytd: [] };
 let scSalesData  = { today: [], yesterday: [], mtd: [], ytd: [] };
-let scBookedPeriod = 'today';
-let scSalesPeriod = 'today';
-let inboundPeriod = 'today';
+
+// ── Master filter state (unified across all top sections) ──
+let masterPeriod = localStorage.getItem('bdc_masterPeriod') || 'today';
+let masterCustomFrom = localStorage.getItem('bdc_masterCustomFrom') || '';
+let masterCustomTo = localStorage.getItem('bdc_masterCustomTo') || '';
+// Legacy aliases for backward compat
+let scBookedPeriod = masterPeriod;
+let scSalesPeriod = masterPeriod;
+let inboundPeriod = masterPeriod;
 
 // Formatters
 const scFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -2172,106 +2153,117 @@ function scRenderSalesSection(period) {
   scRenderSalesCombined('salesCombined', opps);
 }
 
-// Toggle handlers
-document.querySelectorAll('.sc-period-btn').forEach(btn => {
+// ═══════════════════════════════════════════
+// MASTER DASHBOARD FILTER (top 3 sections)
+// ═══════════════════════════════════════════
+
+// Custom filter: applies custom date range to all 3 top sections
+function scApplyMasterCustomFilter() {
+  const from = masterCustomFrom;
+  const to = masterCustomTo;
+
+  // Booked
+  let bookedItems = scBookedData.ytd || [];
+  if (from || to) {
+    bookedItems = bookedItems.filter(d => {
+      if (!d.date) return true;
+      if (from && d.date < from) return false;
+      if (to && d.date > to) return false;
+      return true;
+    });
+  }
+  scRenderBookedBlock('bookedCatseye', bookedItems, SC_CATSEYE_BRANCHES);
+  scRenderBookedBlock('bookedUSX', bookedItems, SC_USX_BRANCHES);
+  scRenderBookedBlock('bookedCombined', bookedItems, SC_ALL_BRANCHES);
+  // Conv%
+  const inboundCount = getInboundFilteredLeads().length;
+  const convPct = inboundCount > 0 ? Math.round((bookedItems.length / inboundCount) * 100) : 0;
+  const convEl = document.getElementById('bookedConvPct');
+  if (convEl) convEl.textContent = convPct + '%';
+
+  // Sales
+  let salesOpps = scSalesData.ytd || [];
+  if (from || to) {
+    salesOpps = salesOpps.filter(d => {
+      if (!d.date) return true;
+      if (from && d.date < from) return false;
+      if (to && d.date > to) return false;
+      return true;
+    });
+  }
+  scRenderSalesBlock('salesCatseye', salesOpps, SC_CATSEYE_BRANCHES);
+  scRenderSalesBlock('salesUSX', salesOpps, SC_USX_BRANCHES);
+  scRenderSalesCombined('salesCombined', salesOpps);
+}
+
+// Master dashboard filter toggle
+document.querySelectorAll('.master-dash-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
-    const section = btn.dataset.section;
     const period = btn.dataset.period;
-    btn.parentElement.querySelectorAll('.sc-period-btn').forEach(b => b.classList.remove('active'));
+
+    // Update active button
+    document.querySelectorAll('.master-dash-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    // Close all date dropdowns first
+    // Close all date dropdowns
     document.querySelectorAll('.sc-date-range.visible').forEach(el => el.classList.remove('visible'));
 
     if (period === 'custom') {
-      // Just open the dropdown — don't apply until user clicks Apply
-      const dateRangeId = section === 'booked' ? 'dateRangeBooked' : section === 'sales' ? 'dateRangeSales' : 'dateRangeInbound';
-      document.getElementById(dateRangeId).classList.add('visible');
-      if (section === 'booked') scBookedPeriod = 'custom';
-      else if (section === 'sales') scSalesPeriod = 'custom';
-      else inboundPeriod = 'custom';
+      document.getElementById('dateRangeMasterDash').classList.add('visible');
+      // Restore previous custom dates if any
+      if (masterCustomFrom) document.getElementById('dateFromMasterDash').value = masterCustomFrom;
+      if (masterCustomTo) document.getElementById('dateToMasterDash').value = masterCustomTo;
+      masterPeriod = 'custom';
       return;
     }
 
-    // Lazy-load YTD data for Sales Center sections when needed
-    if ((period === 'ytd') && (section === 'booked' || section === 'sales')) {
-      await fetchSalesCenterYTD();
-    }
-    // WK may span a month boundary — load YTD if week start is before this month
-    if ((period === 'wk') && (section === 'booked' || section === 'sales')) {
+    masterPeriod = period;
+    // Keep legacy aliases in sync
+    scBookedPeriod = period;
+    scSalesPeriod = period;
+    inboundPeriod = period;
+
+    // Persist
+    localStorage.setItem('bdc_masterPeriod', period);
+
+    // Lazy-load YTD data when needed
+    if (period === 'ytd') await fetchSalesCenterYTD();
+    if (period === 'wk') {
       _scBuildDates();
       if (_scWkStart < _scMtdStart) await fetchSalesCenterYTD();
     }
 
-    if (section === 'booked') {
-      scBookedPeriod = period;
-      scRenderBookedSection(period);
-    } else if (section === 'sales') {
-      scSalesPeriod = period;
-      scRenderSalesSection(period);
-    } else if (section === 'inbound') {
-      inboundPeriod = period;
-      render();
-    }
+    renderSalesCenter();
+    render();
   });
 });
 
-// Custom date range filtering
-function scApplyCustomFilter(section) {
-  const fromId = section === 'booked' ? 'dateFromBooked' : 'dateFromSales';
-  const toId = section === 'booked' ? 'dateToBooked' : 'dateToSales';
-  const from = document.getElementById(fromId).value;
-  const to = document.getElementById(toId).value;
+// Master dashboard Apply button (custom date range)
+document.querySelector('.master-dash-apply').addEventListener('click', async () => {
+  masterCustomFrom = document.getElementById('dateFromMasterDash').value;
+  masterCustomTo = document.getElementById('dateToMasterDash').value;
+  document.getElementById('dateRangeMasterDash').classList.remove('visible');
 
-  if (section === 'booked') {
-    let items = scBookedData.ytd || [];
-    if (from || to) {
-      items = items.filter(d => {
-        if (!d.date) return true;
-        if (from && d.date < from) return false;
-        if (to && d.date > to) return false;
-        return true;
-      });
-    }
-    scRenderBookedBlock('bookedCatseye', items, SC_CATSEYE_BRANCHES);
-    scRenderBookedBlock('bookedUSX', items, SC_USX_BRANCHES);
-    scRenderBookedBlock('bookedCombined', items, SC_ALL_BRANCHES);
-  } else {
-    let opps = scSalesData.ytd || [];
-    if (from || to) {
-      opps = opps.filter(d => {
-        if (!d.date) return true;
-        if (from && d.date < from) return false;
-        if (to && d.date > to) return false;
-        return true;
-      });
-    }
-    scRenderSalesBlock('salesCatseye', opps, SC_CATSEYE_BRANCHES);
-    scRenderSalesBlock('salesUSX', opps, SC_USX_BRANCHES);
-    scRenderSalesCombined('salesCombined', opps);
-  }
-}
+  masterPeriod = 'custom';
+  scBookedPeriod = 'custom';
+  scSalesPeriod = 'custom';
+  inboundPeriod = 'custom';
 
-// Apply button handlers for custom date ranges
-document.querySelectorAll('.sc-date-apply').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const section = btn.dataset.section;
-    const dateRange = btn.closest('.sc-date-range');
-    dateRange.classList.remove('visible');
+  // Persist
+  localStorage.setItem('bdc_masterPeriod', 'custom');
+  localStorage.setItem('bdc_masterCustomFrom', masterCustomFrom);
+  localStorage.setItem('bdc_masterCustomTo', masterCustomTo);
 
-    if (section === 'booked' || section === 'sales') {
-      await fetchSalesCenterYTD();
-      scApplyCustomFilter(section);
-    } else if (section === 'inbound') {
-      render();
-    }
-  });
+  await fetchSalesCenterYTD();
+  renderSalesCenter();
+  render();
 });
 
 // Close date dropdown when clicking outside
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.sc-period-toggle')) {
+  if (!e.target.closest('.sc-period-toggle') && !e.target.closest('.trend-toggle')) {
     document.querySelectorAll('.sc-date-range.visible').forEach(el => el.classList.remove('visible'));
+    document.querySelectorAll('.trend-date-range.visible').forEach(el => el.classList.remove('visible'));
   }
 });
 
@@ -2469,8 +2461,12 @@ async function fetchSalesCenterYTD() {
 }
 
 function renderSalesCenter() {
-  scRenderBookedSection(scBookedPeriod);
-  scRenderSalesSection(scSalesPeriod);
+  if (masterPeriod === 'custom') {
+    scApplyMasterCustomFilter();
+  } else {
+    scRenderBookedSection(masterPeriod);
+    scRenderSalesSection(masterPeriod);
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -2491,11 +2487,14 @@ function trendComputeRange(range) {
   }
 }
 
-// State per trend section
+// State per trend section (all synced via master trend filter)
+let masterTrendRange = localStorage.getItem('bdc_masterTrendRange') || 'mtd';
+let masterTrendCustomFrom = localStorage.getItem('bdc_masterTrendCustomFrom') || '';
+let masterTrendCustomTo = localStorage.getItem('bdc_masterTrendCustomTo') || '';
 const trendState = {
-  booked:  { range: 'mtd', chartInstance: null },
-  sales:   { range: 'mtd', chartInstance: null },
-  inbound: { range: 'mtd', chartInstance: null }
+  booked:  { range: masterTrendRange, chartInstance: null },
+  sales:   { range: masterTrendRange, chartInstance: null },
+  inbound: { range: masterTrendRange, chartInstance: null }
 };
 
 // Cache for API fetches keyed by date range
@@ -2658,9 +2657,8 @@ async function trendUpdate(section) {
   let from, to;
 
   if (state.range === 'custom') {
-    const cap = section.charAt(0).toUpperCase() + section.slice(1);
-    from = document.getElementById('trendFrom' + cap).value;
-    to = document.getElementById('trendTo' + cap).value;
+    from = masterTrendCustomFrom;
+    to = masterTrendCustomTo;
     if (!from || !to) return;
   } else {
     const r = trendComputeRange(state.range);
@@ -2682,43 +2680,51 @@ async function trendUpdate(section) {
   }
 }
 
-// Trend button toggle handlers
-document.querySelectorAll('.trend-btn').forEach(btn => {
+// ═══════════════════════════════════════════
+// MASTER TREND FILTER (bottom 3 charts)
+// ═══════════════════════════════════════════
+
+function setMasterTrendRange(range) {
+  masterTrendRange = range;
+  trendState.booked.range = range;
+  trendState.sales.range = range;
+  trendState.inbound.range = range;
+  localStorage.setItem('bdc_masterTrendRange', range);
+}
+
+document.querySelectorAll('.master-trend-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
-    const section = btn.dataset.trend;
     const range = btn.dataset.range;
-    btn.parentElement.querySelectorAll('.trend-btn').forEach(b => b.classList.remove('active'));
+
+    document.querySelectorAll('.master-trend-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    // Close all trend date dropdowns
     document.querySelectorAll('.trend-date-range.visible').forEach(el => el.classList.remove('visible'));
 
     if (range === 'custom') {
-      const panelId = 'trendDateRange' + section.charAt(0).toUpperCase() + section.slice(1);
-      document.getElementById(panelId).classList.add('visible');
-      trendState[section].range = 'custom';
+      document.getElementById('trendDateRangeMaster').classList.add('visible');
+      if (masterTrendCustomFrom) document.getElementById('trendFromMaster').value = masterTrendCustomFrom;
+      if (masterTrendCustomTo) document.getElementById('trendToMaster').value = masterTrendCustomTo;
+      setMasterTrendRange('custom');
       return;
     }
 
-    trendState[section].range = range;
-    await trendUpdate(section);
+    setMasterTrendRange(range);
+    await trendInitAll();
   });
 });
 
-// Trend Apply button handlers
-document.querySelectorAll('.trend-apply').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const section = btn.dataset.trend;
-    btn.closest('.trend-date-range').classList.remove('visible');
-    await trendUpdate(section);
-  });
-});
+// Master trend Apply button
+document.querySelector('.master-trend-apply').addEventListener('click', async () => {
+  masterTrendCustomFrom = document.getElementById('trendFromMaster').value;
+  masterTrendCustomTo = document.getElementById('trendToMaster').value;
+  document.getElementById('trendDateRangeMaster').classList.remove('visible');
 
-// Close trend dropdowns on outside click
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.trend-toggle')) {
-    document.querySelectorAll('.trend-date-range.visible').forEach(el => el.classList.remove('visible'));
-  }
+  setMasterTrendRange('custom');
+  localStorage.setItem('bdc_masterTrendCustomFrom', masterTrendCustomFrom);
+  localStorage.setItem('bdc_masterTrendCustomTo', masterTrendCustomTo);
+
+  await trendInitAll();
 });
 
 // Initial trend render (after data loads)
@@ -2937,6 +2943,35 @@ async function refresh(isInitial) {
   document.getElementById(id).addEventListener('change', render);
 });
 document.getElementById('filterSearch').addEventListener('input', render);
+
+// ── Restore persisted filter selections on page load ──
+(function restoreFilters() {
+  // Master dashboard filter
+  if (masterPeriod && masterPeriod !== 'today') {
+    document.querySelectorAll('.master-dash-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.period === masterPeriod);
+    });
+    // Restore custom date inputs
+    if (masterPeriod === 'custom' && masterCustomFrom) {
+      document.getElementById('dateFromMasterDash').value = masterCustomFrom;
+    }
+    if (masterPeriod === 'custom' && masterCustomTo) {
+      document.getElementById('dateToMasterDash').value = masterCustomTo;
+    }
+  }
+  // Master trend filter
+  if (masterTrendRange && masterTrendRange !== 'mtd') {
+    document.querySelectorAll('.master-trend-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.range === masterTrendRange);
+    });
+    if (masterTrendRange === 'custom' && masterTrendCustomFrom) {
+      document.getElementById('trendFromMaster').value = masterTrendCustomFrom;
+    }
+    if (masterTrendRange === 'custom' && masterTrendCustomTo) {
+      document.getElementById('trendToMaster').value = masterTrendCustomTo;
+    }
+  }
+})();
 
 refresh(true).then(() => { refreshTimer = setInterval(() => refresh(false), 60000); });
 
