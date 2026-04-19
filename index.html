@@ -1047,11 +1047,13 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbxeTKxUYTQAre70xrSur8fUwc7bv7yqwt29kvzGDwGy7-bM7So1WlR6rIgsiKORUXe4Zg/exec';
 const API_TOKEN = 'catseye-bdc-2026';
 
-// ── Server-Side Cache (Google Sheet published to web) ──
-// This sheet is refreshed every 10 min by a standalone Apps Script trigger.
-// First-time visitors get data from here instantly instead of waiting 60s+ for live API calls.
+// ── Server-Side Cache (static JSON on GitHub Pages, updated every 10 min) ──
+// CacheRefresh.gs pushes cache.json to this repo via GitHub API.
+// Same origin = loads in <500ms instead of 13s from Google Sheets CSV.
+const CACHE_JSON_URL = './cache.json';
+// Fallback: Google Sheet cache (in case GitHub write fails)
 const CACHE_SHEET_ID = '1LoJHJ8aryr-W6O-6H4J0WL19QuBDBfEVbw-aZI1B0tg';
-const CACHE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${CACHE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Cache`;
+const CACHE_SHEET_CSV = `https://docs.google.com/spreadsheets/d/${CACHE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Cache`;
 
 let allLeads = [];
 // chart instances managed inside renderTypeChart / renderSourceChart
@@ -2737,69 +2739,56 @@ function cacheGet(key) {
 }
 
 // ── Server-Side Cache Reader ──
-// Fetches pre-built data from the Google Sheet cache (updated every 10 min by Apps Script trigger).
-// This is what makes first-time visits load in 1-2 seconds instead of 60+.
+// Fetches pre-built JSON from GitHub Pages (same origin = <500ms).
+// Falls back to Google Sheet CSV if cache.json is missing.
 async function fetchServerCache() {
+  const t0 = performance.now();
+
+  // Primary: static cache.json on same origin (instant)
   try {
-    const t0 = performance.now();
-    const resp = await fetch(CACHE_SHEET_URL);
+    const cacheBuster = Math.floor(Date.now() / 600000); // rotates every 10 min
+    const resp = await fetch(CACHE_JSON_URL + '?v=' + cacheBuster);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const csv = await resp.text();
-
-    // The cache is stored as JSON in cell A1 (possibly chunked across columns)
-    // Google Sheets CSV wraps cell values in quotes and escapes internal quotes
-    // Parse the CSV to extract the raw cell values
-    let jsonStr = '';
-
-    // Check if chunked: row 2 starts with "__chunks__:"
-    const lines = csv.split('\n');
-    if (lines.length < 1 || !lines[0].trim()) throw new Error('Empty cache');
-
-    // Row 1 contains data cells, row 2 might contain chunk indicator
-    const row1 = lines[0];
-    const row2 = lines.length > 1 ? lines[1] : '';
-
-    // Parse CSV row into cells (handle quoted values with commas and escaped quotes)
-    function parseCsvRow(row) {
-      const cells = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < row.length; i++) {
-        const ch = row[i];
-        if (ch === '"') {
-          if (inQuotes && row[i + 1] === '"') { current += '"'; i++; }
-          else { inQuotes = !inQuotes; }
-        } else if (ch === ',' && !inQuotes) {
-          cells.push(current); current = '';
-        } else {
-          current += ch;
-        }
-      }
-      cells.push(current);
-      return cells;
-    }
-
-    const cells1 = parseCsvRow(row1);
-    const cells2 = parseCsvRow(row2);
-
-    // Check if data is chunked
-    if (cells2.length > 0 && cells2[0].startsWith('__chunks__:')) {
-      const numChunks = parseInt(cells2[0].split(':')[1]);
-      for (let i = 0; i < numChunks; i++) {
-        jsonStr += cells1[i] || '';
-      }
-    } else {
-      jsonStr = cells1[0] || '';
-    }
-
-    if (!jsonStr || jsonStr.length < 10) throw new Error('Cache data too short');
-
-    const data = JSON.parse(jsonStr);
+    const data = await resp.json();
+    if (!data || !data.updated) throw new Error('Invalid cache data');
     const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
     console.log(`🌐 Server cache loaded in ${elapsed}s (updated: ${data.updated})`);
     return data;
   } catch (e) {
-    console.log('🌐 Server cache unavailable:', e.message);
+    console.log('🌐 cache.json unavailable (' + e.message + '), trying Google Sheet fallback...');
+  }
+
+  // Fallback: Google Sheet published CSV (slower, 5-13s)
+  try {
+    const resp = await fetch(CACHE_SHEET_CSV);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const csv = await resp.text();
+    const lines = csv.split('\n');
+    if (lines.length < 1 || !lines[0].trim()) throw new Error('Empty cache');
+    function parseCsvRow(row) {
+      const cells = []; let current = '', inQuotes = false;
+      for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') { if (inQuotes && row[i+1] === '"') { current += '"'; i++; } else inQuotes = !inQuotes; }
+        else if (ch === ',' && !inQuotes) { cells.push(current); current = ''; }
+        else current += ch;
+      }
+      cells.push(current); return cells;
+    }
+    const cells1 = parseCsvRow(lines[0]);
+    const cells2 = lines.length > 1 ? parseCsvRow(lines[1]) : [];
+    let jsonStr = '';
+    if (cells2.length > 0 && cells2[0].startsWith('__chunks__:')) {
+      const n = parseInt(cells2[0].split(':')[1]);
+      for (let i = 0; i < n; i++) jsonStr += cells1[i] || '';
+    } else { jsonStr = cells1[0] || ''; }
+    if (!jsonStr || jsonStr.length < 10) throw new Error('Cache data too short');
+    const data = JSON.parse(jsonStr);
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    console.log(`🌐 Server cache loaded from Google Sheet fallback in ${elapsed}s`);
+    return data;
+  } catch (e2) {
+    console.log('🌐 Server cache completely unavailable:', e2.message);
     return null;
   }
 }
@@ -2809,99 +2798,136 @@ async function refresh(isInitial) {
   if (isRefreshing) { console.log('⏳ Refresh already in progress, skipping'); return; }
   isRefreshing = true;
   const t0 = performance.now();
+  let skipLiveApi = false;  // set true when cache is fresh enough
 
-  // On EVERY load, show cached data INSTANTLY — then refresh in background
-  // Priority: 1) localStorage (returning visitor) → 2) Server cache (first-time visitor) → 3) live fetch
   if (isInitial) {
+    // ── STEP 1: Try localStorage (returning visitors — instant) ──
     const cachedLeads = cacheGet('bdc_leads');
     const cachedBooked = cacheGet('bdc_booked');
     const cachedSales = cacheGet('bdc_sales');
     const cachedYtd = cacheGet('bdc_sc_ytd');
+    let hasLocalData = false;
 
     if (cachedLeads) {
       allLeads = cachedLeads.data;
       try { render(); } catch(e) {}
       document.getElementById('loadingOverlay').classList.add('hidden');
-      const age = Math.round((Date.now() - cachedLeads.ts) / 60000);
-      console.log(`⚡ Loaded ${allLeads.length} cached leads (${age}m old)`);
+      console.log(`⚡ Loaded ${allLeads.length} cached leads (${Math.round((Date.now() - cachedLeads.ts) / 60000)}m old)`);
     }
     if (cachedBooked && cachedSales) {
       scBookedData = cachedBooked.data;
       scSalesData = cachedSales.data;
-      // Also restore YTD into the booked/sales pools if available
       if (cachedYtd) {
         _scBuildDates();
-        const ytdBooked = cachedYtd.data.booked || [];
-        const ytdSales = cachedYtd.data.sales || [];
-        const preBooked = ytdBooked.filter(i => i.date < _scMtdStart);
-        const preSales = ytdSales.filter(i => i.date < _scMtdStart);
+        const preBooked = (cachedYtd.data.booked || []).filter(i => i.date < _scMtdStart);
+        const preSales = (cachedYtd.data.sales || []).filter(i => i.date < _scMtdStart);
         scBookedData.ytd = [...preBooked, ...scBookedData.mtd];
         scSalesData.ytd = [...preSales, ...scSalesData.mtd];
         _scYtdLoaded = true;
-        const ytdAge = Math.round((Date.now() - cachedYtd.data.ts) / 60000);
-        console.log(`⚡ Loaded cached YTD: ${scBookedData.ytd.length} booked, ${scSalesData.ytd.length} won (${ytdAge}m old)`);
       }
       try { renderSalesCenter(); } catch(e) {}
-      console.log('⚡ Loaded cached Sales Center data');
-    }
-
-    // ── Server Cache: for FIRST-TIME visitors with no localStorage ──
-    // If we don't have Sales Center data cached locally, try the Google Sheet cache
-    if (!cachedBooked || !cachedSales) {
-      const serverCache = await fetchServerCache();
-      if (serverCache && serverCache.booked && serverCache.sales) {
-        _scBuildDates();
-
-        // Process server cache into the same format the dashboard expects
-        const allBooked = [...(serverCache.booked.preMtd || []), ...(serverCache.booked.mtd || [])];
-        const allSales = [...(serverCache.sales.preMtd || []), ...(serverCache.sales.mtd || [])];
-
-        // Bucket the items
-        scBookedData = _scBucketItems(allBooked);
-        scSalesData = _scBucketItems(allSales);
-        _scYtdLoaded = true;
-
-        try { renderSalesCenter(); } catch(e) {}
-        document.getElementById('loadingOverlay').classList.add('hidden');
-
-        // Seed localStorage so subsequent loads are instant too
-        cacheSet('bdc_booked', scBookedData);
-        cacheSet('bdc_sales', scSalesData);
-        cacheSet('bdc_sc_ytd', { ts: Date.now(), booked: serverCache.booked.preMtd || [], sales: serverCache.sales.preMtd || [] });
-
-        const age = serverCache.updated ? Math.round((Date.now() - new Date(serverCache.updated).getTime()) / 60000) : '?';
-        console.log(`🌐 Loaded server cache: ${allBooked.length} booked, ${allSales.length} sales (${age}m old)`);
+      hasLocalData = true;
+      // If local cache is very fresh, skip live API entirely
+      const localAge = (Date.now() - cachedBooked.ts) / 60000;
+      if (localAge < 5 && cachedLeads) {
+        skipLiveApi = true;
+        console.log(`⚡ Local cache is ${Math.round(localAge)}m old — skipping live API calls`);
       }
     }
-  }
 
-  try {
-    // Fetch fresh leads + Sales Center in parallel (background refresh)
-    const leadsPromise = fetchLeads().then(() => {
-      console.log(`⏱️ Leads refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
-      cacheSet('bdc_leads', allLeads);
-      try { render(); } catch(e) { console.error('render() error:', e); }
-      document.getElementById('loadingOverlay').classList.add('hidden');
-    });
+    // ── STEP 2: Try server cache (first-time OR stale local) ──
+    if (!skipLiveApi) {
+      const serverCache = await fetchServerCache();
+      if (serverCache) {
+        const cacheAge = serverCache.updated
+          ? (Date.now() - new Date(serverCache.updated).getTime()) / 60000 : Infinity;
 
-    const scPromise = fetchSalesCenterData().then(() => {
-      console.log(`⏱️ Sales Center refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
-      cacheSet('bdc_booked', scBookedData);
-      cacheSet('bdc_sales', scSalesData);
-      try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
-      // Always refresh YTD in background — keeps cache fresh for instant YTD loads
-      _scYtdBackgroundRefresh();
-    });
+        // Leads from server cache
+        if (serverCache.leads && serverCache.leads.length > 0) {
+          allLeads = serverCache.leads;
+          try { render(); } catch(e) {}
+          cacheSet('bdc_leads', allLeads);
+          console.log(`🌐 Loaded ${allLeads.length} leads from server cache`);
+        }
 
-    await Promise.allSettled([leadsPromise, scPromise]);
-    console.log(`📌 allLeads: ${allLeads.length} | Total: ${((performance.now() - t0)/1000).toFixed(1)}s`);
+        // Sales Center from server cache (full YTD)
+        if (serverCache.booked && serverCache.sales) {
+          _scBuildDates();
+          const allBooked = [...(serverCache.booked.preMtd || []), ...(serverCache.booked.mtd || [])];
+          const allSales = [...(serverCache.sales.preMtd || []), ...(serverCache.sales.mtd || [])];
+          scBookedData = _scBucketItems(allBooked);
+          scSalesData = _scBucketItems(allSales);
+          _scYtdLoaded = true;
+          try { renderSalesCenter(); } catch(e) {}
 
-    // Trend charts (non-blocking)
-    trendInitAll().catch(e => console.error('Trend init error:', e));
-  } finally {
-    isRefreshing = false;
+          // Seed localStorage
+          cacheSet('bdc_booked', scBookedData);
+          cacheSet('bdc_sales', scSalesData);
+          cacheSet('bdc_sc_ytd', { ts: Date.now(), booked: serverCache.booked.preMtd || [], sales: serverCache.sales.preMtd || [] });
+        }
+
+        document.getElementById('loadingOverlay').classList.add('hidden');
+
+        // If server cache is fresh, skip ALL live API calls
+        if (cacheAge < 15) {
+          skipLiveApi = true;
+          console.log(`🌐 Server cache is ${Math.round(cacheAge)}m old — skipping live API calls`);
+        } else {
+          console.log(`🌐 Server cache is ${Math.round(cacheAge)}m old — will refresh in background`);
+        }
+      }
+    }
+
     document.getElementById('loadingOverlay').classList.add('hidden');
   }
+
+  // ── STEP 3: Live API refresh (only when cache is stale or missing) ──
+  if (!skipLiveApi) {
+    try {
+      // Save existing YTD data BEFORE live refresh overwrites it
+      const savedYtdBooked = (_scYtdLoaded && scBookedData.ytd) ? [...scBookedData.ytd] : null;
+      const savedYtdSales = (_scYtdLoaded && scSalesData.ytd) ? [...scSalesData.ytd] : null;
+
+      const leadsPromise = fetchLeads().then(() => {
+        console.log(`⏱️ Leads refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
+        cacheSet('bdc_leads', allLeads);
+        try { render(); } catch(e) { console.error('render() error:', e); }
+        document.getElementById('loadingOverlay').classList.add('hidden');
+      });
+
+      const scPromise = fetchSalesCenterData().then(() => {
+        console.log(`⏱️ Sales Center refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
+
+        // CRITICAL FIX: Restore YTD data that fetchSalesCenterData() would have wiped
+        // fetchSalesCenterData() only fetches MTD, so it loses pre-MTD items
+        if (savedYtdBooked && savedYtdBooked.length > 0) {
+          _scBuildDates();
+          const preMtdBooked = savedYtdBooked.filter(i => i.date < _scMtdStart);
+          const preMtdSales = (savedYtdSales || []).filter(i => i.date < _scMtdStart);
+          scBookedData.ytd = [...preMtdBooked, ...scBookedData.mtd];
+          scSalesData.ytd = [...preMtdSales, ...scSalesData.mtd];
+          _scYtdLoaded = true;
+        }
+
+        cacheSet('bdc_booked', scBookedData);
+        cacheSet('bdc_sales', scSalesData);
+        try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
+        _scYtdBackgroundRefresh();
+      });
+
+      await Promise.allSettled([leadsPromise, scPromise]);
+      console.log(`📌 allLeads: ${allLeads.length} | Total: ${((performance.now() - t0)/1000).toFixed(1)}s`);
+      trendInitAll().catch(e => console.error('Trend init error:', e));
+    } finally {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+  } else {
+    // Even when skipping live API, init trend charts from cached data
+    trendInitAll().catch(e => {});
+  }
+
+  isRefreshing = false;
+  document.getElementById('loadingOverlay').classList.add('hidden');
 }
 
 ['filterDate', 'filterSource', 'filterCompany', 'filterBranch'].forEach(id => {
