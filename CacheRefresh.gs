@@ -26,8 +26,8 @@ const LEADS_SHEET_ID = '17oIiQSafUmay67MI99EJtnZDq6hZDXJcB0UPWk0di-A';
 
 // GitHub config
 const GITHUB_OWNER = 'catseye-internal';
-const GITHUB_REPO = 'catseye-internal.github.io';
-const GITHUB_PATH = 'bdc-dashboard/cache.json';
+const GITHUB_REPO = 'BDC-Dashboard';
+const GITHUB_PATH = 'cache.json';
 const GITHUB_BRANCH = 'main';
 
 // ── Helper: call WorkWave API directly (bypasses proxy — no redirect issues) ──
