@@ -1047,6 +1047,12 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbxeTKxUYTQAre70xrSur8fUwc7bv7yqwt29kvzGDwGy7-bM7So1WlR6rIgsiKORUXe4Zg/exec';
 const API_TOKEN = 'catseye-bdc-2026';
 
+// ── Server-Side Cache (Google Sheet published to web) ──
+// This sheet is refreshed every 10 min by a standalone Apps Script trigger.
+// First-time visitors get data from here instantly instead of waiting 60s+ for live API calls.
+const CACHE_SHEET_ID = '1LoJHJ8aryr-W6O-6H4J0WL19QuBDBfEVbw-aZI1B0tg';
+const CACHE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${CACHE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Cache`;
+
 let allLeads = [];
 // chart instances managed inside renderTypeChart / renderSourceChart
 let refreshTimer = null;
@@ -2730,6 +2736,74 @@ function cacheGet(key) {
   } catch(e) { return null; }
 }
 
+// ── Server-Side Cache Reader ──
+// Fetches pre-built data from the Google Sheet cache (updated every 10 min by Apps Script trigger).
+// This is what makes first-time visits load in 1-2 seconds instead of 60+.
+async function fetchServerCache() {
+  try {
+    const t0 = performance.now();
+    const resp = await fetch(CACHE_SHEET_URL);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const csv = await resp.text();
+
+    // The cache is stored as JSON in cell A1 (possibly chunked across columns)
+    // Google Sheets CSV wraps cell values in quotes and escapes internal quotes
+    // Parse the CSV to extract the raw cell values
+    let jsonStr = '';
+
+    // Check if chunked: row 2 starts with "__chunks__:"
+    const lines = csv.split('\n');
+    if (lines.length < 1 || !lines[0].trim()) throw new Error('Empty cache');
+
+    // Row 1 contains data cells, row 2 might contain chunk indicator
+    const row1 = lines[0];
+    const row2 = lines.length > 1 ? lines[1] : '';
+
+    // Parse CSV row into cells (handle quoted values with commas and escaped quotes)
+    function parseCsvRow(row) {
+      const cells = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') {
+          if (inQuotes && row[i + 1] === '"') { current += '"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if (ch === ',' && !inQuotes) {
+          cells.push(current); current = '';
+        } else {
+          current += ch;
+        }
+      }
+      cells.push(current);
+      return cells;
+    }
+
+    const cells1 = parseCsvRow(row1);
+    const cells2 = parseCsvRow(row2);
+
+    // Check if data is chunked
+    if (cells2.length > 0 && cells2[0].startsWith('__chunks__:')) {
+      const numChunks = parseInt(cells2[0].split(':')[1]);
+      for (let i = 0; i < numChunks; i++) {
+        jsonStr += cells1[i] || '';
+      }
+    } else {
+      jsonStr = cells1[0] || '';
+    }
+
+    if (!jsonStr || jsonStr.length < 10) throw new Error('Cache data too short');
+
+    const data = JSON.parse(jsonStr);
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    console.log(`🌐 Server cache loaded in ${elapsed}s (updated: ${data.updated})`);
+    return data;
+  } catch (e) {
+    console.log('🌐 Server cache unavailable:', e.message);
+    return null;
+  }
+}
+
 // ── Init & Refresh ──
 async function refresh(isInitial) {
   if (isRefreshing) { console.log('⏳ Refresh already in progress, skipping'); return; }
@@ -2737,6 +2811,7 @@ async function refresh(isInitial) {
   const t0 = performance.now();
 
   // On EVERY load, show cached data INSTANTLY — then refresh in background
+  // Priority: 1) localStorage (returning visitor) → 2) Server cache (first-time visitor) → 3) live fetch
   if (isInitial) {
     const cachedLeads = cacheGet('bdc_leads');
     const cachedBooked = cacheGet('bdc_booked');
@@ -2768,6 +2843,35 @@ async function refresh(isInitial) {
       }
       try { renderSalesCenter(); } catch(e) {}
       console.log('⚡ Loaded cached Sales Center data');
+    }
+
+    // ── Server Cache: for FIRST-TIME visitors with no localStorage ──
+    // If we don't have Sales Center data cached locally, try the Google Sheet cache
+    if (!cachedBooked || !cachedSales) {
+      const serverCache = await fetchServerCache();
+      if (serverCache && serverCache.booked && serverCache.sales) {
+        _scBuildDates();
+
+        // Process server cache into the same format the dashboard expects
+        const allBooked = [...(serverCache.booked.preMtd || []), ...(serverCache.booked.mtd || [])];
+        const allSales = [...(serverCache.sales.preMtd || []), ...(serverCache.sales.mtd || [])];
+
+        // Bucket the items
+        scBookedData = _scBucketItems(allBooked);
+        scSalesData = _scBucketItems(allSales);
+        _scYtdLoaded = true;
+
+        try { renderSalesCenter(); } catch(e) {}
+        document.getElementById('loadingOverlay').classList.add('hidden');
+
+        // Seed localStorage so subsequent loads are instant too
+        cacheSet('bdc_booked', scBookedData);
+        cacheSet('bdc_sales', scSalesData);
+        cacheSet('bdc_sc_ytd', { ts: Date.now(), booked: serverCache.booked.preMtd || [], sales: serverCache.sales.preMtd || [] });
+
+        const age = serverCache.updated ? Math.round((Date.now() - new Date(serverCache.updated).getTime()) / 60000) : '?';
+        console.log(`🌐 Loaded server cache: ${allBooked.length} booked, ${allSales.length} sales (${age}m old)`);
+      }
     }
   }
 
