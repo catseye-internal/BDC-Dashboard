@@ -41,7 +41,7 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    overflow-x: auto;
+    overflow-x: hidden;
   }
 
   /* ── Header ── */
@@ -452,36 +452,7 @@
     grid-template-columns: 1fr 1fr 1fr;
   }
 
-  /* ── Sales Center Responsive ── */
-  @media (max-width: 1100px) {
-    .sc-blocks, .sc-blocks-sales { grid-template-columns: 1fr; }
-    .sc-section-header { flex-wrap: wrap; }
-  }
-  @media (max-width: 768px) {
-    .sc-section-header { flex-direction: column; align-items: flex-start; gap: 6px; }
-    .sc-period-toggle { margin-left: 0; flex-wrap: wrap; }
-    .sc-date-range.visible { margin-top: 4px; }
-    .sc-blocks, .sc-blocks-sales { gap: 8px; }
-    .sc-block { padding: 6px 8px 4px; border-radius: 8px; }
-    .sc-block-header { margin-bottom: 4px; }
-    .sc-block-label { font-size: 11px; }
-    .sc-booked-count { font-size: 22px; }
-    .sc-booked-label { font-size: 8px; }
-    .sc-card-val { font-size: 18px; }
-    .sc-card-name { font-size: 10px; margin-bottom: 6px; }
-    .sc-card-label { font-size: 8px; }
-    .sc-subcards .sc-card { padding: 8px 0; }
-    .sc-card-total-pinned { padding: 8px 0 0 0; }
-  }
-  @media (max-width: 480px) {
-    .sc-booked-count { font-size: 18px; }
-    .sc-booked-label { font-size: 7px; letter-spacing: 0.3px; }
-    .sc-card-val { font-size: 15px; }
-    .sc-card-name { font-size: 9px; }
-    .sc-card-label { font-size: 7px; }
-    .sc-period-btn { font-size: 10px; padding: 4px 10px; }
-    .sc-section-title { font-size: 13px; }
-  }
+  /* ── Sales Center Responsive — removed, consolidated into global responsive block below ── */
 
   /* ── Filters ── */
   .filter-bar {
@@ -679,53 +650,102 @@
   body.wallboard .filter-bar { flex-shrink: 0; margin-bottom: 8px; }
   body.wallboard .table-container { flex: 1; overflow-y: auto; min-height: 0; }
 
-  /* ── Responsive ── */
+  /* ══════════════════════════════════════════════════════
+     RESPONSIVE — Unified mobile-first rules
+     All sections stack to full-width uniformly on small screens
+     ══════════════════════════════════════════════════════ */
+
+  /* ── Tablet (≤1200px) ── */
   @media (max-width: 1200px) {
     .kpi-dual { grid-template-columns: 1fr; }
-    .inbound-row { grid-template-columns: 1fr; }
     .kpi-grid { grid-template-columns: repeat(4, 1fr); }
     .chart-dual { grid-template-columns: 1fr; }
+    .sc-blocks, .sc-blocks-sales { grid-template-columns: 1fr; }
+    .inbound-row { grid-template-columns: 1fr; }
+    .sc-section-header { flex-wrap: wrap; }
   }
+
+  /* ── Mobile (≤768px) ── */
   @media (max-width: 768px) {
-    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    /* Header */
     .header { flex-direction: column; gap: 8px; padding: 12px 16px; }
     .header-left { flex-wrap: wrap; justify-content: center; }
     .header-title { font-size: 18px; }
     .header-right { flex-wrap: wrap; justify-content: center; }
-    .main { padding: 12px; }
-    .filter-bar { flex-direction: column; }
-    table { min-width: 800px; font-size: 12px; }
     .view-tab { font-size: 11px; padding: 5px 14px; }
-    .sc-blocks, .sc-blocks-sales { grid-template-columns: 1fr !important; }
-    .inbound-row { grid-template-columns: 1fr 1fr !important; }
-    .chart-container { height: 130px; }
+
+    /* Main container */
+    .main { padding: 12px; }
+
+    /* KPIs */
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* Sales Center sections — all full-width stacked */
+    .sc-section { margin-bottom: 8px; }
+    .sc-section-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .sc-section-title { font-size: 14px; }
+    .sc-period-toggle { margin-left: 0; flex-wrap: wrap; }
+    .sc-date-range.visible { margin-top: 4px; }
+    .sc-blocks, .sc-blocks-sales { grid-template-columns: 1fr !important; gap: 8px; }
+    .sc-block { padding: 6px 8px 4px; border-radius: 8px; }
+    .sc-block-header { margin-bottom: 4px; }
+    .sc-block-label { font-size: 11px; }
+    .sc-booked-count { font-size: 22px; }
+    .sc-booked-label { font-size: 8px; }
+    .sc-card-val { font-size: 18px; }
+    .sc-card-name { font-size: 10px; margin-bottom: 6px; }
+    .sc-card-label { font-size: 8px; }
+    .sc-subcards .sc-card { padding: 8px 0; }
+    .sc-card-total-pinned { padding: 8px 0 0 0; }
+
+    /* Inbound charts — uniform full-width stack */
+    .inbound-row { grid-template-columns: 1fr !important; }
     .chart-card { padding: 8px 12px; }
     .chart-card-title { font-size: 11px; margin-bottom: 4px; }
+    .chart-container { height: 180px; }
+    .inbound-branch-card { display: block; } /* keep visible on tablet */
     .branch-grid { gap: 4px; }
-    .branch-item { padding: 4px 6px; }
+    .branch-card { min-width: 60px; }
+
+    /* Trend charts */
+    .trend-block { margin-top: 6px; }
     .trend-header { flex-direction: column; align-items: flex-start; gap: 6px; }
     .trend-toggle { flex-wrap: wrap; }
     .trend-chart-wrap { height: 150px; }
-    .sc-section { margin-bottom: 4px; }
-    .sc-section-header { flex-direction: column; align-items: flex-start; gap: 4px; }
-    .sc-period-toggle { margin-left: 0; flex-wrap: wrap; }
+
+    /* Leads table view */
+    .filter-bar { flex-direction: column; }
+    table { min-width: 800px; font-size: 12px; }
   }
+
+  /* ── Small phone (≤480px) ── */
   @media (max-width: 480px) {
     .header { padding: 10px 12px; }
     .header-title { font-size: 16px; }
     .header-badge { font-size: 9px; padding: 3px 8px; }
     .header-right { font-size: 10px; }
-    .main { padding: 8px; }
-    table { min-width: 600px; font-size: 11px; }
-    th, td { padding: 6px 8px; }
-    .view-tab { font-size: 10px; padding: 4px 12px; }
-    .sc-section-title { font-size: 12px; }
-    .sc-period-btn { font-size: 9px; padding: 3px 8px; }
+    .main { padding: 10px; }
+
+    /* Sales Center — tighter sizing */
+    .sc-section-title { font-size: 13px; }
+    .sc-period-btn { font-size: 10px; padding: 4px 10px; }
+    .sc-booked-count { font-size: 18px; }
+    .sc-booked-label { font-size: 7px; letter-spacing: 0.3px; }
+    .sc-card-val { font-size: 15px; }
+    .sc-card-name { font-size: 9px; }
+    .sc-card-label { font-size: 7px; }
+
+    /* Charts */
+    .chart-container { height: 150px; }
+
+    /* Trend */
     .trend-btn { font-size: 9px; padding: 3px 8px; }
     .trend-chart-wrap { height: 130px; }
-    .inbound-row { grid-template-columns: 1fr !important; }
-    .chart-container { height: 110px; }
-    .inbound-branch-card { display: none; }
+
+    /* Table */
+    .view-tab { font-size: 10px; padding: 4px 12px; }
+    table { min-width: 600px; font-size: 11px; }
+    th, td { padding: 6px 8px; }
   }
 </style>
 </head>
