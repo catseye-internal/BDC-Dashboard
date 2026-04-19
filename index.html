@@ -795,19 +795,21 @@
   <div class="view-container active" id="viewDashboard">
 
   <!-- ══ Master Date Filter: Top Sections ══ -->
-  <div class="master-filter" id="masterDashFilter">
-    <div class="master-filter-label">Period</div>
-    <div class="sc-period-toggle">
-      <button class="sc-period-btn master-dash-btn" data-period="yesterday">Yesterday</button>
-      <button class="sc-period-btn master-dash-btn active" data-period="today">Today</button>
-      <button class="sc-period-btn master-dash-btn" data-period="wk">WK</button>
-      <button class="sc-period-btn master-dash-btn" data-period="mtd">MTD</button>
-      <button class="sc-period-btn master-dash-btn" data-period="ytd">YTD</button>
-      <button class="sc-period-btn master-dash-btn" data-period="custom">Custom</button>
-      <div class="sc-date-range" id="dateRangeMasterDash">
-        <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromMasterDash"></div>
-        <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToMasterDash"></div>
-        <button class="sc-date-apply master-dash-apply">Apply</button>
+  <div class="sc-section" id="masterDashFilter" style="margin-bottom:6px;">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Sales</span> Center</div>
+      <div class="sc-period-toggle">
+        <button class="sc-period-btn master-dash-btn" data-period="yesterday">Yesterday</button>
+        <button class="sc-period-btn master-dash-btn active" data-period="today">Today</button>
+        <button class="sc-period-btn master-dash-btn" data-period="wk">WK</button>
+        <button class="sc-period-btn master-dash-btn" data-period="mtd">MTD</button>
+        <button class="sc-period-btn master-dash-btn" data-period="ytd">YTD</button>
+        <button class="sc-period-btn master-dash-btn" data-period="custom">Custom</button>
+        <div class="sc-date-range" id="dateRangeMasterDash">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromMasterDash"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToMasterDash"></div>
+          <button class="sc-date-apply master-dash-apply">Apply</button>
+        </div>
       </div>
     </div>
   </div>
@@ -893,17 +895,19 @@
   <div class="trend-divider" style="border-top: 2px solid var(--border); margin: 12px 0 8px; opacity: 0.5;"></div>
 
   <!-- ══ Master Date Filter: Trend Charts ══ -->
-  <div class="master-filter master-trend-filter" id="masterTrendFilter">
-    <div class="master-filter-label">Trends</div>
-    <div class="trend-toggle">
-      <button class="trend-btn master-trend-btn" data-range="wk">WK</button>
-      <button class="trend-btn master-trend-btn active" data-range="mtd">MTD</button>
-      <button class="trend-btn master-trend-btn" data-range="ytd">YTD</button>
-      <button class="trend-btn master-trend-btn" data-range="custom">Custom</button>
-      <div class="trend-date-range" id="trendDateRangeMaster">
-        <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromMaster"></div>
-        <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToMaster"></div>
-        <button class="sc-date-apply master-trend-apply">Apply</button>
+  <div class="sc-section master-trend-filter" id="masterTrendFilter" style="margin-bottom:6px;">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Trend</span> Charts</div>
+      <div class="sc-period-toggle">
+        <button class="sc-period-btn master-trend-btn" data-range="wk">WK</button>
+        <button class="sc-period-btn master-trend-btn active" data-range="mtd">MTD</button>
+        <button class="sc-period-btn master-trend-btn" data-range="ytd">YTD</button>
+        <button class="sc-period-btn master-trend-btn" data-range="custom">Custom</button>
+        <div class="sc-date-range" id="trendDateRangeMaster">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromMaster"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToMaster"></div>
+          <button class="sc-date-apply master-trend-apply">Apply</button>
+        </div>
       </div>
     </div>
   </div>
