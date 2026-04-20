@@ -198,6 +198,9 @@
   .branch-sub {
     font-size: 9px; color: var(--text-dim); margin-top: 2px;
   }
+  .branch-conv {
+    font-size: 9px; color: var(--yellow); margin-top: 1px; font-weight: 600;
+  }
   .branch-card-conversion {
     border-color: rgba(251, 191, 36, 0.3);
     background: rgba(251, 191, 36, 0.06);
@@ -1853,6 +1856,13 @@ function buildBranchGrid(gridId, leads, period) {
   const totalInbound = leads.length;
   const convPct = totalInbound > 0 ? Math.round((totalBooked / totalInbound) * 100) : 0;
 
+  // Count booked items per branch
+  const bookedByBranch = {};
+  bookedItems.forEach(item => {
+    const b = item.branch || 'Other';
+    bookedByBranch[b] = (bookedByBranch[b] || 0) + 1;
+  });
+
   // Short display names for branch cards
   const BRANCH_SHORT = {
     'Eastern Mass': 'E. Mass',
@@ -1862,15 +1872,21 @@ function buildBranchGrid(gridId, leads, period) {
     'USX - Upstate New York': 'USX Upst. NY',
   };
 
-  let html = ordered.map(branch => `
+  let html = ordered.map(branch => {
+    const branchBooked = bookedByBranch[branch] || 0;
+    const branchInbound = counts[branch] || 0;
+    const branchConv = branchInbound > 0 ? Math.round((branchBooked / branchInbound) * 100) : 0;
+    return `
     <div class="branch-card">
       <div class="branch-count">${counts[branch]}</div>
       <div class="branch-name">${BRANCH_SHORT[branch] || branch}</div>
       <div class="branch-sub">${openCounts[branch] || 0} open</div>
+      <div class="branch-conv">${branchConv}% conv</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
-  // Add conversion % card
+  // Add overall conversion % card
   html += `
     <div class="branch-card branch-card-conversion">
       <div class="branch-count" style="color: var(--yellow)">${convPct}%</div>
