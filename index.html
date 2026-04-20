@@ -1962,8 +1962,8 @@ const SC_USX_BRANCHES = ['USX - Western Mass', 'USX - Upstate New York'];
 const SC_ALL_BRANCHES = [...SC_CATSEYE_BRANCHES, ...SC_USX_BRANCHES];
 
 // State
-let scBookedData = { today: [], yesterday: [], mtd: [], ytd: [] };
-let scSalesData  = { today: [], yesterday: [], mtd: [], ytd: [] };
+let scBookedData = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
+let scSalesData  = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
 
 // ── Master filter state (unified across all top sections) ──
 let masterPeriod = localStorage.getItem('bdc_masterPeriod') || 'today';
@@ -2426,7 +2426,7 @@ function _scYtdBackgroundRefresh() {
         const preSales = freshSales.filter(i => i.date < _scMtdStart);
         scBookedData.ytd = [...preBooked, ...scBookedData.mtd];
         scSalesData.ytd = [...preSales, ...scSalesData.mtd];
-        try { renderSalesCenter(); } catch(e) {}
+        try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
       }
 
       console.log(`📊 YTD background refresh done: ${freshBooked.length} booked, ${freshSales.length} won (${((performance.now() - t0)/1000).toFixed(1)}s)`);
@@ -2836,6 +2836,9 @@ async function refresh(isInitial) {
   const t0 = performance.now();
   let skipLiveApi = false;  // set true when cache is fresh enough
 
+  // Always build date boundaries first so render functions never see undefined dates
+  _scBuildDates();
+
   if (isInitial) {
     // ── STEP 1: Try localStorage (returning visitors — instant) ──
     const cachedLeads = cacheGet('bdc_leads');
@@ -2846,7 +2849,7 @@ async function refresh(isInitial) {
 
     if (cachedLeads) {
       allLeads = cachedLeads.data;
-      try { render(); } catch(e) {}
+      try { render(); } catch(e) { console.error('render() error:', e); }
       document.getElementById('loadingOverlay').classList.add('hidden');
       console.log(`⚡ Loaded ${allLeads.length} cached leads (${Math.round((Date.now() - cachedLeads.ts) / 60000)}m old)`);
     }
@@ -2861,7 +2864,7 @@ async function refresh(isInitial) {
         scSalesData.ytd = [...preSales, ...scSalesData.mtd];
         _scYtdLoaded = true;
       }
-      try { renderSalesCenter(); } catch(e) {}
+      try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
       hasLocalData = true;
       // If local cache is very fresh, skip live API entirely
       const localAge = (Date.now() - cachedBooked.ts) / 60000;
@@ -2881,7 +2884,7 @@ async function refresh(isInitial) {
         // Leads from server cache
         if (serverCache.leads && serverCache.leads.length > 0) {
           allLeads = serverCache.leads;
-          try { render(); } catch(e) {}
+          try { render(); } catch(e) { console.error('render() error:', e); }
           cacheSet('bdc_leads', allLeads);
           console.log(`🌐 Loaded ${allLeads.length} leads from server cache`);
         }
@@ -2894,7 +2897,7 @@ async function refresh(isInitial) {
           scBookedData = _scBucketItems(allBooked);
           scSalesData = _scBucketItems(allSales);
           _scYtdLoaded = true;
-          try { renderSalesCenter(); } catch(e) {}
+          try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
 
           // Seed localStorage
           cacheSet('bdc_booked', scBookedData);
@@ -2960,6 +2963,12 @@ async function refresh(isInitial) {
 
   isRefreshing = false;
   document.getElementById('loadingOverlay').classList.add('hidden');
+
+  // ── Safety re-render: catch any case where data loaded but render was missed ──
+  if (allLeads.length > 0 || scBookedData.mtd.length > 0) {
+    try { render(); } catch(e) { console.error('Safety render() error:', e); }
+    try { renderSalesCenter(); } catch(e) { console.error('Safety renderSalesCenter() error:', e); }
+  }
 
   // ── Init trend charts AFTER all data & rendering is settled ──
   requestAnimationFrame(() => {
