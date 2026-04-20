@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BDC Dashboard | Catseye & USX Pest</title>
+<link rel="preload" href="./cache.json" as="fetch" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -2142,8 +2143,7 @@ function render() {
   renderTable(filtered);
   populateBranches();
   populateMediums();
-  document.getElementById('lastUpdated').textContent =
-    'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  updateTimestamp();
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3012,16 +3012,50 @@ function setupTrendObserver() {
   _trendObserver.observe(target);
 }
 
-// ── Persistent Cache (localStorage — survives browser close) ──
+// ── Persistent Cache (localStorage + IndexedDB fallback) ──
+// Safari aggressively purges localStorage after 7 days of non-use.
+// IndexedDB is more durable on iOS — use both for redundancy.
 function cacheSet(key, data) {
-  try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+  const payload = { ts: Date.now(), data };
+  try { localStorage.setItem(key, JSON.stringify(payload)); } catch(e) {}
+  // Also write to IndexedDB for durability
+  try {
+    const req = indexedDB.open('bdc_cache', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('kv');
+    req.onsuccess = e => {
+      try {
+        const tx = e.target.result.transaction('kv', 'readwrite');
+        tx.objectStore('kv').put(payload, key);
+      } catch(err) {}
+    };
+  } catch(e) {}
 }
 function cacheGet(key) {
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    return JSON.parse(raw); // never expires — stale-while-revalidate
-  } catch(e) { return null; }
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null; // IndexedDB is async — handled separately in refresh()
+}
+// Async fallback: read from IndexedDB when localStorage is empty
+function cacheGetAsync(key) {
+  return new Promise(resolve => {
+    try {
+      const req = indexedDB.open('bdc_cache', 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore('kv');
+      req.onsuccess = e => {
+        try {
+          const tx = e.target.result.transaction('kv', 'readonly');
+          const get = tx.objectStore('kv').get(key);
+          get.onsuccess = () => resolve(get.result || null);
+          get.onerror = () => resolve(null);
+        } catch(err) { resolve(null); }
+      };
+      req.onerror = () => resolve(null);
+      // Timeout after 500ms — don't block forever
+      setTimeout(() => resolve(null), 500);
+    } catch(e) { resolve(null); }
+  });
 }
 
 // ── Server-Side Cache Reader ──
@@ -3096,16 +3130,32 @@ async function refresh(isInitial) {
 
   if (isInitial) {
     // ── STEP 1: Try localStorage (returning visitors — instant) ──
-    const cachedLeads = cacheGet('bdc_leads');
-    const cachedBooked = cacheGet('bdc_booked');
-    const cachedSales = cacheGet('bdc_sales');
-    const cachedYtd = cacheGet('bdc_sc_ytd');
+    let cachedLeads = cacheGet('bdc_leads');
+    let cachedBooked = cacheGet('bdc_booked');
+    let cachedSales = cacheGet('bdc_sales');
+    let cachedYtd = cacheGet('bdc_sc_ytd');
+
+    // If localStorage was purged (common on Safari iOS), try IndexedDB
+    if (!cachedBooked || !cachedSales) {
+      console.log('⚡ localStorage empty, trying IndexedDB fallback...');
+      const [idbLeads, idbBooked, idbSales, idbYtd] = await Promise.all([
+        cachedLeads ? null : cacheGetAsync('bdc_leads'),
+        cachedBooked ? null : cacheGetAsync('bdc_booked'),
+        cachedSales ? null : cacheGetAsync('bdc_sales'),
+        cachedYtd ? null : cacheGetAsync('bdc_sc_ytd')
+      ]);
+      if (!cachedLeads && idbLeads) { cachedLeads = idbLeads; console.log('⚡ Recovered leads from IndexedDB'); }
+      if (!cachedBooked && idbBooked) { cachedBooked = idbBooked; console.log('⚡ Recovered booked from IndexedDB'); }
+      if (!cachedSales && idbSales) { cachedSales = idbSales; console.log('⚡ Recovered sales from IndexedDB'); }
+      if (!cachedYtd && idbYtd) { cachedYtd = idbYtd; console.log('⚡ Recovered YTD from IndexedDB'); }
+    }
     let hasLocalData = false;
 
     if (cachedLeads) {
       allLeads = cachedLeads.data;
       try { render(); } catch(e) { console.error('render() error:', e); }
       document.getElementById('loadingOverlay').classList.add('hidden');
+      updateTimestamp(cachedLeads.ts);
       console.log(`⚡ Loaded ${allLeads.length} cached leads (${Math.round((Date.now() - cachedLeads.ts) / 60000)}m old)`);
     }
     if (cachedBooked && cachedSales) {
@@ -3122,9 +3172,10 @@ async function refresh(isInitial) {
       _scDataReady = true;
       try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
       hasLocalData = true;
+      updateTimestamp(cachedBooked.ts);
       // If local cache is very fresh, skip live API entirely
       const localAge = (Date.now() - cachedBooked.ts) / 60000;
-      if (localAge < 5 && cachedLeads) {
+      if (localAge < 10 && cachedLeads) {
         skipLiveApi = true;
         console.log(`⚡ Local cache is ${Math.round(localAge)}m old — skipping live API calls`);
       }
@@ -3163,6 +3214,7 @@ async function refresh(isInitial) {
         }
 
         document.getElementById('loadingOverlay').classList.add('hidden');
+        if (serverCache.updated) updateTimestamp(new Date(serverCache.updated).getTime());
 
         // If server cache is fresh, skip ALL live API calls
         if (cacheAge < 15) {
@@ -3189,6 +3241,7 @@ async function refresh(isInitial) {
         cacheSet('bdc_leads', allLeads);
         try { render(); } catch(e) { console.error('render() error:', e); }
         document.getElementById('loadingOverlay').classList.add('hidden');
+        updateTimestamp(Date.now());
       });
 
       const scPromise = fetchSalesCenterData().then(() => {
@@ -3358,6 +3411,33 @@ viewTabs.forEach(tab => {
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('view') === 'leads') switchView('leads');
 if (urlParams.has('wallboard')) switchView('wallboard');
+
+// ── Timestamp display ──
+let _lastDataTs = null; // tracks when data was last refreshed from any source
+function updateTimestamp(sourceTs) {
+  if (sourceTs) _lastDataTs = sourceTs;
+  const ts = _lastDataTs || Date.now();
+  const age = Math.round((Date.now() - ts) / 60000);
+  const timeStr = new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const el = document.getElementById('lastUpdated');
+  if (age > 15) {
+    el.textContent = 'Updated ' + timeStr + ' (' + age + 'm ago)';
+    el.style.color = 'var(--orange)';
+  } else {
+    el.textContent = 'Updated ' + timeStr;
+    el.style.color = '';
+  }
+}
+// Refresh age display every 60s
+setInterval(() => { if (_lastDataTs) updateTimestamp(); }, 60000);
+
+// ── Service Worker registration (offline-first cache.json) ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(
+    reg => console.log('🔧 SW registered:', reg.scope),
+    err => console.log('🔧 SW registration failed:', err)
+  );
+}
 </script>
 </body>
 </html>
