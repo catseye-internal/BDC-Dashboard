@@ -822,9 +822,21 @@
     .trend-toggle { flex-wrap: wrap; }
     .trend-chart-wrap { height: 150px; }
 
-    /* Leads table view */
-    .filter-bar { flex-direction: column; }
-    table { min-width: 800px; font-size: 12px; }
+    /* Leads view — compact mobile layout */
+    .filter-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .filter-bar .filter-group { min-width: 0; }
+    .filter-bar select, .filter-bar input { min-width: 0; width: 100%; font-size: 12px; padding: 6px 8px; }
+    .filter-bar .filter-group:last-child { grid-column: 1 / -1; } /* Sort spans full width */
+    .filter-bar .filter-group:last-child { margin-left: 0; }
+    .filter-label { font-size: 9px; }
+    .sort-btn { font-size: 12px; padding: 6px 10px; width: 100%; }
+    table { min-width: 600px; font-size: 12px; }
+    thead th { padding: 8px 10px; font-size: 10px; }
+    td { padding: 8px 10px; max-width: 150px; }
   }
 
   /* ── Small phone (≤480px) ── */
@@ -853,8 +865,10 @@
 
     /* Table */
     .view-tab { font-size: 10px; padding: 4px 12px; }
-    table { min-width: 600px; font-size: 11px; }
+    .filter-bar select, .filter-bar input { font-size: 11px; padding: 5px 6px; }
+    table { min-width: 500px; font-size: 11px; }
     th, td { padding: 6px 8px; }
+    td { max-width: 120px; }
   }
 </style>
 </head>
