@@ -682,32 +682,63 @@
   body.wallboard .chart-card-title { font-size: 13px; margin-bottom: 4px; }
   body.wallboard .chart-container { height: 120px; }
   body.wallboard .chart-dual-half .chart-sub-title { display: none; }
-  body.wallboard .inbound-branch-card { display: block; }
+  body.wallboard .inbound-branch-card { display: flex; flex-direction: column; }
   body.wallboard .sc-conv-kpi { display: none; }
 
-  /* Wallboard: Branch grid — 3×2 with row layout, larger text for TV */
+  /* Wallboard: Conv summary row above the branch grid */
+  .wallboard-conv-summary { display: none; }
+  body.wallboard .wallboard-conv-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px;
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  body.wallboard .wallboard-conv-pct {
+    font-size: 24px; font-weight: 800; color: var(--yellow); line-height: 1;
+  }
+  body.wallboard .wallboard-conv-label {
+    font-size: 11px; font-weight: 700; color: var(--yellow);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  body.wallboard .wallboard-conv-detail {
+    font-size: 11px; color: var(--text-dim); margin-left: auto;
+  }
+
+  /* Wallboard: Branch grid — summary + 3×2 sub-grid fills remaining space */
   body.wallboard .branch-grid {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  body.wallboard .wallboard-branch-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: 1fr 1fr;
     gap: 8px;
     flex: 1;
+    min-height: 0;
   }
-  body.wallboard .branch-card {
+  body.wallboard .wallboard-branch-grid .branch-card {
     flex-direction: row;
     align-items: center;
     gap: 10px;
     padding: 10px 14px;
     min-width: unset;
+    flex: 1;
   }
-  body.wallboard .branch-card .branch-info {
+  body.wallboard .wallboard-branch-grid .branch-card .branch-info {
     display: flex; flex-direction: column; flex: 1; min-width: 0;
   }
   body.wallboard .branch-card-conversion { display: none; }
-  body.wallboard .branch-card .branch-count { font-size: 28px; }
-  body.wallboard .branch-card .branch-name { font-size: 11px; margin-top: 0; text-align: left; }
-  body.wallboard .branch-card .branch-sub { font-size: 10px; margin-top: 2px; }
-  body.wallboard .branch-card .branch-conv { font-size: 14px; font-weight: 700; }
+  body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 28px; }
+  body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 11px; margin-top: 0; text-align: left; }
+  body.wallboard .wallboard-branch-grid .branch-card .branch-sub { font-size: 10px; margin-top: 2px; }
+  body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 14px; font-weight: 700; }
 
   /* Leads view in wallboard mode */
   body.wallboard #viewLeads {
@@ -1947,7 +1978,7 @@ function buildBranchGrid(gridId, leads, period) {
   `;
   }).join('');
 
-  // Add overall conversion % card (skip in wallboard — conv is already on each card)
+  // Add overall conversion % card (dashboard only — wallboard gets a summary row above the grid)
   if (!isWallboard) {
     html += `
       <div class="branch-card branch-card-conversion">
@@ -1960,7 +1991,17 @@ function buildBranchGrid(gridId, leads, period) {
     `;
   }
 
-  grid.innerHTML = html;
+  // Wallboard: prepend a total conv % summary row, then wrap branch cards in a sub-grid
+  if (isWallboard) {
+    const summaryHtml = `<div class="wallboard-conv-summary">
+      <span class="wallboard-conv-pct">${convPct}%</span>
+      <span class="wallboard-conv-label">CONV. RATE</span>
+      <span class="wallboard-conv-detail">${totalBooked} booked / ${totalInbound} inbound</span>
+    </div>`;
+    grid.innerHTML = summaryHtml + '<div class="wallboard-branch-grid">' + html + '</div>';
+  } else {
+    grid.innerHTML = html;
+  }
 }
 
 function renderBranchGrid() {
