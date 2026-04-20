@@ -447,6 +447,13 @@
     text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 13px;
     flex: 1; display: flex; align-items: center; justify-content: center;
   }
+  .sc-loading-pulse {
+    color: var(--orange); animation: loadPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes loadPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
   .sc-loading {
     text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 13px;
     flex: 1; display: flex; align-items: center; justify-content: center;
@@ -2021,6 +2028,7 @@ const SC_ALL_BRANCHES = [...SC_CATSEYE_BRANCHES, ...SC_USX_BRANCHES];
 // State
 let scBookedData = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
 let scSalesData  = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
+let _scDataReady = false; // flips true after first successful data load (cache or API)
 
 // ── Master filter state (unified across all top sections) ──
 let masterPeriod = localStorage.getItem('bdc_masterPeriod') || 'today';
@@ -2068,7 +2076,9 @@ function scRenderBookedBlock(containerId, items, branches) {
   const { counts, total } = scCountByBranch(items, branches);
 
   if (total === 0) {
-    el.innerHTML = '<div class="sc-no-data">No data</div>';
+    el.innerHTML = _scDataReady
+      ? '<div class="sc-no-data">No data</div>'
+      : '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
     return;
   }
 
@@ -2147,7 +2157,9 @@ function scRenderSalesBlock(containerId, opportunities, branches) {
   const agg = scAggregate(opportunities, branches);
 
   if (agg.totals.count === 0) {
-    el.innerHTML = '<div class="sc-no-data">No data</div>';
+    el.innerHTML = _scDataReady
+      ? '<div class="sc-no-data">No data</div>'
+      : '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
     return;
   }
 
@@ -2192,7 +2204,9 @@ function scRenderSalesCombined(containerId, opportunities) {
   const aggUSX = scAggregate(opportunities, SC_USX_BRANCHES);
 
   if (aggAll.totals.count === 0) {
-    el.innerHTML = '<div class="sc-no-data">No data</div>';
+    el.innerHTML = _scDataReady
+      ? '<div class="sc-no-data">No data</div>'
+      : '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
     return;
   }
 
@@ -2980,6 +2994,7 @@ async function refresh(isInitial) {
         scSalesData.ytd = [...preSales, ...scSalesData.mtd];
         _scYtdLoaded = true;
       }
+      _scDataReady = true;
       try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
       hasLocalData = true;
       // If local cache is very fresh, skip live API entirely
@@ -3013,6 +3028,7 @@ async function refresh(isInitial) {
           scBookedData = _scBucketItems(allBooked);
           scSalesData = _scBucketItems(allSales);
           _scYtdLoaded = true;
+          _scDataReady = true;
           try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
 
           // Seed localStorage
@@ -3064,6 +3080,7 @@ async function refresh(isInitial) {
           _scYtdLoaded = true;
         }
 
+        _scDataReady = true;
         cacheSet('bdc_booked', scBookedData);
         cacheSet('bdc_sales', scSalesData);
         try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
