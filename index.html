@@ -2053,6 +2053,7 @@ const SC_ALL_BRANCHES = [...SC_CATSEYE_BRANCHES, ...SC_USX_BRANCHES];
 let scBookedData = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
 let scSalesData  = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
 let _scDataReady = false; // flips true after first successful data load (cache or API)
+const _scPageLoadTime = Date.now(); // track page load for loading grace period
 
 // ── Master filter state (unified across all top sections) ──
 let masterPeriod = localStorage.getItem('bdc_masterPeriod') || 'today';
@@ -2100,9 +2101,10 @@ function scRenderBookedBlock(containerId, items, branches) {
   const { counts, total } = scCountByBranch(items, branches);
 
   if (total === 0) {
-    el.innerHTML = _scDataReady
-      ? '<div class="sc-no-data">No data</div>'
-      : '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
+    const withinGrace = (Date.now() - _scPageLoadTime) < 30000;
+    el.innerHTML = (!_scDataReady || withinGrace)
+      ? '<div class="sc-no-data sc-loading-pulse">Loading...</div>'
+      : '<div class="sc-no-data">No data</div>';
     return;
   }
 
@@ -2181,9 +2183,10 @@ function scRenderSalesBlock(containerId, opportunities, branches) {
   const agg = scAggregate(opportunities, branches);
 
   if (agg.totals.count === 0) {
-    el.innerHTML = _scDataReady
-      ? '<div class="sc-no-data">No data</div>'
-      : '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
+    const withinGrace = (Date.now() - _scPageLoadTime) < 30000;
+    el.innerHTML = (!_scDataReady || withinGrace)
+      ? '<div class="sc-no-data sc-loading-pulse">Loading...</div>'
+      : '<div class="sc-no-data">No data</div>';
     return;
   }
 
@@ -2228,9 +2231,10 @@ function scRenderSalesCombined(containerId, opportunities) {
   const aggUSX = scAggregate(opportunities, SC_USX_BRANCHES);
 
   if (aggAll.totals.count === 0) {
-    el.innerHTML = _scDataReady
-      ? '<div class="sc-no-data">No data</div>'
-      : '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
+    const withinGrace = (Date.now() - _scPageLoadTime) < 30000;
+    el.innerHTML = (!_scDataReady || withinGrace)
+      ? '<div class="sc-no-data sc-loading-pulse">Loading...</div>'
+      : '<div class="sc-no-data">No data</div>';
     return;
   }
 
