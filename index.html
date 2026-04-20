@@ -191,8 +191,9 @@
     letter-spacing: -0.5px; line-height: 1;
   }
   .branch-name {
-    font-size: 10px; font-weight: 600; color: var(--text-muted);
-    margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;
+    font-size: 9px; font-weight: 600; color: var(--text-muted);
+    margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+    text-align: center; white-space: nowrap;
   }
   .branch-sub {
     font-size: 9px; color: var(--text-dim); margin-top: 2px;
@@ -1579,8 +1580,8 @@ function renderSourceChart() {
 //   + Western MA (Berkshire, Franklin, Hampshire, Hampden)
 // Catseye covers: rest of MA, all of RI, all of CT, Southern NH (south of Concord)
 
-const USX_ZIP_RANGES = [
-  // ── Upstate NY counties ──
+// USX - Upstate New York zip ranges
+const USX_NY_ZIP_RANGES = [
   // Albany County
   [12007,12007],[12009,12009],[12023,12023],[12041,12041],[12045,12047],[12054,12054],
   [12059,12059],[12067,12067],[12077,12077],[12084,12084],[12107,12110],[12120,12120],
@@ -1639,7 +1640,10 @@ const USX_ZIP_RANGES = [
   [12461,12461],[12464,12466],[12471,12473],[12477,12477],[12480,12481],[12484,12484],
   [12486,12487],[12489,12491],[12493,12495],[12498,12498],[12515,12515],[12525,12525],
   [12528,12528],[12550,12550],[12561,12561],[12566,12566],
-  // ── Western MA counties ──
+];
+
+// USX - Western Mass zip ranges
+const USX_WMASS_ZIP_RANGES = [
   // Berkshire County
   [1201,1201],[1220,1220],[1222,1227],[1229,1230],[1235,1240],[1242,1242],
   [1244,1245],[1247,1247],[1252,1253],[1255,1259],[1262,1264],[1266,1267],[1270,1270],
@@ -1658,6 +1662,9 @@ const USX_ZIP_RANGES = [
   [1101,1109],[1111,1111],[1115,1116],[1118,1119],[1128,1129],[1133,1133],
   [1138,1139],[1144,1144],[1151,1152],[1195,1195],[1199,1199],
 ];
+
+// Combined USX ranges (for company-level checks)
+const USX_ZIP_RANGES = [...USX_NY_ZIP_RANGES, ...USX_WMASS_ZIP_RANGES];
 
 // Southern NH: south of Concord. Covers Hillsborough, Rockingham, Cheshire, Strafford, Merrimack (south)
 const NH_ZIP_RANGES = [
@@ -1707,31 +1714,32 @@ function territoryFromZip(zipStr) {
   const zip5 = parseInt(z, 10);
   if (isNaN(zip5)) return null;
 
-  if (zipInRanges(zip5, USX_ZIP_RANGES)) return 'USX';
-  if (zipInRanges(zip5, CT_ZIP_RANGES)) return 'CT';
-  if (zipInRanges(zip5, RI_ZIP_RANGES)) return 'RI';
-  if (zipInRanges(zip5, NH_ZIP_RANGES)) return 'NH';
+  if (zipInRanges(zip5, USX_NY_ZIP_RANGES)) return 'USX - Upstate New York';
+  if (zipInRanges(zip5, USX_WMASS_ZIP_RANGES)) return 'USX - Western Mass';
+  if (zipInRanges(zip5, CT_ZIP_RANGES)) return 'Connecticut';
+  if (zipInRanges(zip5, RI_ZIP_RANGES)) return 'Rhode Island';
+  if (zipInRanges(zip5, NH_ZIP_RANGES)) return 'Eastern Mass'; // NH merged into Eastern Mass
   // Remaining MA zips (01xxx–02xxx not covered by USX western MA)
-  if (zip5 >= 1000 && zip5 <= 2799) return 'MA';
+  if (zip5 >= 1000 && zip5 <= 2799) return 'Eastern Mass';
   return null;
 }
 
-// ── Area Code → Territory ──
+// ── Area Code → Territory (PestPac branch names) ──
 const AREA_CODE_MAP = {
-  // Massachusetts
-  '617': 'MA', '508': 'MA', '781': 'MA', '978': 'MA', '339': 'MA', '351': 'MA',
-  '774': 'MA', '857': 'MA',
-  // Western MA (USX territory)
-  '413': 'USX',
+  // Eastern Mass (includes former NH)
+  '617': 'Eastern Mass', '508': 'Eastern Mass', '781': 'Eastern Mass',
+  '978': 'Eastern Mass', '339': 'Eastern Mass', '351': 'Eastern Mass',
+  '774': 'Eastern Mass', '857': 'Eastern Mass',
+  '603': 'Eastern Mass', // NH merged into Eastern Mass
+  // USX - Western Mass
+  '413': 'USX - Western Mass',
   // Connecticut
-  '203': 'CT', '860': 'CT', '475': 'CT', '959': 'CT',
+  '203': 'Connecticut', '860': 'Connecticut', '475': 'Connecticut', '959': 'Connecticut',
   // Rhode Island
-  '401': 'RI',
-  // New Hampshire
-  '603': 'NH',
-  // Upstate New York (USX territory)
-  '518': 'USX', '845': 'USX', '914': 'USX',
-  '315': 'USX', '585': 'USX', '607': 'USX',
+  '401': 'Rhode Island',
+  // USX - Upstate New York
+  '518': 'USX - Upstate New York', '845': 'USX - Upstate New York', '914': 'USX - Upstate New York',
+  '315': 'USX - Upstate New York', '585': 'USX - Upstate New York', '607': 'USX - Upstate New York',
 };
 
 function territoryFromAreaCode(phone) {
@@ -1749,36 +1757,40 @@ function territoryFromAreaCode(phone) {
   return AREA_CODE_MAP[areaCode] || null;
 }
 
-// ── Branch Name Abbreviation ──
+// ── Branch Assignment (returns PestPac branch names) ──
 function abbrevBranch(branch, lead) {
-  // If branch text is populated, use it
+  // If branch text is populated, map to PestPac name
   if (branch) {
     const lower = branch.toLowerCase().trim();
-    if (lower.includes(' ct') || lower.includes('connecticut') || lower.includes('hartford')) return 'CT';
-    if (lower.includes(' nh') || lower.includes('new hampshire') || lower.includes('southern nh')) return 'NH';
-    if (lower.includes('rhode island') || lower.includes(' ri')) return 'RI';
-    if (lower.includes('usx') || lower.includes('pittsfield') || lower.includes('latham')) return 'USX';
-    if (lower.includes('boston') || lower.includes('eastern mass') || lower.includes('mass') || lower.includes('catseye')) return 'MA';
-    if (lower !== '' && lower !== 'other') return branch.length > 8 ? branch.substring(0, 8) + '…' : branch;
+    if (lower.includes('connecticut') || lower.includes('hartford') || lower === 'ct' || lower.includes(' ct')) return 'Connecticut';
+    if (lower.includes('rhode island') || lower === 'ri' || lower.includes(' ri')) return 'Rhode Island';
+    if (lower.includes('western mass') || lower.includes('pittsfield')) return 'USX - Western Mass';
+    if (lower.includes('upstate') || lower.includes('latham') || lower.includes('upstate new york')) return 'USX - Upstate New York';
+    if (lower.includes('usx')) return 'USX - Western Mass'; // default USX to Western Mass if unspecified
+    if (lower.includes('new hampshire') || lower.includes('southern nh') || lower === 'nh' || lower.includes(' nh')) return 'Eastern Mass'; // NH merged
+    if (lower.includes('boston') || lower.includes('eastern mass') || lower.includes('mass') || lower.includes('catseye') || lower === 'ma') return 'Eastern Mass';
+    if (lower !== '' && lower !== 'other') return branch; // pass through unrecognized text
   }
   // Fallback 1: derive territory from zip code in CITY_STATE
   if (lead && lead.CITY_STATE) {
     const territory = territoryFromZip(lead.CITY_STATE);
     if (territory) return territory;
   }
-  // Fallback 2: derive territory from phone area code (helps Podium/text leads)
+  // Fallback 2: check MEDIUM field for location hints (more reliable than area code)
+  if (lead && lead.MEDIUM) {
+    const med = lead.MEDIUM.toLowerCase();
+    if (med.includes('connecticut') || med.includes('hartford') || med.includes(' ct')) return 'Connecticut';
+    if (med.includes('rhode island') || med.includes('providence') || med.includes(' ri')) return 'Rhode Island';
+    if (med.includes('pittsfield') || med.includes('western mass')) return 'USX - Western Mass';
+    if (med.includes('latham') || med.includes('upstate') || med.includes('albany')) return 'USX - Upstate New York';
+    if (med.includes('usx')) return 'USX - Western Mass';
+    if (med.includes('new hampshire') || med.includes(' nh')) return 'Eastern Mass';
+    if (med.includes('boston') || med.includes('mass') || med.includes('catseye')) return 'Eastern Mass';
+  }
+  // Fallback 3: derive territory from phone area code
   if (lead && lead.PHONE) {
     const territory = territoryFromAreaCode(lead.PHONE);
     if (territory) return territory;
-  }
-  // Fallback 3: check MEDIUM field for location hints
-  if (lead && lead.MEDIUM) {
-    const med = lead.MEDIUM.toLowerCase();
-    if (med.includes(' ct') || med.includes('connecticut') || med.includes('hartford')) return 'CT';
-    if (med.includes(' nh') || med.includes('new hampshire')) return 'NH';
-    if (med.includes('rhode island') || med.includes(' ri') || med.includes('providence')) return 'RI';
-    if (med.includes('usx') || med.includes('pittsfield') || med.includes('latham') || med.includes('upstate')) return 'USX';
-    if (med.includes('boston') || med.includes('mass') || med.includes('catseye')) return 'MA';
   }
   return 'Other';
 }
@@ -1794,7 +1806,7 @@ function companyFromLead(lead) {
   if (br) return 'Catseye';
   // Final fallback: derive from zip territory
   const territory = territoryFromZip(lead.CITY_STATE);
-  if (territory === 'USX') return 'USX';
+  if (territory && territory.startsWith('USX')) return 'USX';
   return 'Catseye';
 }
 
@@ -1830,8 +1842,8 @@ function buildBranchGrid(gridId, leads, period) {
     return;
   }
 
-  // Force consistent ordering: MA, CT, RI, NH, USX, then any extras
-  const ORDER = ['MA', 'CT', 'RI', 'NH', 'USX'];
+  // Force consistent ordering: PestPac branch names, then any extras
+  const ORDER = ['Eastern Mass', 'Connecticut', 'Rhode Island', 'USX - Western Mass', 'USX - Upstate New York'];
   const ordered = ORDER.filter(b => counts[b]);
   branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
 
@@ -1841,10 +1853,19 @@ function buildBranchGrid(gridId, leads, period) {
   const totalInbound = leads.length;
   const convPct = totalInbound > 0 ? Math.round((totalBooked / totalInbound) * 100) : 0;
 
+  // Short display names for branch cards
+  const BRANCH_SHORT = {
+    'Eastern Mass': 'E. Mass',
+    'Connecticut': 'CT',
+    'Rhode Island': 'RI',
+    'USX - Western Mass': 'USX W. Mass',
+    'USX - Upstate New York': 'USX Upst. NY',
+  };
+
   let html = ordered.map(branch => `
     <div class="branch-card">
       <div class="branch-count">${counts[branch]}</div>
-      <div class="branch-name">${branch}</div>
+      <div class="branch-name">${BRANCH_SHORT[branch] || branch}</div>
       <div class="branch-sub">${openCounts[branch] || 0} open</div>
     </div>
   `).join('');
@@ -1939,7 +1960,7 @@ function renderTable(leads) {
 
 function populateBranches() {
   const abbrevs = [...new Set(allLeads.map(l => abbrevBranch(l.BRANCH, l)).filter(b => b && b !== 'Other'))];
-  const ORDER = ['MA', 'CT', 'RI', 'NH', 'USX'];
+  const ORDER = ['Eastern Mass', 'Connecticut', 'Rhode Island', 'USX - Western Mass', 'USX - Upstate New York'];
   const ordered = ORDER.filter(b => abbrevs.includes(b));
   abbrevs.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
   const sel = document.getElementById('filterBranch');
