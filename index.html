@@ -2124,11 +2124,8 @@ function scRenderBookedBlock(containerId, items, branches) {
   const el = document.getElementById(containerId);
   const { counts, total } = scCountByBranch(items, branches);
 
-  if (total === 0) {
-    const withinGrace = (Date.now() - _scPageLoadTime) < 30000;
-    el.innerHTML = (!_scDataReady || withinGrace)
-      ? '<div class="sc-no-data sc-loading-pulse">Loading...</div>'
-      : '<div class="sc-no-data">No data</div>';
+  if (total === 0 && !_scDataReady) {
+    el.innerHTML = '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
     return;
   }
 
@@ -2206,11 +2203,8 @@ function scRenderSalesBlock(containerId, opportunities, branches) {
   const el = document.getElementById(containerId);
   const agg = scAggregate(opportunities, branches);
 
-  if (agg.totals.count === 0) {
-    const withinGrace = (Date.now() - _scPageLoadTime) < 30000;
-    el.innerHTML = (!_scDataReady || withinGrace)
-      ? '<div class="sc-no-data sc-loading-pulse">Loading...</div>'
-      : '<div class="sc-no-data">No data</div>';
+  if (agg.totals.count === 0 && !_scDataReady) {
+    el.innerHTML = '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
     return;
   }
 
@@ -2254,11 +2248,8 @@ function scRenderSalesCombined(containerId, opportunities) {
   const aggCatseye = scAggregate(opportunities, SC_CATSEYE_BRANCHES);
   const aggUSX = scAggregate(opportunities, SC_USX_BRANCHES);
 
-  if (aggAll.totals.count === 0) {
-    const withinGrace = (Date.now() - _scPageLoadTime) < 30000;
-    el.innerHTML = (!_scDataReady || withinGrace)
-      ? '<div class="sc-no-data sc-loading-pulse">Loading...</div>'
-      : '<div class="sc-no-data">No data</div>';
+  if (aggAll.totals.count === 0 && !_scDataReady) {
+    el.innerHTML = '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
     return;
   }
 
