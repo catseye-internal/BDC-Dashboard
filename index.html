@@ -2697,15 +2697,9 @@ function trendRender(section, items, from, to, valueField, hourly) {
   let fmtLabels, values;
 
   if (hourly) {
-    // Hourly mode: cap at current hour for "today" (don't show future hours)
-    const allLabels = trendHourLabels();
-    const allValues = trendAggregateHourly(items, valueField, 'datetime');
-    const now = new Date();
-    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-    const isToday = from === to && from === todayStr;
-    const capHour = isToday ? now.getHours() + 1 : 24; // include current hour
-    fmtLabels = allLabels.slice(0, capHour);
-    values = allValues.slice(0, capHour);
+    // Hourly mode: full 24 buckets (12 AM – 11 PM)
+    fmtLabels = trendHourLabels();
+    values = trendAggregateHourly(items, valueField, 'datetime');
   } else {
     // Daily/weekly mode (existing behavior)
     const allDates = trendDateSeq(from, to);
@@ -2968,6 +2962,11 @@ async function refresh(isInitial) {
 
   // Always build date boundaries first so render functions never see undefined dates
   _scBuildDates();
+
+  // Show "Loading..." immediately for Sales Center sections (before any cache/API work)
+  if (isInitial && !_scDataReady) {
+    try { renderSalesCenter(); } catch(e) {}
+  }
 
   if (isInitial) {
     // ── STEP 1: Try localStorage (returning visitors — instant) ──
