@@ -608,30 +608,30 @@
   .view-container { display: none; }
   .view-container.active { display: block; }
 
-  /* ── Wallboard Mode (?wallboard) — fills exactly one screen ── */
+  /* ── Wallboard Mode (?wallboard) — fills exactly one 1080p TV screen ── */
   body.wallboard { overflow: hidden; }
-  body.wallboard .header { padding: 8px 32px; }
+  body.wallboard .header { padding: 6px 32px; }
   body.wallboard .header-title { font-size: 20px; }
-  body.wallboard .main { padding: 8px 32px 4px; height: calc(100vh - 46px); overflow: hidden; }
+  body.wallboard .view-tabs { display: none; } /* hide tab nav on TV */
+  body.wallboard .main { padding: 6px 32px 4px; height: calc(100vh - 42px); overflow: hidden; }
   body.wallboard #viewDashboard {
     display: flex; flex-direction: column; height: 100%;
   }
   body.wallboard #viewDashboard.active { display: flex; }
   body.wallboard .sc-section { margin-bottom: 4px; flex-shrink: 0; }
-  body.wallboard .sc-section-header { margin-bottom: 4px; }
+  body.wallboard .sc-section-header { margin-bottom: 3px; }
   body.wallboard .sc-section-title { font-size: 13px; }
   body.wallboard .sc-blocks { gap: 6px; align-items: stretch; }
-  body.wallboard .sc-block { justify-content: center; min-height: 52px; }
+  body.wallboard .sc-block { justify-content: center; min-height: 48px; }
   body.wallboard .sc-card-val { font-size: 16px; }
   body.wallboard .sc-card-name { font-size: 9px; margin-bottom: 1px; }
   body.wallboard .sc-card-label { font-size: 7px; margin-top: 1px; }
   body.wallboard .sc-booked-label { font-size: 8px; }
   body.wallboard .sc-period-btn { font-size: 8px; padding: 3px 8px; letter-spacing: 0.5px; }
-  body.wallboard .sc-date-range { font-size: 10px; }
-  body.wallboard .sc-date-input { font-size: 10px; padding: 3px 4px; }
-  body.wallboard .sc-date-apply { font-size: 9px; padding: 4px 10px; }
+  body.wallboard .sc-period-btn[data-period="custom"] { display: none; } /* hide Custom on TV */
+  body.wallboard .sc-date-range { display: none; }
   body.wallboard .sc-period-toggle { gap: 3px; }
-  body.wallboard .sc-subcards .sc-card { padding: 3px 0; }
+  body.wallboard .sc-subcards .sc-card { padding: 2px 0; }
   body.wallboard .sc-card-total-pinned { padding: 2px 0 0 0; }
   body.wallboard .sc-card-metrics { gap: 2px; }
   body.wallboard .sc-booked-count { font-size: 20px; }
@@ -656,6 +656,7 @@
   body.wallboard .sc-section-header[style] { margin-bottom: 2px !important; }
   body.wallboard .inbound-row {
     gap: 6px; margin-bottom: 2px; flex: 1; min-height: 0; overflow: hidden;
+    grid-template-columns: 1fr 1fr 1fr;
   }
   body.wallboard .chart-card {
     padding: 4px 8px; overflow: hidden;
@@ -664,9 +665,13 @@
   body.wallboard .chart-card-title { font-size: 12px; margin-bottom: 4px; }
   body.wallboard .chart-container { flex: 1; min-height: 0; height: auto; }
   body.wallboard .chart-dual-half .chart-sub-title { display: none; }
-  body.wallboard .inbound-branch-card { display: none; }
-  body.wallboard .inbound-row { grid-template-columns: 1fr 1fr; }
-  body.wallboard .sc-conv-kpi { display: block; }
+  body.wallboard .inbound-branch-card { display: block; } /* show Count by Branch on TV */
+  body.wallboard .sc-conv-kpi { display: none; } /* hide standalone Conv KPI — per-branch conv is on each card */
+  body.wallboard .branch-card { padding: 4px 2px; }
+  body.wallboard .branch-count { font-size: 18px; }
+  body.wallboard .branch-name { font-size: 8px; }
+  body.wallboard .branch-sub { font-size: 8px; }
+  body.wallboard .branch-conv { font-size: 8px; }
 
   /* Leads view in wallboard mode */
   body.wallboard #viewLeads {
@@ -3152,12 +3157,11 @@ function switchView(viewName) {
 
   // Determine which content container to show
   if (viewName === 'wallboard') {
-    // Wallboard shows Dashboard content with wallboard styling
+    // Wallboard shows Dashboard content scaled for TV — single static screen, no cycling
     document.body.classList.add('wallboard');
     viewContainers.forEach(c => c.classList.remove('active'));
     document.getElementById('viewDashboard').classList.add('active');
     wallboardCycleView = 'dashboard';
-    startCycle();
     // Re-render charts so legends resize for wallboard
     render();
   } else {
