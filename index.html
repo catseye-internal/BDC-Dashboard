@@ -1063,6 +1063,12 @@
       </select>
     </div>
     <div class="filter-group">
+      <span class="filter-label">Medium</span>
+      <select id="filterMedium">
+        <option value="all">All Mediums</option>
+      </select>
+    </div>
+    <div class="filter-group">
       <span class="filter-label">Search</span>
       <input type="text" id="filterSearch" placeholder="Name, phone...">
     </div>
@@ -1457,6 +1463,7 @@ function getFilteredLeads() {
   const sourceFilter = document.getElementById('filterSource').value;
   const companyFilter = document.getElementById('filterCompany').value;
   const branchFilter = document.getElementById('filterBranch').value;
+  const mediumFilter = document.getElementById('filterMedium').value;
   const search = document.getElementById('filterSearch').value.toLowerCase();
   const now = new Date();
 
@@ -1480,6 +1487,7 @@ function getFilteredLeads() {
     }
     if (companyFilter !== 'all' && companyFromLead(lead) !== companyFilter) return false;
     if (branchFilter !== 'all' && abbrevBranch(lead.BRANCH, lead) !== branchFilter) return false;
+    if (mediumFilter !== 'all' && (lead.MEDIUM || '') !== mediumFilter) return false;
     if (search) {
       const s = [lead.CUSTOMER_NAME, lead.PHONE, lead.EMAIL, lead.CITY_STATE, lead.PEST_PROBLEM, lead.NOTES, lead.MEDIUM, lead.COMPANY].join(' ').toLowerCase();
       if (!s.includes(search)) return false;
@@ -2101,6 +2109,15 @@ function populateBranches() {
   sel.value = current || 'all';
 }
 
+function populateMediums() {
+  const mediums = [...new Set(allLeads.map(l => l.MEDIUM || '').filter(m => m))].sort();
+  const sel = document.getElementById('filterMedium');
+  const current = sel.value;
+  sel.innerHTML = '<option value="all">All Mediums</option>';
+  mediums.forEach(m => { sel.innerHTML += `<option value="${m}">${m}</option>`; });
+  sel.value = current || 'all';
+}
+
 // ── Master Render ──
 function render() {
   renderTypeChart();
@@ -2109,6 +2126,7 @@ function render() {
   const filtered = getFilteredLeads();
   renderTable(filtered);
   populateBranches();
+  populateMediums();
   document.getElementById('lastUpdated').textContent =
     'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
@@ -3207,7 +3225,7 @@ async function refresh(isInitial) {
   });
 }
 
-['filterDate', 'filterSource', 'filterCompany', 'filterBranch'].forEach(id => {
+['filterDate', 'filterSource', 'filterCompany', 'filterBranch', 'filterMedium'].forEach(id => {
   document.getElementById(id).addEventListener('change', render);
 });
 document.getElementById('filterSearch').addEventListener('input', render);
