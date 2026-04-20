@@ -3073,6 +3073,25 @@ document.getElementById('filterSearch').addEventListener('input', render);
 
 refresh(true).then(() => { refreshTimer = setInterval(() => refresh(false), 60000); });
 
+// ── Chart.js deferred-load safety net ──
+// If data loaded before Chart.js, re-render once the library is ready
+(function waitForChartJs() {
+  if (typeof Chart !== 'undefined') return; // already loaded
+  const chartCheck = setInterval(() => {
+    if (typeof Chart !== 'undefined') {
+      clearInterval(chartCheck);
+      console.log('📊 Chart.js now available — re-rendering');
+      try { render(); } catch(e) { console.error('Chart.js late render() error:', e); }
+      try { renderSalesCenter(); } catch(e) { console.error('Chart.js late renderSalesCenter() error:', e); }
+      if (!trendChartsReady && !isMobile) {
+        trendInitAll().catch(e => console.error('Chart.js late trendInitAll error:', e));
+      }
+    }
+  }, 100);
+  // Stop checking after 30s to avoid infinite polling
+  setTimeout(() => clearInterval(chartCheck), 30000);
+})();
+
 // ═══════════════════════════════════════════
 // VIEW TOGGLE + WALLBOARD AUTO-CYCLE
 // ═══════════════════════════════════════════
