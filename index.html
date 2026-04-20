@@ -142,8 +142,6 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
   }
   .chart-card-title {
     font-size: 12px; font-weight: 700; text-transform: uppercase;
@@ -173,44 +171,38 @@
 
   /* ── Branch Breakdown ── */
   .branch-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: 1fr 1fr;
+    display: flex;
     gap: 6px;
-    flex: 1;
+    flex-wrap: wrap;
   }
   .branch-card {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-  }
-  .branch-count {
-    font-size: 28px; font-weight: 800; color: var(--orange);
-    letter-spacing: -0.5px; line-height: 1;
-    flex-shrink: 0;
-  }
-  .branch-info {
+    padding: 10px 14px;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    min-width: 70px;
     flex: 1;
-    min-width: 0;
+  }
+  .branch-count {
+    font-size: 22px; font-weight: 800; color: var(--orange);
+    letter-spacing: -0.5px; line-height: 1;
+  }
+  .branch-info {
+    display: contents;
   }
   .branch-name {
-    font-size: 11px; font-weight: 600; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.5px;
-    white-space: nowrap;
+    font-size: 9px; font-weight: 600; color: var(--text-muted);
+    margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+    text-align: center; white-space: nowrap;
   }
   .branch-sub {
-    font-size: 10px; color: var(--text-dim); margin-top: 2px;
+    font-size: 9px; color: var(--text-dim); margin-top: 2px;
   }
   .branch-conv {
-    font-size: 13px; color: var(--yellow); font-weight: 700;
-    flex-shrink: 0;
+    font-size: 9px; color: var(--yellow); margin-top: 1px; font-weight: 600;
   }
   .branch-card-conversion {
     border-color: rgba(251, 191, 36, 0.3);
@@ -626,34 +618,41 @@
   .view-container { display: none; }
   .view-container.active { display: block; }
 
-  /* ── Wallboard Mode (?wallboard) — fills exactly one 1080p TV screen ── */
+  /* ── Wallboard Mode — fills exactly one 1080p TV screen ── */
   body.wallboard { overflow: hidden; }
-  body.wallboard .header { padding: 6px 32px; }
-  body.wallboard .header-title { font-size: 20px; }
-  body.wallboard .view-tabs { font-size: 11px; } /* keep tabs visible so user can exit wallboard */
-  body.wallboard .main { padding: 6px 32px 4px; height: calc(100vh - 42px); overflow: hidden; }
+  body.wallboard .header { padding: 8px 32px; }
+  body.wallboard .header-title { font-size: 22px; }
+  body.wallboard .view-tabs { font-size: 11px; }
+  body.wallboard .main { padding: 8px 32px 6px; height: calc(100vh - 48px); overflow: hidden; }
   body.wallboard #viewDashboard {
     display: flex; flex-direction: column; height: 100%;
   }
   body.wallboard #viewDashboard.active { display: flex; }
-  body.wallboard .sc-section { margin-bottom: 4px; flex-shrink: 0; }
-  body.wallboard .sc-section-header { margin-bottom: 3px; }
-  body.wallboard .sc-section-title { font-size: 13px; }
-  body.wallboard .sc-blocks { gap: 6px; align-items: stretch; }
-  body.wallboard .sc-block { justify-content: center; min-height: 48px; }
-  body.wallboard .sc-card-val { font-size: 16px; }
-  body.wallboard .sc-card-name { font-size: 9px; margin-bottom: 1px; }
-  body.wallboard .sc-card-label { font-size: 7px; margin-top: 1px; }
-  body.wallboard .sc-booked-label { font-size: 8px; }
-  body.wallboard .sc-period-btn { font-size: 8px; padding: 3px 8px; letter-spacing: 0.5px; }
-  body.wallboard .sc-period-btn[data-period="custom"] { display: none; } /* hide Custom on TV */
-  body.wallboard .sc-date-range { display: none; }
-  body.wallboard .sc-period-toggle { gap: 3px; }
-  body.wallboard .sc-subcards .sc-card { padding: 2px 0; }
-  body.wallboard .sc-card-total-pinned { padding: 2px 0 0 0; }
-  body.wallboard .sc-card-metrics { gap: 2px; }
-  body.wallboard .sc-booked-count { font-size: 20px; }
 
+  /* Wallboard: Leads Booked */
+  body.wallboard .sc-section { margin-bottom: 6px; flex-shrink: 0; }
+  body.wallboard .sc-section-header { margin-bottom: 4px; }
+  body.wallboard .sc-section-title { font-size: 15px; }
+  body.wallboard .sc-blocks { gap: 8px; align-items: stretch; }
+  body.wallboard .sc-block { justify-content: center; min-height: 52px; }
+  body.wallboard .sc-booked-count { font-size: 26px; }
+  body.wallboard .sc-booked-label { font-size: 10px; }
+
+  /* Wallboard: Sales Closed/Won */
+  body.wallboard .sc-card-val { font-size: 18px; }
+  body.wallboard .sc-card-name { font-size: 10px; margin-bottom: 1px; }
+  body.wallboard .sc-card-label { font-size: 8px; margin-top: 1px; }
+  body.wallboard .sc-subcards .sc-card { padding: 3px 0; }
+  body.wallboard .sc-card-total-pinned { padding: 3px 0 0 0; }
+  body.wallboard .sc-card-metrics { gap: 3px; }
+
+  /* Wallboard: Filters */
+  body.wallboard .sc-period-btn { font-size: 9px; padding: 4px 10px; letter-spacing: 0.5px; }
+  body.wallboard .sc-period-btn[data-period="custom"] { display: none; }
+  body.wallboard .sc-date-range { display: none; }
+  body.wallboard .sc-period-toggle { gap: 4px; }
+
+  /* Wallboard: Hide trend charts */
   body.wallboard .trend-block { display: none; }
   body.wallboard .master-trend-filter { display: none; }
   body.wallboard .trend-divider { display: none; }
@@ -666,30 +665,49 @@
     font-size: 12px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: var(--text-dim); white-space: nowrap;
   }
-  body.wallboard .master-filter { margin-bottom: 4px; }
-  body.wallboard .master-filter-label { font-size: 10px; }
+  body.wallboard .master-filter { margin-bottom: 5px; }
+  body.wallboard .master-filter-label { font-size: 11px; }
 
-  /* Inbound section fills remaining space */
-  body.wallboard div[style*="border-top"] { margin: 2px 0 2px !important; }
-  body.wallboard .sc-section-header[style] { margin-bottom: 2px !important; }
+  /* Wallboard: Inbound section fills remaining space */
+  body.wallboard div[style*="border-top"] { margin: 4px 0 4px !important; }
+  body.wallboard .sc-section-header[style] { margin-bottom: 3px !important; }
   body.wallboard .inbound-row {
-    gap: 6px; margin-bottom: 2px; flex: 1; min-height: 0; overflow: hidden;
+    gap: 8px; margin-bottom: 2px; flex: 1; min-height: 0; overflow: hidden;
     grid-template-columns: 1fr 1fr 1fr;
   }
   body.wallboard .chart-card {
-    padding: 4px 8px; overflow: hidden;
+    padding: 6px 10px; overflow: hidden;
     display: flex; flex-direction: column;
   }
-  body.wallboard .chart-card-title { font-size: 12px; margin-bottom: 4px; }
-  body.wallboard .chart-container { flex: 1; min-height: 0; height: auto; }
+  body.wallboard .chart-card-title { font-size: 13px; margin-bottom: 4px; }
+  body.wallboard .chart-container { height: 120px; }
   body.wallboard .chart-dual-half .chart-sub-title { display: none; }
-  body.wallboard .inbound-branch-card { display: block; } /* show Count by Branch on TV */
-  body.wallboard .sc-conv-kpi { display: none; } /* hide standalone Conv KPI — per-branch conv is on each card */
-  body.wallboard .branch-card { padding: 6px 10px; }
-  body.wallboard .branch-card .branch-count { font-size: 20px; }
-  body.wallboard .branch-card .branch-name { font-size: 9px; }
-  body.wallboard .branch-card .branch-sub { font-size: 8px; }
-  body.wallboard .branch-card .branch-conv { font-size: 10px; }
+  body.wallboard .inbound-branch-card { display: block; }
+  body.wallboard .sc-conv-kpi { display: none; }
+
+  /* Wallboard: Branch grid — 3×2 with row layout, larger text for TV */
+  body.wallboard .branch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+  }
+  body.wallboard .branch-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    min-width: unset;
+  }
+  body.wallboard .branch-card .branch-info {
+    display: flex; flex-direction: column; flex: 1; min-width: 0;
+  }
+  body.wallboard .branch-card-conversion { display: none; }
+  body.wallboard .branch-card .branch-count { font-size: 28px; }
+  body.wallboard .branch-card .branch-name { font-size: 11px; margin-top: 0; text-align: left; }
+  body.wallboard .branch-card .branch-sub { font-size: 10px; margin-top: 2px; }
+  body.wallboard .branch-card .branch-conv { font-size: 14px; font-weight: 700; }
 
   /* Leads view in wallboard mode */
   body.wallboard #viewLeads {
