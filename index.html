@@ -1128,6 +1128,13 @@ async function fetchLeads() {
     }
     console.log('🔍 Raw leads count:', data.length);
     allLeads = data.filter(l => l.DATE_RECEIVED || l.CUSTOMER_NAME || l.PHONE);
+    // Filter to Catseye & USX companies only (exclude other E10K CallRail companies)
+    const preFilterCount = allLeads.length;
+    allLeads = allLeads.filter(l => {
+      const co = (l.COMPANY || '').trim().toLowerCase();
+      return !co || co.startsWith('catseye') || co.startsWith('usx');
+    });
+    if (allLeads.length < preFilterCount) console.log(`🏢 Company filter: removed ${preFilterCount - allLeads.length} non-Catseye/USX leads`);
     // Dedup Podium leads: keep only the first message per contact per day
     const podiumSeen = new Set();
     allLeads = allLeads.filter(l => {
