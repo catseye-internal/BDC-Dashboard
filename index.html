@@ -1805,10 +1805,16 @@ function abbrevBranch(branch, lead) {
 
 // ── Company from lead data ──
 function companyFromLead(lead) {
+  // Resolved branch is the most reliable signal — if abbrevBranch mapped it
+  // to a USX branch (via UID, zip, area code, or MEDIUM), trust that over
+  // the raw COMPANY field which may be stale or wrong for Podium leads.
+  const resolved = abbrevBranch(lead.BRANCH, lead);
+  if (resolved && resolved.startsWith('USX')) return 'USX';
+
   const co = (lead.COMPANY || '').toLowerCase();
   if (co.includes('usx')) return 'USX';
   if (co.includes('catseye')) return 'Catseye';
-  // Fallback: derive from branch
+  // Fallback: derive from branch text
   const br = (lead.BRANCH || '').toLowerCase();
   if (br.includes('usx')) return 'USX';
   if (br) return 'Catseye';
@@ -2677,9 +2683,15 @@ function trendRender(section, items, from, to, valueField, hourly) {
   let fmtLabels, values;
 
   if (hourly) {
-    // Hourly mode: 24 buckets (12 AM – 11 PM)
-    fmtLabels = trendHourLabels();
-    values = trendAggregateHourly(items, valueField, 'datetime');
+    // Hourly mode: cap at current hour for "today" (don't show future hours)
+    const allLabels = trendHourLabels();
+    const allValues = trendAggregateHourly(items, valueField, 'datetime');
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    const isToday = from === to && from === todayStr;
+    const capHour = isToday ? now.getHours() + 1 : 24; // include current hour
+    fmtLabels = allLabels.slice(0, capHour);
+    values = allValues.slice(0, capHour);
   } else {
     // Daily/weekly mode (existing behavior)
     const allDates = trendDateSeq(from, to);
