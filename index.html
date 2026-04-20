@@ -674,11 +674,23 @@
   body.wallboard .chart-dual-half .chart-sub-title { display: none; }
   body.wallboard .inbound-branch-card { display: block; } /* show Count by Branch on TV */
   body.wallboard .sc-conv-kpi { display: none; } /* hide standalone Conv KPI — per-branch conv is on each card */
-  body.wallboard .branch-card { padding: 4px 2px; }
-  body.wallboard .branch-count { font-size: 18px; }
-  body.wallboard .branch-name { font-size: 8px; }
-  body.wallboard .branch-sub { font-size: 8px; }
-  body.wallboard .branch-conv { font-size: 8px; }
+  body.wallboard .branch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  body.wallboard .branch-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    min-width: unset;
+  }
+  body.wallboard .branch-card-conversion { display: none; } /* hide standalone conv card */
+  body.wallboard .branch-card .branch-count { font-size: 20px; margin-right: 6px; }
+  body.wallboard .branch-card .branch-name { font-size: 9px; margin-top: 0; flex: 1; text-align: left; }
+  body.wallboard .branch-card .branch-sub { font-size: 8px; margin-top: 0; margin-right: 6px; }
+  body.wallboard .branch-card .branch-conv { font-size: 10px; margin-top: 0; font-weight: 700; }
 
   /* Leads view in wallboard mode */
   body.wallboard #viewLeads {
@@ -1788,10 +1800,11 @@ function abbrevBranch(branch, lead) {
     if (lower.includes('rhode island') || lower === 'ri' || lower.includes(' ri')) return 'Rhode Island';
     if (lower.includes('western mass') || lower.includes('pittsfield')) return 'USX - Western Mass';
     if (lower.includes('upstate') || lower.includes('latham') || lower.includes('upstate new york')) return 'USX - Upstate New York';
-    // Generic "usx" without city/region — fall through to zip/area code fallbacks below
-    if (lower.includes('usx')) { /* skip — let zip/area code decide */ }
+    // Generic "usx" or "catseye" without specific branch — fall through to MEDIUM/zip/area code
+    if (lower.includes('usx') || lower.includes('catseye')) { /* skip — let MEDIUM/zip/area code decide */ }
     else if (lower.includes('new hampshire') || lower.includes('southern nh') || lower === 'nh' || lower.includes(' nh')) return 'Eastern Mass'; // NH merged
-    else if (lower.includes('boston') || lower.includes('eastern mass') || lower.includes('mass') || lower.includes('catseye') || lower === 'ma') return 'Eastern Mass';
+    else if (lower.includes('boston') || lower.includes('eastern mass') || lower === 'ma') return 'Eastern Mass';
+    else if (lower.includes('mass')) return 'Eastern Mass'; // "mass" without "western mass" (already caught above)
     else if (lower !== '' && lower !== 'other') return branch; // pass through unrecognized text
   }
   // Fallback 1: derive territory from zip code in CITY_STATE
@@ -1802,14 +1815,14 @@ function abbrevBranch(branch, lead) {
   // Fallback 2: check MEDIUM field for location hints (more reliable than area code)
   if (lead && lead.MEDIUM) {
     const med = lead.MEDIUM.toLowerCase();
-    if (med.includes('connecticut') || med.includes('hartford') || med.includes(' ct') || med.startsWith('ct ') || med.startsWith('ct-') || med.includes('cromwell')) return 'Connecticut';
-    if (med.includes('rhode island') || med.includes('providence') || med.includes(' ri')) return 'Rhode Island';
+    if (med.includes('connecticut') || med.includes('hartford') || med.includes(' ct') || med.startsWith('ct ') || med.startsWith('ct-') || med.includes('cromwell') || med.includes('norwalk') || med.includes('fairfield') || med.includes('stamford') || med.includes('new haven') || med.includes('danbury') || med.includes('waterbury')) return 'Connecticut';
+    if (med.includes('rhode island') || med.includes('providence') || med.includes(' ri') || med.startsWith('ri ') || med.startsWith('ri-')) return 'Rhode Island';
     if (med.includes('pittsfield') || med.includes('western mass')) return 'USX - Western Mass';
     if (med.includes('latham') || med.includes('upstate') || med.includes('albany')) return 'USX - Upstate New York';
     // Generic "usx" in MEDIUM — fall through to zip/area code fallbacks below
     if (med.includes('new hampshire') || med.includes(' nh')) return 'Eastern Mass';
-    if (med.includes('hopkinton') || med.includes('tewksbury') || med.includes('national general') || med.includes('google lsa') || med.includes('google local service')) return 'Eastern Mass';
-    if (med.includes('boston') || med.includes('mass') || med.includes('catseye')) return 'Eastern Mass';
+    if (med.includes('hopkinton') || med.includes('tewksbury') || med.includes('national general')) return 'Eastern Mass';
+    if (med.includes('boston') || med.includes('mass')) return 'Eastern Mass';
   }
   // Fallback 3: derive territory from phone area code
   if (lead && lead.PHONE) {
@@ -1867,15 +1880,17 @@ function buildBranchGrid(gridId, leads, period) {
   const branches = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
   const grid = document.getElementById(gridId);
 
-  if (branches.length === 0) {
+  if (branches.length === 0 && !document.body.classList.contains('wallboard')) {
     grid.innerHTML = '<div class="no-data" style="grid-column:1/-1;padding:40px">No data yet</div>';
     return;
   }
 
   // Force consistent ordering: PestPac branch names, then any extras
   const ORDER = ['Eastern Mass', 'Connecticut', 'Rhode Island', 'USX - Western Mass', 'USX - Upstate New York'];
-  const ordered = ORDER.filter(b => counts[b]);
-  branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
+  const isWallboard = document.body.classList.contains('wallboard');
+  // Wallboard: always show all 6 (5 branches + Other), even if count is 0
+  const ordered = isWallboard ? [...ORDER, 'Other'] : ORDER.filter(b => counts[b]);
+  if (!isWallboard) branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
 
   // Calculate conversion %: booked leads / inbound leads
   const bookedItems = scBookedData[period] || scBookedData['mtd'] || [];
