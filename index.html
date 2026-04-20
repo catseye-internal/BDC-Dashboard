@@ -619,7 +619,7 @@
   body.wallboard { overflow: hidden; }
   body.wallboard .header { padding: 6px 32px; }
   body.wallboard .header-title { font-size: 20px; }
-  body.wallboard .view-tabs { display: none; } /* hide tab nav on TV */
+  body.wallboard .view-tabs { font-size: 11px; } /* keep tabs visible so user can exit wallboard */
   body.wallboard .main { padding: 6px 32px 4px; height: calc(100vh - 42px); overflow: hidden; }
   body.wallboard #viewDashboard {
     display: flex; flex-direction: column; height: 100%;
@@ -1151,6 +1151,13 @@ async function fetchLeads() {
       return !co || co.startsWith('catseye') || co.startsWith('usx');
     });
     if (allLeads.length < preFilterCount) console.log(`🏢 Company filter: removed ${preFilterCount - allLeads.length} non-Catseye/USX leads`);
+    // Filter out "direct dial" leads — these are callbacks, not first-time inbound callers
+    const preDirectDialCount = allLeads.length;
+    allLeads = allLeads.filter(l => {
+      const med = (l.MEDIUM || '').toLowerCase();
+      return !med.includes('direct dial');
+    });
+    if (allLeads.length < preDirectDialCount) console.log(`📞 Direct dial filter: removed ${preDirectDialCount - allLeads.length} callback leads`);
     // Dedup Podium leads: keep only the first message per contact per day
     const podiumSeen = new Set();
     allLeads = allLeads.filter(l => {
@@ -1795,12 +1802,13 @@ function abbrevBranch(branch, lead) {
   // Fallback 2: check MEDIUM field for location hints (more reliable than area code)
   if (lead && lead.MEDIUM) {
     const med = lead.MEDIUM.toLowerCase();
-    if (med.includes('connecticut') || med.includes('hartford') || med.includes(' ct')) return 'Connecticut';
+    if (med.includes('connecticut') || med.includes('hartford') || med.includes(' ct') || med.startsWith('ct ') || med.startsWith('ct-') || med.includes('cromwell')) return 'Connecticut';
     if (med.includes('rhode island') || med.includes('providence') || med.includes(' ri')) return 'Rhode Island';
     if (med.includes('pittsfield') || med.includes('western mass')) return 'USX - Western Mass';
     if (med.includes('latham') || med.includes('upstate') || med.includes('albany')) return 'USX - Upstate New York';
     // Generic "usx" in MEDIUM — fall through to zip/area code fallbacks below
     if (med.includes('new hampshire') || med.includes(' nh')) return 'Eastern Mass';
+    if (med.includes('hopkinton') || med.includes('tewksbury') || med.includes('national general') || med.includes('google lsa') || med.includes('google local service')) return 'Eastern Mass';
     if (med.includes('boston') || med.includes('mass') || med.includes('catseye')) return 'Eastern Mass';
   }
   // Fallback 3: derive territory from phone area code
