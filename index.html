@@ -171,35 +171,42 @@
 
   /* ── Branch Breakdown ── */
   .branch-grid {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    flex-wrap: wrap;
   }
   .branch-card {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 10px 14px;
+    padding: 10px 12px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    min-width: 70px;
-    flex: 1;
+    gap: 8px;
   }
   .branch-count {
-    font-size: 22px; font-weight: 800; color: var(--orange);
+    font-size: 24px; font-weight: 800; color: var(--orange);
     letter-spacing: -0.5px; line-height: 1;
+    flex-shrink: 0;
+  }
+  .branch-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
   }
   .branch-name {
-    font-size: 9px; font-weight: 600; color: var(--text-muted);
-    margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;
-    text-align: center; white-space: nowrap;
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    white-space: nowrap;
   }
   .branch-sub {
-    font-size: 9px; color: var(--text-dim); margin-top: 2px;
+    font-size: 9px; color: var(--text-dim); margin-top: 1px;
   }
   .branch-conv {
-    font-size: 9px; color: var(--yellow); margin-top: 1px; font-weight: 600;
+    font-size: 11px; color: var(--yellow); font-weight: 700;
+    flex-shrink: 0;
   }
   .branch-card-conversion {
     border-color: rgba(251, 191, 36, 0.3);
@@ -674,23 +681,11 @@
   body.wallboard .chart-dual-half .chart-sub-title { display: none; }
   body.wallboard .inbound-branch-card { display: block; } /* show Count by Branch on TV */
   body.wallboard .sc-conv-kpi { display: none; } /* hide standalone Conv KPI — per-branch conv is on each card */
-  body.wallboard .branch-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-  }
-  body.wallboard .branch-card {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    min-width: unset;
-  }
-  body.wallboard .branch-card-conversion { display: none; } /* hide standalone conv card */
-  body.wallboard .branch-card .branch-count { font-size: 20px; margin-right: 6px; }
-  body.wallboard .branch-card .branch-name { font-size: 9px; margin-top: 0; flex: 1; text-align: left; }
-  body.wallboard .branch-card .branch-sub { font-size: 8px; margin-top: 0; margin-right: 6px; }
-  body.wallboard .branch-card .branch-conv { font-size: 10px; margin-top: 0; font-weight: 700; }
+  body.wallboard .branch-card { padding: 6px 10px; }
+  body.wallboard .branch-card .branch-count { font-size: 20px; }
+  body.wallboard .branch-card .branch-name { font-size: 9px; }
+  body.wallboard .branch-card .branch-sub { font-size: 8px; }
+  body.wallboard .branch-card .branch-conv { font-size: 10px; }
 
   /* Leads view in wallboard mode */
   body.wallboard #viewLeads {
@@ -754,8 +749,8 @@
     .chart-card-title { font-size: 11px; margin-bottom: 4px; }
     .chart-container { height: 180px; }
     .inbound-branch-card { display: block; } /* keep visible on tablet */
-    .branch-grid { gap: 4px; }
-    .branch-card { min-width: 60px; }
+    .branch-grid { gap: 4px; grid-template-columns: repeat(2, 1fr); }
+    .branch-card { padding: 8px 10px; }
 
     /* Trend charts */
     .trend-block { margin-top: 6px; }
@@ -1920,21 +1915,28 @@ function buildBranchGrid(gridId, leads, period) {
     const branchConv = branchInbound > 0 ? Math.round((branchBooked / branchInbound) * 100) : 0;
     return `
     <div class="branch-card">
-      <div class="branch-count">${counts[branch]}</div>
-      <div class="branch-name">${BRANCH_SHORT[branch] || branch}</div>
-      <div class="branch-sub">${openCounts[branch] || 0} open</div>
-      <div class="branch-conv">${branchConv}% conv</div>
+      <div class="branch-count">${counts[branch] || 0}</div>
+      <div class="branch-info">
+        <div class="branch-name">${BRANCH_SHORT[branch] || branch}</div>
+        <div class="branch-sub">${openCounts[branch] || 0} open</div>
+      </div>
+      <div class="branch-conv">${branchConv}%</div>
     </div>
   `;
   }).join('');
 
-  // Add overall conversion % card
-  html += `
-    <div class="branch-card branch-card-conversion">
-      <div class="branch-count" style="color: var(--yellow)">${convPct}%</div>
-      <div class="branch-name">Conv.</div>
-    </div>
-  `;
+  // Add overall conversion % card (skip in wallboard — conv is already on each card)
+  if (!isWallboard) {
+    html += `
+      <div class="branch-card branch-card-conversion">
+        <div class="branch-count" style="color: var(--yellow)">${convPct}%</div>
+        <div class="branch-info">
+          <div class="branch-name">Overall Conv.</div>
+          <div class="branch-sub">${totalBooked} booked / ${totalInbound} leads</div>
+        </div>
+      </div>
+    `;
+  }
 
   grid.innerHTML = html;
 }
