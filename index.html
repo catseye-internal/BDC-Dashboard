@@ -1929,11 +1929,9 @@ function dedupeLeads(leads) {
 // ── Render Branch Breakdown ──
 function buildBranchGrid(gridId, leads, period) {
   const counts = {};
-  const openCounts = {};
   leads.forEach(l => {
     const abbrev = abbrevBranch(l.BRANCH, l);
     counts[abbrev] = (counts[abbrev] || 0) + 1;
-    if (l.STATUS === 'Open') openCounts[abbrev] = (openCounts[abbrev] || 0) + 1;
   });
 
   const branches = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
@@ -1982,7 +1980,6 @@ function buildBranchGrid(gridId, leads, period) {
       <div class="branch-count">${counts[branch] || 0}</div>
       <div class="branch-info">
         <div class="branch-name">${BRANCH_SHORT[branch] || branch}</div>
-        <div class="branch-sub">${openCounts[branch] || 0} open</div>
       </div>
       <div class="branch-conv">${branchConv}%</div>
     </div>
@@ -1995,7 +1992,7 @@ function buildBranchGrid(gridId, leads, period) {
       <div class="branch-card branch-card-conversion">
         <div class="branch-count" style="color: var(--yellow)">${convPct}%</div>
         <div class="branch-info">
-          <div class="branch-name">Overall Conv.</div>
+          <div class="branch-name">Conv.</div>
           <div class="branch-sub">${totalBooked} booked / ${totalInbound} leads</div>
         </div>
       </div>
