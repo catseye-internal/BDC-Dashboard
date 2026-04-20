@@ -1232,7 +1232,7 @@ async function fetchLeads() {
     if (!Array.isArray(data) || data.length === 0) {
       console.warn('⚠️ Leads data is empty or not an array. Type:', typeof data, 'IsArray:', Array.isArray(data));
       if (data && data.error) console.error('⚠️ API returned error:', data.error);
-      allLeads = [];
+      // DON'T wipe allLeads — keep showing stale data rather than zeros
       return;
     }
     console.log('🔍 Raw leads count:', data.length);
@@ -2580,9 +2580,15 @@ async function fetchSalesCenterData() {
     const bookedItems = createdOpps.map(o => _scProcessOpp(o, true)).filter(Boolean);
     const salesItems = closedOpps.map(o => _scProcessOpp(o, false)).filter(Boolean);
 
-    scBookedData = _scBucketItems(bookedItems);
-    scSalesData = _scBucketItems(salesItems);
-    _scYtdLoaded = false;
+    // Only overwrite if we got a valid response (at least one API succeeded)
+    // This prevents zeros from flashing during failed/slow refreshes
+    if (createdResult.status === 'fulfilled' || closedResult.status === 'fulfilled') {
+      scBookedData = _scBucketItems(bookedItems);
+      scSalesData = _scBucketItems(salesItems);
+      _scYtdLoaded = false;
+    } else {
+      console.warn('⚠️ Both API calls failed — keeping existing data');
+    }
 
     console.log(`📋 Booked MTD: ${bookedItems.length} | Won MTD: ${salesItems.length}`);
   } catch (err) { console.error('Sales Center fetch error:', err); }
@@ -3229,46 +3235,78 @@ async function refresh(isInitial) {
     document.getElementById('loadingOverlay').classList.add('hidden');
   }
 
-  // ── STEP 3: Live API refresh (only when cache is stale or missing) ──
+  // ── STEP 3: Refresh from server cache or live API ──
   if (!skipLiveApi) {
-    try {
-      // Save existing YTD data BEFORE live refresh overwrites it
-      const savedYtdBooked = (_scYtdLoaded && scBookedData.ytd) ? [...scBookedData.ytd] : null;
-      const savedYtdSales = (_scYtdLoaded && scSalesData.ytd) ? [...scSalesData.ytd] : null;
-
-      const leadsPromise = fetchLeads().then(() => {
-        console.log(`⏱️ Leads refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
-        cacheSet('bdc_leads', allLeads);
-        try { render(); } catch(e) { console.error('render() error:', e); }
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        updateTimestamp(Date.now());
-      });
-
-      const scPromise = fetchSalesCenterData().then(() => {
-        console.log(`⏱️ Sales Center refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
-
-        // CRITICAL FIX: Restore YTD data that fetchSalesCenterData() would have wiped
-        // fetchSalesCenterData() only fetches MTD, so it loses pre-MTD items
-        if (savedYtdBooked && savedYtdBooked.length > 0) {
-          _scBuildDates();
-          const preMtdBooked = savedYtdBooked.filter(i => i.date < _scMtdStart);
-          const preMtdSales = (savedYtdSales || []).filter(i => i.date < _scMtdStart);
-          scBookedData.ytd = [...preMtdBooked, ...scBookedData.mtd];
-          scSalesData.ytd = [...preMtdSales, ...scSalesData.mtd];
-          _scYtdLoaded = true;
+    // For auto-refresh (non-initial), prefer server cache — it's instant via Service Worker
+    // Only fall back to live API if server cache is stale/missing
+    if (!isInitial) {
+      const serverCache = await fetchServerCache();
+      if (serverCache && serverCache.updated) {
+        const cacheAge = (Date.now() - new Date(serverCache.updated).getTime()) / 60000;
+        if (serverCache.leads && serverCache.leads.length > 0) {
+          allLeads = serverCache.leads;
+          cacheSet('bdc_leads', allLeads);
+          try { render(); } catch(e) {}
         }
+        if (serverCache.booked && serverCache.sales) {
+          _scBuildDates();
+          const allBooked = [...(serverCache.booked.preMtd || []), ...(serverCache.booked.mtd || [])];
+          const allSales = [...(serverCache.sales.preMtd || []), ...(serverCache.sales.mtd || [])];
+          scBookedData = _scBucketItems(allBooked);
+          scSalesData = _scBucketItems(allSales);
+          _scYtdLoaded = true;
+          _scDataReady = true;
+          cacheSet('bdc_booked', scBookedData);
+          cacheSet('bdc_sales', scSalesData);
+          try { renderSalesCenter(); } catch(e) {}
+        }
+        updateTimestamp(new Date(serverCache.updated).getTime());
+        console.log(`🔄 Auto-refresh from server cache (${Math.round(cacheAge)}m old)`);
+        skipLiveApi = true; // server cache is sufficient for auto-refresh
+      }
+    }
 
-        _scDataReady = true;
-        cacheSet('bdc_booked', scBookedData);
-        cacheSet('bdc_sales', scSalesData);
-        try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
-        _scYtdBackgroundRefresh();
-      });
+    // Live API — only for initial load with no cache, or if server cache was missing
+    if (!skipLiveApi) {
+      try {
+        // Save existing YTD data BEFORE live refresh overwrites it
+        const savedYtdBooked = (_scYtdLoaded && scBookedData.ytd) ? [...scBookedData.ytd] : null;
+        const savedYtdSales = (_scYtdLoaded && scSalesData.ytd) ? [...scSalesData.ytd] : null;
 
-      await Promise.allSettled([leadsPromise, scPromise]);
-      console.log(`📌 allLeads: ${allLeads.length} | Total: ${((performance.now() - t0)/1000).toFixed(1)}s`);
-    } finally {
-      document.getElementById('loadingOverlay').classList.add('hidden');
+        const leadsPromise = fetchLeads().then(() => {
+          console.log(`⏱️ Leads refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
+          cacheSet('bdc_leads', allLeads);
+          try { render(); } catch(e) { console.error('render() error:', e); }
+          document.getElementById('loadingOverlay').classList.add('hidden');
+          updateTimestamp(Date.now());
+        });
+
+        const scPromise = fetchSalesCenterData().then(() => {
+          console.log(`⏱️ Sales Center refreshed in ${((performance.now() - t0)/1000).toFixed(1)}s`);
+
+          // CRITICAL FIX: Restore YTD data that fetchSalesCenterData() would have wiped
+          // fetchSalesCenterData() only fetches MTD, so it loses pre-MTD items
+          if (savedYtdBooked && savedYtdBooked.length > 0) {
+            _scBuildDates();
+            const preMtdBooked = savedYtdBooked.filter(i => i.date < _scMtdStart);
+            const preMtdSales = (savedYtdSales || []).filter(i => i.date < _scMtdStart);
+            scBookedData.ytd = [...preMtdBooked, ...scBookedData.mtd];
+            scSalesData.ytd = [...preMtdSales, ...scSalesData.mtd];
+            _scYtdLoaded = true;
+          }
+
+          _scDataReady = true;
+          cacheSet('bdc_booked', scBookedData);
+          cacheSet('bdc_sales', scSalesData);
+          try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
+          _scYtdBackgroundRefresh();
+        });
+
+        await Promise.allSettled([leadsPromise, scPromise]);
+        console.log(`📌 allLeads: ${allLeads.length} | Total: ${((performance.now() - t0)/1000).toFixed(1)}s`);
+      } finally {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+      }
     }
   }
 
