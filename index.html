@@ -902,6 +902,8 @@
     <div class="trend-header">
       <div class="trend-title"><span style="color:var(--orange)">Booked</span> Trend</div>
       <div class="sc-period-toggle" style="gap:4px;">
+        <button class="sc-period-btn master-trend-btn" data-range="yesterday">Yesterday</button>
+        <button class="sc-period-btn master-trend-btn" data-range="today">Today</button>
         <button class="sc-period-btn master-trend-btn" data-range="wk">WK</button>
         <button class="sc-period-btn master-trend-btn active" data-range="mtd">MTD</button>
         <button class="sc-period-btn master-trend-btn" data-range="ytd">YTD</button>
@@ -2341,13 +2343,13 @@ function _scProcessOpp(opp, isBooked) {
       });
     }
     if (!countAsLead) return null;
-    return { branch, date: created };
+    return { branch, date: created, datetime: opp.createdDate || '' };
   } else {
     const stage = (opp.salesFunnelStage || '').toLowerCase();
     if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
     const closedDateStr = opp.closedDate ? opp.closedDate.split('T')[0] : null;
     if (!closedDateStr) return null;
-    return { branch, date: closedDateStr, initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
+    return { branch, date: closedDateStr, datetime: opp.closedDate || '', initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
   }
 }
 
@@ -2489,11 +2491,49 @@ function trendComputeRange(range) {
   const fmt = (d) => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
   const today = fmt(n);
   switch (range) {
+    case 'yesterday': { const d = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1); return { from: fmt(d), to: fmt(d) }; }
+    case 'today': return { from: today, to: today };
     case 'wk': { const d = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 6); return { from: fmt(d), to: today }; }
     case 'mtd': return { from: n.getFullYear() + '-' + pad(n.getMonth()+1) + '-01', to: today };
     case 'ytd': return { from: n.getFullYear() + '-01-01', to: today };
     default: return { from: today, to: today };
   }
+}
+
+// Check if a trend range should use hourly granularity
+function trendIsHourly(range) {
+  return range === 'today' || range === 'yesterday';
+}
+
+// Generate 24-hour labels (12 AM, 1 AM, ... 11 PM)
+function trendHourLabels() {
+  const labels = [];
+  for (let h = 0; h < 24; h++) {
+    const ampm = h < 12 ? 'AM' : 'PM';
+    const hr = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    labels.push(hr + ' ' + ampm);
+  }
+  return labels;
+}
+
+// Extract hour (0-23) from an ISO datetime string or lead timestamp
+function trendGetHour(datetimeStr) {
+  if (!datetimeStr) return -1;
+  const d = new Date(datetimeStr);
+  if (isNaN(d.getTime())) return -1;
+  return d.getHours();
+}
+
+// Aggregate items into 24 hourly buckets
+function trendAggregateHourly(items, valueField, datetimeKey) {
+  const buckets = new Array(24).fill(0);
+  items.forEach(item => {
+    const h = trendGetHour(item[datetimeKey || 'datetime']);
+    if (h >= 0 && h < 24) {
+      buckets[h] += valueField ? valueField(item) : 1;
+    }
+  });
+  return buckets;
 }
 
 // State per trend section (all synced via master trend filter)
@@ -2584,12 +2624,22 @@ async function trendFetchItems(section, from, to) {
 }
 
 // Render / update a trend line chart
-function trendRender(section, items, from, to, valueField) {
-  const allDates = trendDateSeq(from, to);
-  const daily = trendAggregate(items, allDates, valueField);
-  const useWeekly = allDates.length >= 60;
-  const { labels, values } = useWeekly ? trendToWeekly(allDates, daily) : { labels: allDates, values: daily };
-  const fmtLabels = labels.map(trendFmtLabel);
+function trendRender(section, items, from, to, valueField, hourly) {
+  let fmtLabels, values;
+
+  if (hourly) {
+    // Hourly mode: 24 buckets (12 AM – 11 PM)
+    fmtLabels = trendHourLabels();
+    values = trendAggregateHourly(items, valueField, 'datetime');
+  } else {
+    // Daily/weekly mode (existing behavior)
+    const allDates = trendDateSeq(from, to);
+    const daily = trendAggregate(items, allDates, valueField);
+    const useWeekly = allDates.length >= 60;
+    const result = useWeekly ? trendToWeekly(allDates, daily) : { labels: allDates, values: daily };
+    fmtLabels = result.labels.map(trendFmtLabel);
+    values = result.values;
+  }
 
   const state = trendState[section];
   const canvasId = 'trendChart' + section.charAt(0).toUpperCase() + section.slice(1);
@@ -2599,7 +2649,7 @@ function trendRender(section, items, from, to, valueField) {
   if (state.chartInstance) {
     state.chartInstance.data.labels = fmtLabels;
     state.chartInstance.data.datasets[0].data = values;
-    state.chartInstance.data.datasets[0].pointRadius = labels.length > 60 ? 0 : 3;
+    state.chartInstance.data.datasets[0].pointRadius = fmtLabels.length > 60 ? 0 : 3;
     state.chartInstance.update('none');
     return;
   }
@@ -2616,7 +2666,7 @@ function trendRender(section, items, from, to, valueField) {
         label, data: values,
         borderColor: color, backgroundColor: color + '22',
         fill: true, tension: 0.3,
-        pointRadius: labels.length > 60 ? 0 : 3,
+        pointRadius: fmtLabels.length > 60 ? 0 : 3,
         pointHoverRadius: 5, borderWidth: 2
       }]
     },
@@ -2652,12 +2702,15 @@ function trendRender(section, items, from, to, valueField) {
   });
 }
 
-// Convert inbound lead → { date }
+// Convert inbound lead → { date, datetime }
 function trendLeadToItem(l) {
   const ts = parseLeadDate(l);
   if (!ts) return null;
   const d = new Date(ts);
-  return { date: d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') };
+  return {
+    date: d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'),
+    datetime: d.toISOString()
+  };
 }
 
 // Main trend update
@@ -2675,14 +2728,16 @@ async function trendUpdate(section) {
     to = r.to;
   }
 
+  const hourly = trendIsHourly(state.range);
+
   try {
     if (section === 'inbound') {
       const items = allLeads.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
-      trendRender('inbound', items, from, to, null);
+      trendRender('inbound', items, from, to, null, hourly);
     } else {
       const items = await trendFetchItems(section, from, to);
       const vf = section === 'sales' ? (item => item.totalValue || 0) : null;
-      trendRender(section, items, from, to, vf);
+      trendRender(section, items, from, to, vf, hourly);
     }
   } catch (err) {
     console.error('Trend update error (' + section + '):', err);
