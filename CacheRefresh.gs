@@ -98,13 +98,13 @@ function processOpp(opp, isBooked) {
       });
     }
     if (!countAsLead) return null;
-    return { branch: branch, date: created };
+    return { branch: branch, date: created, datetime: opp.createdDate || '' };
   } else {
     var stage = (opp.salesFunnelStage || '').toLowerCase();
     if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
     var closedDate = opp.closedDate ? opp.closedDate.split('T')[0] : null;
     if (!closedDate) return null;
-    return { branch: branch, date: closedDate, initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
+    return { branch: branch, date: closedDate, datetime: opp.closedDate || '', initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
   }
 }
 
