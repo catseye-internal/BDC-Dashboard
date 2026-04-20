@@ -1782,9 +1782,10 @@ function abbrevBranch(branch, lead) {
     if (lower.includes('western mass') || lower.includes('pittsfield')) return 'USX - Western Mass';
     if (lower.includes('upstate') || lower.includes('latham') || lower.includes('upstate new york')) return 'USX - Upstate New York';
     // Generic "usx" without city/region — fall through to zip/area code fallbacks below
-    if (lower.includes('new hampshire') || lower.includes('southern nh') || lower === 'nh' || lower.includes(' nh')) return 'Eastern Mass'; // NH merged
-    if (lower.includes('boston') || lower.includes('eastern mass') || lower.includes('mass') || lower.includes('catseye') || lower === 'ma') return 'Eastern Mass';
-    if (lower !== '' && lower !== 'other') return branch; // pass through unrecognized text
+    if (lower.includes('usx')) { /* skip — let zip/area code decide */ }
+    else if (lower.includes('new hampshire') || lower.includes('southern nh') || lower === 'nh' || lower.includes(' nh')) return 'Eastern Mass'; // NH merged
+    else if (lower.includes('boston') || lower.includes('eastern mass') || lower.includes('mass') || lower.includes('catseye') || lower === 'ma') return 'Eastern Mass';
+    else if (lower !== '' && lower !== 'other') return branch; // pass through unrecognized text
   }
   // Fallback 1: derive territory from zip code in CITY_STATE
   if (lead && lead.CITY_STATE) {
