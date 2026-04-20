@@ -406,6 +406,16 @@
     letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 3px;
   }
   .sc-card-total .sc-card-name { color: var(--orange); }
+  .sc-card-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(244, 123, 32, 0.15); color: var(--orange);
+    font-size: 10px; font-weight: 800; min-width: 18px; height: 16px;
+    border-radius: 8px; padding: 0 5px; margin-left: 6px;
+    letter-spacing: 0; text-transform: none; vertical-align: middle;
+  }
+  .sc-card-total .sc-card-count {
+    background: rgba(244, 123, 32, 0.25);
+  }
   .sc-card-metrics {
     display: flex; justify-content: space-evenly; gap: 8px;
   }
@@ -641,6 +651,7 @@
   /* Wallboard: Sales Closed/Won */
   body.wallboard .sc-card-val { font-size: 18px; }
   body.wallboard .sc-card-name { font-size: 10px; margin-bottom: 1px; }
+  body.wallboard .sc-card-count { font-size: 9px; min-width: 15px; height: 14px; padding: 0 4px; margin-left: 4px; }
   body.wallboard .sc-card-label { font-size: 8px; margin-top: 1px; }
   body.wallboard .sc-subcards .sc-card { padding: 3px 0; }
   body.wallboard .sc-card-total-pinned { padding: 3px 0 0 0; }
@@ -2220,8 +2231,9 @@ function scAggregate(opportunities, branches) {
 // ── Build a single sales card HTML ──
 function scBuildCard(name, data, isTotal) {
   const cls = isTotal ? 'sc-card sc-card-total' : 'sc-card';
+  const countBadge = data.count != null ? `<span class="sc-card-count">${data.count}</span>` : '';
   return `<div class="${cls}">
-    <div class="sc-card-name">${name}</div>
+    <div class="sc-card-name">${name}${countBadge}</div>
     <div class="sc-card-metrics">
       <div class="sc-card-metric">
         <div class="sc-card-val initial">${scFmt.format(data.initial)}</div>
