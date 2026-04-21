@@ -1016,7 +1016,28 @@
     </div>
   </div>
 
-  <!-- ══ ROW 3: Sales Closed/Won ══ -->
+  <!-- ══ ROW 3: Leads Run ══ -->
+  <div class="sc-section" id="scLeadsRun">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Leads</span> Run</div>
+    </div>
+    <div class="sc-blocks">
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot catseye"></div><div class="sc-block-label">Catseye</div></div>
+        <div id="runCatseye" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot usx"></div><div class="sc-block-label">USX Pest</div></div>
+        <div id="runUSX" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
+        <div id="runCombined" class="sc-loading">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ROW 4: Sales Closed/Won ══ -->
   <div class="sc-section" id="scSalesClosed">
     <div class="sc-section-header">
       <div class="sc-section-title"><span>Sales</span> Closed/Won</div>
@@ -1065,6 +1086,13 @@
       <div class="trend-title"><span style="color:var(--orange)">Booked</span> Trend</div>
     </div>
     <div class="trend-chart-wrap"><canvas id="trendChartBooked"></canvas></div>
+  </div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Run</span> Trend</div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartRun"></canvas></div>
   </div>
 
   <div class="trend-block">
@@ -2223,6 +2251,7 @@ const SC_ALL_BRANCHES = [...SC_CATSEYE_BRANCHES, ...SC_USX_BRANCHES];
 // State
 let scBookedData = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
 let scSalesData  = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
+let scRunData    = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
 let _scDataReady = false; // flips true after first successful data load (cache or API)
 const _scPageLoadTime = Date.now(); // track page load for loading grace period
 
@@ -2266,16 +2295,31 @@ function _processRawCache(source) {
     if (dedupBooked.length < allBooked.length) console.warn(`⚠️ Deduped ${allBooked.length - dedupBooked.length} duplicate booked items`);
     if (dedupSales.length < validSales.length) console.warn(`⚠️ Deduped ${validSales.length - dedupSales.length} duplicate sales items`);
 
-    console.log(`🔄 _processRawCache(${source}): ${dedupBooked.length} booked, ${dedupSales.length} sales`);
+    // Process leadsRun (PestPac ESTIMATE work orders)
+    const allRun = [];
+    if (_rawServerCache.leadsRun) {
+      if (Array.isArray(_rawServerCache.leadsRun.preMtd)) {
+        for (let i = 0; i < _rawServerCache.leadsRun.preMtd.length; i++) allRun.push(_rawServerCache.leadsRun.preMtd[i]);
+      }
+      if (Array.isArray(_rawServerCache.leadsRun.mtd)) {
+        for (let i = 0; i < _rawServerCache.leadsRun.mtd.length; i++) allRun.push(_rawServerCache.leadsRun.mtd[i]);
+      }
+    }
+    // No dedup for leadsRun — each PestPac ServiceOrder is unique, and
+    // CacheRefresh uses non-overlapping date ranges so no boundary dupes.
+
+    console.log(`🔄 _processRawCache(${source}): ${dedupBooked.length} booked, ${dedupSales.length} sales, ${allRun.length} run`);
     if (dedupBooked.length === 0 && dedupSales.length === 0) return false;
     scBookedData = _scBucketItems(dedupBooked);
     scSalesData = _scBucketItems(dedupSales);
+    scRunData = _scBucketItems(allRun);
     _scYtdLoaded = true;
     _scDataReady = true;
-    console.log(`✅ _processRawCache(${source}): today=${scBookedData.today.length} booked, ${scSalesData.today.length} sales`);
+    console.log(`✅ _processRawCache(${source}): today=${scBookedData.today.length} booked, ${scSalesData.today.length} sales, ${scRunData.today.length} run`);
     // Seed localStorage so next refresh has data instantly
     cacheSet('bdc_booked', scBookedData);
     cacheSet('bdc_sales', scSalesData);
+    cacheSet('bdc_run', scRunData);
     cacheSet('bdc_sc_ytd', { ts: Date.now(), booked: _rawServerCache.booked.preMtd || [], sales: _rawServerCache.sales.preMtd || [] });
     return true;
   } catch(e) {
@@ -2457,6 +2501,50 @@ function scRenderBookedSection(period) {
   if (convEl) convEl.textContent = convPct + '%';
 }
 
+// ═══════════════════════════════════════════
+// LEADS RUN — count-based rendering (mirrors Leads Booked)
+// ═══════════════════════════════════════════
+
+function scRenderRunBlock(containerId, items, branches) {
+  const el = document.getElementById(containerId);
+  const { counts, total } = scCountByBranch(items, branches);
+
+  if (total === 0 && !_scDataReady) {
+    el.innerHTML = '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
+    return;
+  }
+
+  let html = '<div class="sc-booked-row">';
+  branches.forEach(b => {
+    const c = counts[b];
+    const name = SC_BRANCH_SHORT[b] || b;
+    html += `<div class="sc-booked-item">
+      <div class="sc-booked-count">${c}</div>
+      <div class="sc-booked-label">${name}</div>
+    </div>`;
+  });
+  html += `<div class="sc-booked-item sc-booked-total-item">
+    <div class="sc-booked-count sc-booked-total-val">${total}</div>
+    <div class="sc-booked-label">Total</div>
+  </div>`;
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function scRenderRunSection(period) {
+  let items;
+  if (period === 'wk') {
+    _scBuildDates();
+    const pool = _scYtdLoaded ? scRunData.ytd : scRunData.mtd;
+    items = pool.filter(i => i.date >= _scWkStart);
+  } else {
+    items = scRunData[period] || [];
+  }
+  scRenderRunBlock('runCatseye', items, SC_CATSEYE_BRANCHES);
+  scRenderRunBlock('runUSX', items, SC_USX_BRANCHES);
+  scRenderRunBlock('runCombined', items, SC_ALL_BRANCHES);
+}
+
 function scRenderSalesCombined(containerId, opportunities) {
   const el = document.getElementById(containerId);
   const aggAll = scAggregate(opportunities, SC_ALL_BRANCHES);
@@ -2518,6 +2606,20 @@ function scApplyMasterCustomFilter() {
   const convPct = inboundCount > 0 ? Math.round((bookedItems.length / inboundCount) * 100) : 0;
   const convEl = document.getElementById('bookedConvPct');
   if (convEl) convEl.textContent = convPct + '%';
+
+  // Leads Run
+  let runItems = scRunData.ytd || [];
+  if (from || to) {
+    runItems = runItems.filter(d => {
+      if (!d.date) return true;
+      if (from && d.date < from) return false;
+      if (to && d.date > to) return false;
+      return true;
+    });
+  }
+  scRenderRunBlock('runCatseye', runItems, SC_CATSEYE_BRANCHES);
+  scRenderRunBlock('runUSX', runItems, SC_USX_BRANCHES);
+  scRenderRunBlock('runCombined', runItems, SC_ALL_BRANCHES);
 
   // Sales
   let salesOpps = scSalesData.ytd || [];
@@ -2821,6 +2923,7 @@ function renderSalesCenter() {
     scApplyMasterCustomFilter();
   } else {
     scRenderBookedSection(masterPeriod);
+    scRenderRunSection(masterPeriod);
     scRenderSalesSection(masterPeriod);
   }
 }
@@ -2887,6 +2990,7 @@ let masterTrendCustomFrom = localStorage.getItem('bdc_masterTrendCustomFrom') ||
 let masterTrendCustomTo = localStorage.getItem('bdc_masterTrendCustomTo') || '';
 const trendState = {
   booked:  { range: masterTrendRange, chartInstance: null },
+  run:     { range: masterTrendRange, chartInstance: null },
   sales:   { range: masterTrendRange, chartInstance: null },
   inbound: { range: masterTrendRange, chartInstance: null }
 };
@@ -3000,8 +3104,8 @@ function trendRender(section, items, from, to, valueField, hourly) {
   }
 
   // First render — create chart
-  const color = section === 'sales' ? '#22c55e' : '#f97316';
-  const label = section === 'booked' ? 'Leads Booked' : section === 'sales' ? 'Revenue ($)' : 'Inbound Leads';
+  const color = section === 'sales' ? '#22c55e' : section === 'run' ? '#60a5fa' : '#f97316';
+  const label = section === 'booked' ? 'Leads Booked' : section === 'run' ? 'Leads Run' : section === 'sales' ? 'Revenue ($)' : 'Inbound Leads';
 
   state.chartInstance = new Chart(canvas.getContext('2d'), {
     type: 'line',
@@ -3024,7 +3128,7 @@ function trendRender(section, items, from, to, valueField, hourly) {
           callbacks: {
             label: (tip) => {
               const v = tip.parsed.y;
-              return section === 'sales' ? '$' + v.toLocaleString() : v.toLocaleString() + ' leads';
+              return section === 'sales' ? '$' + v.toLocaleString() : v.toLocaleString() + (section === 'run' ? ' estimates' : ' leads');
             }
           }
         }
@@ -3079,6 +3183,11 @@ async function trendUpdate(section) {
     if (section === 'inbound') {
       const items = allLeads.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
       trendRender('inbound', items, from, to, null, hourly);
+    } else if (section === 'run') {
+      // Leads Run uses cached data (PestPac API has no CORS — can't call from browser)
+      const pool = scRunData.ytd || [];
+      const items = pool.filter(i => i && i.date >= from && i.date <= to);
+      trendRender('run', items, from, to, null, hourly);
     } else {
       const items = await trendFetchItems(section, from, to);
       const vf = section === 'sales' ? (item => item.totalValue || 0) : null;
@@ -3096,6 +3205,7 @@ async function trendUpdate(section) {
 function setMasterTrendRange(range) {
   masterTrendRange = range;
   trendState.booked.range = range;
+  trendState.run.range = range;
   trendState.sales.range = range;
   trendState.inbound.range = range;
   localStorage.setItem('bdc_masterTrendRange', range);
@@ -3143,7 +3253,7 @@ async function trendInitAll() {
     return;
   }
   trendChartsReady = true;
-  await Promise.allSettled([trendUpdate('booked'), trendUpdate('sales'), trendUpdate('inbound')]);
+  await Promise.allSettled([trendUpdate('booked'), trendUpdate('run'), trendUpdate('sales'), trendUpdate('inbound')]);
 }
 
 // ── Lazy-load trend charts on mobile (IntersectionObserver) ──
@@ -3284,20 +3394,23 @@ async function refresh(isInitial) {
     let cachedLeads = cacheGet('bdc_leads');
     let cachedBooked = cacheGet('bdc_booked');
     let cachedSales = cacheGet('bdc_sales');
+    let cachedRun = cacheGet('bdc_run');
     let cachedYtd = cacheGet('bdc_sc_ytd');
 
     // If localStorage was purged (common on Safari iOS), try IndexedDB
     if (!cachedBooked || !cachedSales) {
       console.log('⚡ localStorage empty, trying IndexedDB fallback...');
-      const [idbLeads, idbBooked, idbSales, idbYtd] = await Promise.all([
+      const [idbLeads, idbBooked, idbSales, idbRun, idbYtd] = await Promise.all([
         cachedLeads ? null : cacheGetAsync('bdc_leads'),
         cachedBooked ? null : cacheGetAsync('bdc_booked'),
         cachedSales ? null : cacheGetAsync('bdc_sales'),
+        cachedRun ? null : cacheGetAsync('bdc_run'),
         cachedYtd ? null : cacheGetAsync('bdc_sc_ytd')
       ]);
       if (!cachedLeads && idbLeads) { cachedLeads = idbLeads; console.log('⚡ Recovered leads from IndexedDB'); }
       if (!cachedBooked && idbBooked) { cachedBooked = idbBooked; console.log('⚡ Recovered booked from IndexedDB'); }
       if (!cachedSales && idbSales) { cachedSales = idbSales; console.log('⚡ Recovered sales from IndexedDB'); }
+      if (!cachedRun && idbRun) { cachedRun = idbRun; console.log('⚡ Recovered run from IndexedDB'); }
       if (!cachedYtd && idbYtd) { cachedYtd = idbYtd; console.log('⚡ Recovered YTD from IndexedDB'); }
     }
     let hasLocalData = false;
@@ -3324,6 +3437,11 @@ async function refresh(isInitial) {
         scBookedData.ytd = dedupB;
         scSalesData.ytd = dedupS;
         _scYtdLoaded = true;
+      }
+      // Restore leadsRun from localStorage (same pattern as booked/sales)
+      if (cachedRun) {
+        scRunData = cachedRun.data;
+        console.log(`⚡ Loaded ${scRunData.mtd.length} cached run items`);
       }
       _scDataReady = true;
       try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
