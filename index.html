@@ -2762,8 +2762,10 @@ function _scYtdBackgroundRefresh() {
       if (_scYtdLoaded) {
         const preBooked = freshBooked.filter(i => i.date < _scMtdStart);
         const preSales = freshSales.filter(i => i.date < _scMtdStart);
-        scBookedData.ytd = [...preBooked, ...scBookedData.mtd];
-        scSalesData.ytd = [...preSales, ...scSalesData.mtd];
+        const _seenB2 = new Set();
+        scBookedData.ytd = [...preBooked, ...scBookedData.mtd].filter(b => { const k = `${b.datetime||b.date}|${b.branch}`; if (_seenB2.has(k)) return false; _seenB2.add(k); return true; });
+        const _seenS2 = new Set();
+        scSalesData.ytd = [...preSales, ...scSalesData.mtd].filter(s => { const k = `${s.datetime||s.date}|${s.branch}|${s.initialValue||0}|${s.annualValue||0}|${s.totalValue||0}`; if (_seenS2.has(k)) return false; _seenS2.add(k); return true; });
         try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
       }
 
@@ -2786,8 +2788,10 @@ async function fetchSalesCenterYTD() {
     if (cached) {
       const preBookedItems = cached.booked.filter(i => i.date < _scMtdStart);
       const preSalesItems = cached.sales.filter(i => i.date < _scMtdStart);
-      scBookedData.ytd = [...preBookedItems, ...scBookedData.ytd];
-      scSalesData.ytd = [...preSalesItems, ...scSalesData.ytd];
+      const _seenB4 = new Set();
+      scBookedData.ytd = [...preBookedItems, ...scBookedData.ytd].filter(b => { const k = `${b.datetime||b.date}|${b.branch}`; if (_seenB4.has(k)) return false; _seenB4.add(k); return true; });
+      const _seenS4 = new Set();
+      scSalesData.ytd = [...preSalesItems, ...scSalesData.ytd].filter(s => { const k = `${s.datetime||s.date}|${s.branch}|${s.initialValue||0}|${s.annualValue||0}|${s.totalValue||0}`; if (_seenS4.has(k)) return false; _seenS4.add(k); return true; });
       const age = Math.round((Date.now() - cached.ts) / 60000);
       console.log(`📊 YTD loaded from cache (${age}m old): ${scBookedData.ytd.length} booked, ${scSalesData.ytd.length} won (${((performance.now() - t0)/1000).toFixed(1)}s)`);
       return;
@@ -2800,8 +2804,10 @@ async function fetchSalesCenterYTD() {
     if (fresh) {
       const preBookedItems = fresh.booked.filter(i => i.date < _scMtdStart);
       const preSalesItems = fresh.sales.filter(i => i.date < _scMtdStart);
-      scBookedData.ytd = [...preBookedItems, ...scBookedData.ytd];
-      scSalesData.ytd = [...preSalesItems, ...scSalesData.ytd];
+      const _seenB5 = new Set();
+      scBookedData.ytd = [...preBookedItems, ...scBookedData.ytd].filter(b => { const k = `${b.datetime||b.date}|${b.branch}`; if (_seenB5.has(k)) return false; _seenB5.add(k); return true; });
+      const _seenS5 = new Set();
+      scSalesData.ytd = [...preSalesItems, ...scSalesData.ytd].filter(s => { const k = `${s.datetime||s.date}|${s.branch}|${s.initialValue||0}|${s.annualValue||0}|${s.totalValue||0}`; if (_seenS5.has(k)) return false; _seenS5.add(k); return true; });
       console.log(`📊 YTD loaded (first fetch): ${scBookedData.ytd.length} booked, ${scSalesData.ytd.length} won (${((performance.now() - t0)/1000).toFixed(1)}s)`);
     }
   } catch (err) { console.error('YTD fetch error:', err); }
@@ -3308,8 +3314,13 @@ async function refresh(isInitial) {
         _scBuildDates();
         const preBooked = (cachedYtd.data.booked || []).filter(i => i.date < _scMtdStart);
         const preSales = (cachedYtd.data.sales || []).filter(i => i.date < _scMtdStart);
-        scBookedData.ytd = [...preBooked, ...scBookedData.mtd];
-        scSalesData.ytd = [...preSales, ...scSalesData.mtd];
+        // Dedup: prevent MTD/pre-MTD boundary overlap from doubling 1st-of-month deals
+        const seenB = new Set();
+        const dedupB = [...preBooked, ...scBookedData.mtd].filter(b => { const k = `${b.datetime||b.date}|${b.branch}`; if (seenB.has(k)) return false; seenB.add(k); return true; });
+        const seenS = new Set();
+        const dedupS = [...preSales, ...scSalesData.mtd].filter(s => { const k = `${s.datetime||s.date}|${s.branch}|${s.initialValue||0}|${s.annualValue||0}|${s.totalValue||0}`; if (seenS.has(k)) return false; seenS.add(k); return true; });
+        scBookedData.ytd = dedupB;
+        scSalesData.ytd = dedupS;
         _scYtdLoaded = true;
       }
       _scDataReady = true;
@@ -3422,8 +3433,10 @@ async function refresh(isInitial) {
             _scBuildDates();
             const preMtdBooked = savedYtdBooked.filter(i => i.date < _scMtdStart);
             const preMtdSales = (savedYtdSales || []).filter(i => i.date < _scMtdStart);
-            scBookedData.ytd = [...preMtdBooked, ...scBookedData.mtd];
-            scSalesData.ytd = [...preMtdSales, ...scSalesData.mtd];
+            const _seenB3 = new Set();
+            scBookedData.ytd = [...preMtdBooked, ...scBookedData.mtd].filter(b => { const k = `${b.datetime||b.date}|${b.branch}`; if (_seenB3.has(k)) return false; _seenB3.add(k); return true; });
+            const _seenS3 = new Set();
+            scSalesData.ytd = [...preMtdSales, ...scSalesData.mtd].filter(s => { const k = `${s.datetime||s.date}|${s.branch}|${s.initialValue||0}|${s.annualValue||0}|${s.totalValue||0}`; if (_seenS3.has(k)) return false; _seenS3.add(k); return true; });
             _scYtdLoaded = true;
           }
 
