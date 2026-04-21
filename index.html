@@ -945,10 +945,10 @@
   <!-- ═══════════════════════════════════════ -->
   <div class="view-container active" id="viewDashboard">
 
-  <!-- ══ ROW 1: Leads Booked (with master date filter) ══ -->
-  <div class="sc-section" id="scLeadsBooked">
-    <div class="sc-section-header">
-      <div class="sc-section-title"><span>Leads</span> Booked</div>
+  <!-- ══ ROW 1: Inbound Leads (with master date filter) ══ -->
+  <div class="sc-section" id="scInboundLeads">
+    <div class="sc-section-header" style="margin-bottom: 8px;">
+      <div class="sc-section-title"><span>Inbound</span> Leads</div>
       <div class="sc-period-toggle">
         <button class="sc-period-btn master-dash-btn" data-period="yesterday">Yesterday</button>
         <button class="sc-period-btn master-dash-btn active" data-period="today">Today</button>
@@ -962,54 +962,6 @@
           <button class="sc-date-apply master-dash-apply">Apply</button>
         </div>
       </div>
-    </div>
-    <div class="sc-blocks">
-      <div class="sc-block">
-        <div class="sc-block-header"><div class="sc-dot catseye"></div><div class="sc-block-label">Catseye</div></div>
-        <div id="bookedCatseye" class="sc-loading">Loading...</div>
-      </div>
-      <div class="sc-block">
-        <div class="sc-block-header"><div class="sc-dot usx"></div><div class="sc-block-label">USX Pest</div></div>
-        <div id="bookedUSX" class="sc-loading">Loading...</div>
-      </div>
-      <div class="sc-block">
-        <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
-        <div id="bookedCombined" class="sc-loading">Loading...</div>
-      </div>
-    </div>
-    <!-- Conv % (wallboard only) -->
-    <div class="sc-conv-kpi" id="bookedConvKpi" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin-top:6px;text-align:center;">
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--yellow);">Conv %</span>
-      <span id="bookedConvPct" style="font-size:22px;font-weight:800;color:var(--yellow);margin-left:8px;"></span>
-    </div>
-  </div>
-
-  <!-- ══ ROW 2: Sales Closed/Won ══ -->
-  <div class="sc-section" id="scSalesClosed">
-    <div class="sc-section-header">
-      <div class="sc-section-title"><span>Sales</span> Closed/Won</div>
-    </div>
-    <div class="sc-blocks sc-blocks-sales">
-      <div class="sc-block">
-        <div class="sc-block-header"><div class="sc-dot catseye"></div><div class="sc-block-label">Catseye</div></div>
-        <div id="salesCatseye" class="sc-loading">Loading...</div>
-      </div>
-      <div class="sc-block">
-        <div class="sc-block-header"><div class="sc-dot usx"></div><div class="sc-block-label">USX Pest</div></div>
-        <div id="salesUSX" class="sc-loading">Loading...</div>
-      </div>
-      <div class="sc-block">
-        <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
-        <div id="salesCombined" class="sc-loading">Loading...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Divider between Sales Center rows and BDC Leads ── -->
-  <div style="border-top: 2px solid var(--border); margin: 8px 0 12px; opacity: 0.5;"></div>
-  <div class="sc-section" id="scInboundLeads">
-    <div class="sc-section-header" style="margin-bottom: 8px;">
-      <div class="sc-section-title"><span>Inbound</span> Leads</div>
     </div>
   </div>
 
@@ -1035,12 +987,62 @@
     </div>
   </div>
 
-  <!-- ── Trend Line Charts (bottom of Dashboard) ── -->
+  <!-- ── Divider ── -->
+  <div style="border-top: 2px solid var(--border); margin: 8px 0 12px; opacity: 0.5;"></div>
+
+  <!-- ══ ROW 2: Leads Booked ══ -->
+  <div class="sc-section" id="scLeadsBooked">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Leads</span> Booked</div>
+    </div>
+    <div class="sc-blocks">
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot catseye"></div><div class="sc-block-label">Catseye</div></div>
+        <div id="bookedCatseye" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot usx"></div><div class="sc-block-label">USX Pest</div></div>
+        <div id="bookedUSX" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
+        <div id="bookedCombined" class="sc-loading">Loading...</div>
+      </div>
+    </div>
+    <!-- Conv % (wallboard only) -->
+    <div class="sc-conv-kpi" id="bookedConvKpi" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin-top:6px;text-align:center;">
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--yellow);">Conv %</span>
+      <span id="bookedConvPct" style="font-size:22px;font-weight:800;color:var(--yellow);margin-left:8px;"></span>
+    </div>
+  </div>
+
+  <!-- ══ ROW 3: Sales Closed/Won ══ -->
+  <div class="sc-section" id="scSalesClosed">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Sales</span> Closed/Won</div>
+    </div>
+    <div class="sc-blocks sc-blocks-sales">
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot catseye"></div><div class="sc-block-label">Catseye</div></div>
+        <div id="salesCatseye" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot usx"></div><div class="sc-block-label">USX Pest</div></div>
+        <div id="salesUSX" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
+        <div id="salesCombined" class="sc-loading">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Trend Line Charts ── -->
   <div class="trend-divider" style="border-top: 2px solid var(--border); margin: 12px 0 8px; opacity: 0.5;"></div>
 
   <div class="trend-block master-trend-filter" id="masterTrendFilter">
     <div class="trend-header">
-      <div class="trend-title"><span style="color:var(--orange)">Booked</span> Trend</div>
+      <div class="trend-title"><span style="color:var(--orange)">Inbound</span> Trend</div>
       <div class="sc-period-toggle" style="gap:4px;">
         <button class="sc-period-btn master-trend-btn" data-range="yesterday">Yesterday</button>
         <button class="sc-period-btn master-trend-btn" data-range="today">Today</button>
@@ -1055,6 +1057,13 @@
         </div>
       </div>
     </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartInbound"></canvas></div>
+  </div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Booked</span> Trend</div>
+    </div>
     <div class="trend-chart-wrap"><canvas id="trendChartBooked"></canvas></div>
   </div>
 
@@ -1063,13 +1072,6 @@
       <div class="trend-title"><span style="color:var(--orange)">Sales</span> Trend</div>
     </div>
     <div class="trend-chart-wrap"><canvas id="trendChartSales"></canvas></div>
-  </div>
-
-  <div class="trend-block">
-    <div class="trend-header">
-      <div class="trend-title"><span style="color:var(--orange)">Leads</span> Trend</div>
-    </div>
-    <div class="trend-chart-wrap"><canvas id="trendChartInbound"></canvas></div>
   </div>
 
   </div><!-- /viewDashboard -->
