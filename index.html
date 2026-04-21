@@ -2246,10 +2246,18 @@ function _processRawCache(source) {
     if (Array.isArray(_rawServerCache.sales.mtd)) {
       for (let i = 0; i < _rawServerCache.sales.mtd.length; i++) allSales.push(_rawServerCache.sales.mtd[i]);
     }
-    console.log(`🔄 _processRawCache(${source}): ${allBooked.length} booked, ${allSales.length} sales`);
-    if (allBooked.length === 0 && allSales.length === 0) return false;
+    // Re-validate: strip any closed/lost items that leaked into cache
+    const validSales = allSales.filter(s => {
+      if (!s.stage) return true; // legacy items without stage field — trust CacheRefresh filter
+      const st = s.stage.toLowerCase();
+      if (st.indexOf('lost') > -1) return false;
+      return st === 'closed/won' || st === 'closed won' || st === 'closedwon' || st === 'won';
+    });
+    if (validSales.length < allSales.length) console.warn(`⚠️ Stripped ${allSales.length - validSales.length} non-won sales from cache`);
+    console.log(`🔄 _processRawCache(${source}): ${allBooked.length} booked, ${validSales.length} sales`);
+    if (allBooked.length === 0 && validSales.length === 0) return false;
     scBookedData = _scBucketItems(allBooked);
-    scSalesData = _scBucketItems(allSales);
+    scSalesData = _scBucketItems(validSales);
     _scYtdLoaded = true;
     _scDataReady = true;
     console.log(`✅ _processRawCache(${source}): today=${scBookedData.today.length} booked, ${scSalesData.today.length} sales`);
@@ -2653,10 +2661,12 @@ function _scProcessOpp(opp, isBooked) {
     return { branch, date: created, datetime: opp.createdDate || '' };
   } else {
     const stage = (opp.salesFunnelStage || '').toLowerCase();
+    // Explicitly reject lost/open/other stages
+    if (stage.indexOf('lost') > -1) return null;
     if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
     const closedDateStr = opp.closedDate ? opp.closedDate.split('T')[0] : null;
     if (!closedDateStr) return null;
-    return { branch, date: closedDateStr, datetime: opp.closedDate || '', initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
+    return { branch, date: closedDateStr, datetime: opp.closedDate || '', stage: opp.salesFunnelStage || '', initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
   }
 }
 
