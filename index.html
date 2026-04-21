@@ -685,7 +685,7 @@
   body.wallboard div[style*="border-top"] { margin: 4px 0 4px !important; }
   body.wallboard .sc-section-header[style] { margin-bottom: 3px !important; }
   body.wallboard .inbound-row {
-    gap: 8px; margin-bottom: 2px; flex: 1; min-height: 0; overflow: hidden;
+    gap: 8px; margin-bottom: 2px; flex: 1; min-height: 0; overflow: visible;
     grid-template-columns: 1fr 1fr 1fr;
   }
   body.wallboard .chart-card {
@@ -752,6 +752,34 @@
   body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 11px; margin-top: 0; text-align: left; }
   body.wallboard .wallboard-branch-grid .branch-card .branch-sub { font-size: 10px; margin-top: 2px; }
   body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 14px; font-weight: 700; }
+
+  /* Wallboard on smaller screens (laptops, small monitors) */
+  @media (max-width: 1500px) {
+    body.wallboard .inbound-row {
+      grid-template-columns: 1fr 1fr 1.2fr; /* give branch grid more room */
+    }
+    body.wallboard .wallboard-conv-summary {
+      flex-wrap: wrap; gap: 6px; padding: 4px 10px;
+    }
+    body.wallboard .wallboard-conv-pct { font-size: 20px; }
+    body.wallboard .wallboard-conv-label { font-size: 9px; }
+    body.wallboard .wallboard-conv-detail { font-size: 9px; }
+    body.wallboard .wallboard-branch-grid { gap: 5px; }
+    body.wallboard .wallboard-branch-grid .branch-card { padding: 6px 8px; gap: 6px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 22px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 9px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 12px; }
+  }
+  @media (max-width: 1200px) {
+    body.wallboard .inbound-row {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    body.wallboard .wallboard-conv-pct { font-size: 18px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 20px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 8px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 11px; }
+    body.wallboard .chart-container { height: 100px; }
+  }
 
   /* Leads view in wallboard mode */
   body.wallboard #viewLeads {
