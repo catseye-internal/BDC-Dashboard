@@ -1281,13 +1281,39 @@ async function fetchLeads() {
       return !co || co.startsWith('catseye') || co.startsWith('usx');
     });
     if (allLeads.length < preFilterCount) console.log(`🏢 Company filter: removed ${preFilterCount - allLeads.length} non-Catseye/USX leads`);
-    // Filter out "direct dial" leads — these are callbacks, not first-time inbound callers
-    const preDirectDialCount = allLeads.length;
+    // Filter out non-lead mediums (internal lines, direct dials, office numbers, billing)
+    const EXCLUDED_MEDIUMS = new Set([
+      'bdc sales line',
+      '518-336-3000',
+      'catseye - amanda groves - ct direct dial',
+      'catseye - amanda groves - ma direct dial',
+      'catseye - kevin aucoin - ma direct dial (508 - 978 - 7362)',
+      'catseye - megan sweet - ct direct dial',
+      'catseye - sara d\'angelo - ct direct dial',
+      'catseye - sara d\'angelo - ma direct dial',
+      'catseye - senghor morgan - ct direct dial',
+      'catseye - senghor morgan - ma direct dial',
+      'kevin aucoin - ct direct dial',
+      'hopkinton office direct',
+      'catseye billing number',
+      'connecticut : cromwell office number',
+      'usa',
+      'usa number',
+      'usx - amanda groves - ny direct dial',
+      'usx - amanda groves - ma direct dial',
+      'usx - kevin aucoin - ny direct dial',
+      'usx - kevin aucoin - ma direct dial',
+      'usx - senghor morgan - ny direct dial',
+      'usx - senghor morgan - ma direct dial',
+      'usx - matt arredondo - ct direct dial',
+      'usx - lisa mextorf - ma direct dial'
+    ]);
+    const preNonLeadCount = allLeads.length;
     allLeads = allLeads.filter(l => {
-      const med = (l.MEDIUM || '').toLowerCase();
-      return !med.includes('direct dial');
+      const med = (l.MEDIUM || '').trim().toLowerCase();
+      return !EXCLUDED_MEDIUMS.has(med);
     });
-    if (allLeads.length < preDirectDialCount) console.log(`📞 Direct dial filter: removed ${preDirectDialCount - allLeads.length} callback leads`);
+    if (allLeads.length < preNonLeadCount) console.log(`📞 Non-lead medium filter: removed ${preNonLeadCount - allLeads.length} internal/direct-dial calls`);
     // Dedup Podium leads: keep only the first message per contact per day
     const podiumSeen = new Set();
     allLeads = allLeads.filter(l => {
