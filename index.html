@@ -2254,10 +2254,20 @@ function _processRawCache(source) {
       return st === 'closed/won' || st === 'closed won' || st === 'closedwon' || st === 'won';
     });
     if (validSales.length < allSales.length) console.warn(`⚠️ Stripped ${allSales.length - validSales.length} non-won sales from cache`);
-    console.log(`🔄 _processRawCache(${source}): ${allBooked.length} booked, ${validSales.length} sales`);
-    if (allBooked.length === 0 && validSales.length === 0) return false;
-    scBookedData = _scBucketItems(allBooked);
-    scSalesData = _scBucketItems(validSales);
+
+    // Deduplicate: MTD/pre-MTD boundary can overlap on the 1st of the month
+    const dedupKey = (item) => `${item.datetime || item.date}|${item.branch}|${item.initialValue || 0}|${item.annualValue || 0}|${item.totalValue || 0}`;
+    const seenBooked = new Set();
+    const dedupBooked = allBooked.filter(b => { const k = `${b.datetime || b.date}|${b.branch}`; if (seenBooked.has(k)) return false; seenBooked.add(k); return true; });
+    const seenSales = new Set();
+    const dedupSales = validSales.filter(s => { const k = dedupKey(s); if (seenSales.has(k)) return false; seenSales.add(k); return true; });
+    if (dedupBooked.length < allBooked.length) console.warn(`⚠️ Deduped ${allBooked.length - dedupBooked.length} duplicate booked items`);
+    if (dedupSales.length < validSales.length) console.warn(`⚠️ Deduped ${validSales.length - dedupSales.length} duplicate sales items`);
+
+    console.log(`🔄 _processRawCache(${source}): ${dedupBooked.length} booked, ${dedupSales.length} sales`);
+    if (dedupBooked.length === 0 && dedupSales.length === 0) return false;
+    scBookedData = _scBucketItems(dedupBooked);
+    scSalesData = _scBucketItems(dedupSales);
     _scYtdLoaded = true;
     _scDataReady = true;
     console.log(`✅ _processRawCache(${source}): today=${scBookedData.today.length} booked, ${scSalesData.today.length} sales`);
@@ -2596,7 +2606,7 @@ document.addEventListener('click', (e) => {
 // ── Fetch Sales Center data from WorkWave API (via Apps Script proxy) ──
 
 // Shared date strings (computed once per refresh)
-let _scNow, _scTodayStr, _scYesterdayStr, _scWkStart, _scMtdStart, _scTomorrowStr, _scYtdStart;
+let _scNow, _scTodayStr, _scYesterdayStr, _scWkStart, _scMtdStart, _scPreMtdEnd, _scTomorrowStr, _scYtdStart;
 function _scBuildDates() {
   _scNow = new Date();
   _scTodayStr = _scNow.getFullYear() + '-' + String(_scNow.getMonth()+1).padStart(2,'0') + '-' + String(_scNow.getDate()).padStart(2,'0');
@@ -2605,6 +2615,9 @@ function _scBuildDates() {
   const w = new Date(_scNow); w.setDate(w.getDate()-6);
   _scWkStart = w.getFullYear() + '-' + String(w.getMonth()+1).padStart(2,'0') + '-' + String(w.getDate()).padStart(2,'0');
   _scMtdStart = _scNow.getFullYear() + '-' + String(_scNow.getMonth()+1).padStart(2,'0') + '-01';
+  // Pre-MTD end: last day of previous month (avoids overlap with MTD on the 1st)
+  const pm = new Date(_scNow.getFullYear(), _scNow.getMonth(), 0);
+  _scPreMtdEnd = pm.getFullYear() + '-' + String(pm.getMonth()+1).padStart(2,'0') + '-' + String(pm.getDate()).padStart(2,'0');
   const t = new Date(_scNow); t.setDate(t.getDate()+1);
   _scTomorrowStr = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
   _scYtdStart = _scNow.getFullYear() + '-01-01';
@@ -2736,8 +2749,8 @@ function _scYtdBackgroundRefresh() {
       _scBuildDates();
       const t0 = performance.now();
       const [createdPreResult, closedPreResult] = await Promise.allSettled([
-        fetchAllOpps({ fromCreatedTime: _scYtdStart + 'T00:00:00Z', toCreatedTime: _scMtdStart + 'T00:00:00Z' }),
-        fetchAllOpps({ fromDateClosed: _scYtdStart + 'T00:00:00Z', toDateClosed: _scMtdStart + 'T00:00:00Z' })
+        fetchAllOpps({ fromCreatedTime: _scYtdStart + 'T00:00:00Z', toCreatedTime: _scPreMtdEnd + 'T23:59:59Z' }),
+        fetchAllOpps({ fromDateClosed: _scYtdStart + 'T00:00:00Z', toDateClosed: _scPreMtdEnd + 'T23:59:59Z' })
       ]);
       const createdPre = createdPreResult.status === 'fulfilled' ? createdPreResult.value : [];
       const closedPre = closedPreResult.status === 'fulfilled' ? closedPreResult.value : [];

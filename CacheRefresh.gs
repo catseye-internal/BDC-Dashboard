@@ -101,10 +101,12 @@ function processOpp(opp, isBooked) {
     return { branch: branch, date: created, datetime: opp.createdDate || '' };
   } else {
     var stage = (opp.salesFunnelStage || '').toLowerCase();
+    // Explicitly reject lost/open/other stages
+    if (stage.indexOf('lost') > -1) return null;
     if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
     var closedDate = opp.closedDate ? opp.closedDate.split('T')[0] : null;
     if (!closedDate) return null;
-    return { branch: branch, date: closedDate, datetime: opp.closedDate || '', initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
+    return { branch: branch, date: closedDate, datetime: opp.closedDate || '', stage: opp.salesFunnelStage || '', initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
   }
 }
 
@@ -269,6 +271,11 @@ function refreshCache() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     var tomorrowStr = fmtDate(tomorrow);
 
+    // Pre-MTD end date: day BEFORE mtdStart to avoid overlap
+    // (deals on the 1st were appearing in both MTD and pre-MTD)
+    var preMtdEnd = new Date(now.getFullYear(), now.getMonth(), 0); // last day of prev month
+    var preMtdEndStr = fmtDate(preMtdEnd);
+
     // ── Fetch WorkWave data ──
     Logger.log('  Fetching MTD booked...');
     var mtdCreated = fetchAllOpps({ fromCreatedTime: mtdStart + 'T00:00:00Z', toCreatedTime: tomorrowStr + 'T00:00:00Z' });
@@ -277,10 +284,10 @@ function refreshCache() {
     var mtdClosed = fetchAllOpps({ fromDateClosed: mtdStart + 'T00:00:00Z', toDateClosed: tomorrowStr + 'T00:00:00Z' });
 
     Logger.log('  Fetching YTD booked (pre-MTD)...');
-    var preMtdCreated = fetchAllOpps({ fromCreatedTime: ytdStart + 'T00:00:00Z', toCreatedTime: mtdStart + 'T00:00:00Z' });
+    var preMtdCreated = fetchAllOpps({ fromCreatedTime: ytdStart + 'T00:00:00Z', toCreatedTime: preMtdEndStr + 'T23:59:59Z' });
 
     Logger.log('  Fetching YTD sales (pre-MTD)...');
-    var preMtdClosed = fetchAllOpps({ fromDateClosed: ytdStart + 'T00:00:00Z', toDateClosed: mtdStart + 'T00:00:00Z' });
+    var preMtdClosed = fetchAllOpps({ fromDateClosed: ytdStart + 'T00:00:00Z', toDateClosed: preMtdEndStr + 'T23:59:59Z' });
 
     // ── Process into slim objects ──
     var bookedMtd = mtdCreated.map(function(o) { return processOpp(o, true); }).filter(Boolean);
