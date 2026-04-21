@@ -3204,19 +3204,29 @@ async function refresh(isInitial) {
 
         // Sales Center from server cache (full YTD)
         if (serverCache.booked && serverCache.sales) {
-          _scBuildDates();
-          const allBooked = [...(serverCache.booked.preMtd || []), ...(serverCache.booked.mtd || [])];
-          const allSales = [...(serverCache.sales.preMtd || []), ...(serverCache.sales.mtd || [])];
-          scBookedData = _scBucketItems(allBooked);
-          scSalesData = _scBucketItems(allSales);
-          _scYtdLoaded = true;
-          _scDataReady = true;
-          try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
+          try {
+            _scBuildDates();
+            const allBooked = [...(serverCache.booked.preMtd || []), ...(serverCache.booked.mtd || [])];
+            const allSales = [...(serverCache.sales.preMtd || []), ...(serverCache.sales.mtd || [])];
+            console.log(`🌐 Processing server cache: ${allBooked.length} booked, ${allSales.length} sales`);
+            scBookedData = _scBucketItems(allBooked);
+            scSalesData = _scBucketItems(allSales);
+            _scYtdLoaded = true;
+            _scDataReady = true;
+            renderSalesCenter();
 
-          // Seed localStorage
-          cacheSet('bdc_booked', scBookedData);
-          cacheSet('bdc_sales', scSalesData);
-          cacheSet('bdc_sc_ytd', { ts: Date.now(), booked: serverCache.booked.preMtd || [], sales: serverCache.sales.preMtd || [] });
+            // Seed localStorage
+            cacheSet('bdc_booked', scBookedData);
+            cacheSet('bdc_sales', scSalesData);
+            cacheSet('bdc_sc_ytd', { ts: Date.now(), booked: serverCache.booked.preMtd || [], sales: serverCache.sales.preMtd || [] });
+          } catch(e) {
+            console.error('❌ Server cache sales center error:', e);
+            // Even if processing fails, mark as ready so we show zeros not "Loading..."
+            _scDataReady = true;
+            try { renderSalesCenter(); } catch(e2) {}
+          }
+        } else {
+          console.warn('⚠️ Server cache missing booked/sales. Keys:', Object.keys(serverCache));
         }
 
         document.getElementById('loadingOverlay').classList.add('hidden');
@@ -3366,6 +3376,17 @@ document.getElementById('filterSearch').addEventListener('input', render);
 })();
 
 refresh(true).then(() => { refreshTimer = setInterval(() => refresh(false), 60000); });
+
+// Safety net: never show "Loading..." for more than 4 seconds
+// If data hasn't arrived by then, force render with whatever we have (even zeros)
+setTimeout(() => {
+  if (!_scDataReady) {
+    console.warn('⏰ 4s timeout — forcing _scDataReady to end Loading state');
+    _scDataReady = true;
+    try { renderSalesCenter(); } catch(e) {}
+  }
+  document.getElementById('loadingOverlay').classList.add('hidden');
+}, 4000);
 
 // ── Chart.js deferred-load safety net ──
 // If data loaded before Chart.js, re-render once the library is ready
