@@ -3522,7 +3522,7 @@ if (urlParams.get('view') === 'leads') switchView('leads');
 if (urlParams.has('wallboard')) switchView('wallboard');
 
 // ── Timestamp display ──
-let _lastDataTs = null; // tracks when data was last refreshed from any source
+var _lastDataTs = null; // tracks when data was last refreshed from any source (var for hoisting — called before declaration line)
 function updateTimestamp(sourceTs) {
   if (sourceTs) _lastDataTs = sourceTs;
   const ts = _lastDataTs || Date.now();
