@@ -268,6 +268,10 @@
   .sc-period-btn.active {
     background: var(--orange-dim); color: var(--orange); border-color: var(--orange);
   }
+  /* All / Unique toggle */
+  .inbound-unique-toggle { display: inline-flex; gap: 2px; }
+  .iu-divider { width: 1px; background: var(--border); margin: 2px 6px; align-self: stretch; }
+  .iu-btn.active { background: rgba(96,165,250,0.12); color: #60A5FA; border-color: #60A5FA; }
   .sc-date-range {
     display: none; position: absolute; top: 100%; right: 0; z-index: 100;
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
@@ -663,6 +667,8 @@
   body.wallboard .sc-period-btn { font-size: 9px; padding: 4px 10px; letter-spacing: 0.5px; }
   body.wallboard .sc-period-btn[data-period="custom"] { display: none; }
   body.wallboard .sc-date-range { display: none; }
+  body.wallboard .inbound-unique-toggle { display: none; }
+  body.wallboard .iu-divider { display: none; }
   body.wallboard .sc-period-toggle { gap: 4px; }
 
   /* Wallboard: Hide trend charts */
@@ -889,6 +895,8 @@
     /* Sales Center — tighter sizing */
     .sc-section-title { font-size: 13px; }
     .sc-period-btn { font-size: 10px; padding: 4px 10px; }
+    .inbound-unique-toggle { display: none; }
+    .iu-divider { display: none; }
     .sc-booked-count { font-size: 18px; }
     .sc-booked-label { font-size: 7px; letter-spacing: 0.3px; }
     .sc-card-val { font-size: 15px; }
@@ -950,6 +958,11 @@
     <div class="sc-section-header" style="margin-bottom: 8px;">
       <div class="sc-section-title"><span>Inbound</span> Leads</div>
       <div class="sc-period-toggle">
+        <span class="inbound-unique-toggle" id="inboundUniqueToggle">
+          <button class="sc-period-btn iu-btn active" data-iu="all">All</button>
+          <button class="sc-period-btn iu-btn" data-iu="unique">Unique</button>
+        </span>
+        <span class="iu-divider"></span>
         <button class="sc-period-btn master-dash-btn" data-period="yesterday">Yesterday</button>
         <button class="sc-period-btn master-dash-btn active" data-period="today">Today</button>
         <button class="sc-period-btn master-dash-btn" data-period="wk">WK</button>
@@ -1210,6 +1223,7 @@ const CACHE_SHEET_ID = '1LoJHJ8aryr-W6O-6H4J0WL19QuBDBfEVbw-aZI1B0tg';
 const CACHE_SHEET_CSV = `https://docs.google.com/spreadsheets/d/${CACHE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Cache`;
 
 let allLeads = [];
+var inboundUnique = false; // All vs Unique toggle — false = show all, true = deduplicate
 // chart instances managed inside renderTypeChart / renderSourceChart
 let refreshTimer = null;
 let isRefreshing = false; // guard against overlapping refreshes
@@ -1444,22 +1458,42 @@ function filterByPeriod(leads, period) {
   return leads;
 }
 
+function deduplicateLeads(leads) {
+  const seen = {};
+  return leads.filter(l => {
+    // Normalize phone: strip non-digits, drop leading 1 if 11 digits
+    let phone = (l.PHONE || '').replace(/\D/g, '');
+    if (phone.length === 11 && phone[0] === '1') phone = phone.slice(1);
+    // Key: normalized phone if 10 digits, else lowercase trimmed customer name
+    const key = phone.length === 10 ? phone : (l.CUSTOMER_NAME || '').toLowerCase().trim();
+    if (!key) return true; // no phone or name — keep it
+    if (seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+
 function getInboundFilteredLeads() {
+  let result;
   if (masterPeriod === 'custom') {
     const from = masterCustomFrom;
     const to = masterCustomTo;
-    if (!from && !to) return allLeads;
-    return allLeads.filter(l => {
-      const ts = parseLeadDate(l);
-      if (!ts) return false;
-      const d = new Date(ts);
-      const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-      if (from && ds < from) return false;
-      if (to && ds > to) return false;
-      return true;
-    });
+    if (!from && !to) { result = allLeads; }
+    else {
+      result = allLeads.filter(l => {
+        const ts = parseLeadDate(l);
+        if (!ts) return false;
+        const d = new Date(ts);
+        const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        if (from && ds < from) return false;
+        if (to && ds > to) return false;
+        return true;
+      });
+    }
+  } else {
+    result = filterByPeriod(allLeads, masterPeriod);
   }
-  return filterByPeriod(allLeads, masterPeriod);
+  return inboundUnique ? deduplicateLeads(result) : result;
 }
 
 // ── Multi-Column Sort ──
@@ -2494,7 +2528,8 @@ function scRenderBookedSection(period) {
   scRenderBookedBlock('bookedUSX', items, SC_USX_BRANCHES);
   scRenderBookedBlock('bookedCombined', items, SC_ALL_BRANCHES);
   // Conv% KPI (wallboard only): booked leads / inbound leads for same period
-  const inboundCount = (period === 'custom') ? getInboundFilteredLeads().length : filterByPeriod(allLeads, period).length;
+  const inboundFiltered = (period === 'custom') ? getInboundFilteredLeads() : (inboundUnique ? deduplicateLeads(filterByPeriod(allLeads, period)) : filterByPeriod(allLeads, period));
+  const inboundCount = inboundFiltered.length;
   const totalBooked = items.length;
   const convPct = inboundCount > 0 ? Math.round((totalBooked / inboundCount) * 100) : 0;
   const convEl = document.getElementById('bookedConvPct');
@@ -2675,6 +2710,19 @@ document.querySelectorAll('.master-dash-btn').forEach(btn => {
 
     renderSalesCenter();
     render();
+  });
+});
+
+// ── All / Unique toggle ──
+document.querySelectorAll('.iu-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.iu;
+    inboundUnique = (mode === 'unique');
+    document.querySelectorAll('.iu-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Re-render inbound sections + trend
+    render();
+    trendUpdateSection('inbound');
   });
 });
 
@@ -3181,7 +3229,8 @@ async function trendUpdate(section) {
 
   try {
     if (section === 'inbound') {
-      const items = allLeads.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
+      const src = inboundUnique ? deduplicateLeads(allLeads) : allLeads;
+      const items = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
       trendRender('inbound', items, from, to, null, hourly);
     } else if (section === 'run') {
       // Leads Run uses cached data (PestPac API has no CORS — can't call from browser)
