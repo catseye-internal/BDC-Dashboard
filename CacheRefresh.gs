@@ -517,3 +517,33 @@ function testGitHubWrite() {
   var result = writeToGitHub(testData);
   Logger.log('GitHub write test: ' + (result ? 'SUCCESS' : 'FAILED'));
 }
+
+// ── Diagnostic: inspect what fields searchOpportunity actually returns ──
+function inspectSalesFields() {
+  var now = new Date();
+  var mtdStart = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-01';
+  var tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+  var tomorrowStr = fmtDate(tomorrow);
+
+  var opps = fetchAllOpps({ fromDateClosed: mtdStart + 'T00:00:00Z', toDateClosed: tomorrowStr + 'T00:00:00Z' });
+  Logger.log('Total closed opps: ' + opps.length);
+
+  // Show ALL top-level keys from first 3 closed/won opps
+  var count = 0;
+  for (var i = 0; i < opps.length && count < 3; i++) {
+    var stage = (opps[i].salesFunnelStage || '').toLowerCase();
+    if (stage.indexOf('won') === -1 && stage.indexOf('closed') === -1) continue;
+    count++;
+    var opp = opps[i];
+    Logger.log('\n═══ OPP #' + count + ' ═══');
+    Logger.log('Keys: ' + Object.keys(opp).join(', '));
+    Logger.log('owner: ' + JSON.stringify(opp.owner));
+    Logger.log('primaryContact: ' + JSON.stringify(opp.primaryContact));
+    Logger.log('locations: ' + JSON.stringify(opp.locations));
+    Logger.log('opportunityCreatedBy: ' + JSON.stringify(opp.opportunityCreatedBy));
+    Logger.log('customFields: ' + JSON.stringify(opp.customFields));
+    Logger.log('opportunityName: ' + JSON.stringify(opp.opportunityName));
+    Logger.log('branch: ' + JSON.stringify(opp.branch));
+    Logger.log('salesFunnelStage: ' + JSON.stringify(opp.salesFunnelStage));
+  }
+}

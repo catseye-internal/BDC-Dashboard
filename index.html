@@ -1261,6 +1261,17 @@
       <span class="filter-label">Search</span>
       <input type="text" id="salesFilterSearch" placeholder="Name, city...">
     </div>
+    <div class="filter-group" style="margin-left:auto;">
+      <span class="filter-label">Sort</span>
+      <div style="position:relative;">
+        <button id="salesSortToggle" class="sort-btn" onclick="toggleSalesSortPanel()">Date ↓ <span style="font-size:10px;opacity:0.6;margin-left:4px;">▾</span></button>
+        <div id="salesSortPanel" class="sort-panel">
+          <div id="salesSortRules"></div>
+          <button class="sort-add-btn" onclick="addSalesSortRule()">+ Add sort</button>
+          <button class="sort-apply-btn" onclick="applySalesSortRules()">Apply</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── Sales summary row ── -->
@@ -3926,8 +3937,7 @@ function renderSalesTable(rows) {
   if (rows.length === 0) {
     tbody.innerHTML = '<tr><td colspan="13" class="no-data">No sales match your filters</td></tr>';
   } else {
-    // Sort by closed date descending
-    rows.sort((a,b) => (b.date || '').localeCompare(a.date || '') || (b.datetime || '').localeCompare(a.datetime || ''));
+    rows.sort(salesMultiSort);
     tbody.innerHTML = rows.map(s => `
       <tr>
         <td>${formatDateDisplay(s.date)}</td>
@@ -3990,6 +4000,119 @@ function renderSalesView() {
 document.getElementById('salesFilterSearch').addEventListener('input', () => {
   const filtered = filterSalesRows(allSalesRows);
   renderSalesTable(filtered);
+});
+
+// ── Sales Sort ──
+const SALES_SORT_COLUMNS = [
+  { key: 'date', label: 'Closed Date' },
+  { key: 'branch', label: 'Branch' },
+  { key: 'owner', label: 'Owner' },
+  { key: 'contact', label: 'Contact' },
+  { key: 'city', label: 'City' },
+  { key: 'services', label: 'Services' },
+  { key: 'initial', label: 'Initial $' },
+  { key: 'annual', label: 'Annual $' },
+  { key: 'total', label: 'Total $' },
+  { key: 'createdBy', label: 'Created By' },
+  { key: 'leadRun', label: 'Lead Run?' },
+  { key: 'bdcSold', label: 'BDC SOLD?' },
+  { key: 'techSold', label: 'Tech SOLD' }
+];
+
+let salesSortRules = [{ column: 'date', dir: 'desc' }];
+
+function toggleSalesSortPanel() {
+  const panel = document.getElementById('salesSortPanel');
+  panel.classList.toggle('visible');
+  if (panel.classList.contains('visible')) renderSalesSortRules();
+}
+
+function renderSalesSortRules() {
+  const container = document.getElementById('salesSortRules');
+  container.innerHTML = salesSortRules.map((rule, i) => {
+    const colOpts = SALES_SORT_COLUMNS.map(c =>
+      `<option value="${c.key}" ${c.key === rule.column ? 'selected' : ''}>${c.label}</option>`
+    ).join('');
+    return `<div class="sort-rule">
+      <select onchange="salesSortRules[${i}].column=this.value">${colOpts}</select>
+      <select onchange="salesSortRules[${i}].dir=this.value">
+        <option value="asc" ${rule.dir === 'asc' ? 'selected' : ''}>A→Z / 0→9</option>
+        <option value="desc" ${rule.dir === 'desc' ? 'selected' : ''}>Z→A / 9→0</option>
+      </select>
+      ${salesSortRules.length > 1 ? `<button class="sort-rule-remove" onclick="removeSalesSortRule(${i})">×</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function addSalesSortRule() {
+  const used = salesSortRules.map(r => r.column);
+  const next = SALES_SORT_COLUMNS.find(c => !used.includes(c.key));
+  if (next) { salesSortRules.push({ column: next.key, dir: 'asc' }); renderSalesSortRules(); }
+}
+
+function removeSalesSortRule(i) {
+  salesSortRules.splice(i, 1);
+  renderSalesSortRules();
+}
+
+function applySalesSortRules() {
+  document.getElementById('salesSortPanel').classList.remove('visible');
+  updateSalesSortLabel();
+  const filtered = filterSalesRows(allSalesRows);
+  renderSalesTable(filtered);
+}
+
+function updateSalesSortLabel() {
+  const btn = document.getElementById('salesSortToggle');
+  if (salesSortRules.length === 1) {
+    const col = SALES_SORT_COLUMNS.find(c => c.key === salesSortRules[0].column);
+    const arrow = salesSortRules[0].dir === 'desc' ? '↓' : '↑';
+    btn.innerHTML = `${col ? col.label : ''} ${arrow} <span style="font-size:10px;opacity:0.6;margin-left:4px;">▾</span>`;
+  } else {
+    btn.innerHTML = `${salesSortRules.length} sorts <span style="font-size:10px;opacity:0.6;margin-left:4px;">▾</span>`;
+  }
+}
+
+function getSalesSortValue(s, key) {
+  switch (key) {
+    case 'date': return s.date || '';
+    case 'branch': return (s.branch || '').toLowerCase();
+    case 'owner': return (s.owner || '').toLowerCase();
+    case 'contact': return (s.contactName || '').toLowerCase();
+    case 'city': return (s.city || '').toLowerCase();
+    case 'services': return (s.services || '').toLowerCase();
+    case 'initial': return Number(s.initialValue) || 0;
+    case 'annual': return Number(s.annualValue) || 0;
+    case 'total': return Number(s.totalValue) || 0;
+    case 'createdBy': return (s.createdBy || '').toLowerCase();
+    case 'leadRun': return (s.countAsLeadRun || '').toLowerCase();
+    case 'bdcSold': return (s.bdcSold || '').toLowerCase();
+    case 'techSold': return (s.techSoldName || '').toLowerCase();
+    default: return '';
+  }
+}
+
+function salesMultiSort(a, b) {
+  for (const rule of salesSortRules) {
+    const va = getSalesSortValue(a, rule.column);
+    const vb = getSalesSortValue(b, rule.column);
+    let cmp = 0;
+    if (typeof va === 'number' && typeof vb === 'number') {
+      cmp = va - vb;
+    } else {
+      cmp = String(va).localeCompare(String(vb));
+    }
+    if (cmp !== 0) return rule.dir === 'desc' ? -cmp : cmp;
+  }
+  return 0;
+}
+
+// Close sales sort panel on outside click
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('salesSortPanel');
+  if (panel && !e.target.closest('.filter-group') && panel.classList.contains('visible')) {
+    panel.classList.remove('visible');
+  }
 });
 
 // ═══════════════════════════════════════════
