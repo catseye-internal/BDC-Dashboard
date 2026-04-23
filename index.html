@@ -935,6 +935,7 @@
     <div class="view-tabs">
       <button class="view-tab active" data-view="dashboard">Dashboard</button>
       <button class="view-tab" data-view="leads">Leads</button>
+      <button class="view-tab" data-view="sales">Sales</button>
       <button class="view-tab" data-view="wallboard">Wallboard</button>
     </div>
   </div>
@@ -1207,6 +1208,96 @@
   </div>
 
   </div><!-- /viewLeads -->
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- VIEW 3: SALES (closed/won table)       -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="view-container" id="viewSales">
+
+  <!-- ── Filters ── -->
+  <div class="filter-bar" id="salesFilterBar">
+    <div class="filter-group">
+      <span class="filter-label">Closed Date</span>
+      <select id="salesFilterDate">
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+        <option value="mtd" selected>MTD</option>
+        <option value="ytd">YTD</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Branch</span>
+      <select id="salesFilterBranch">
+        <option value="all">All Branches</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Owner</span>
+      <select id="salesFilterOwner">
+        <option value="all">All Owners</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Created By</span>
+      <select id="salesFilterCreatedBy">
+        <option value="all">All</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">BDC SOLD?</span>
+      <select id="salesFilterBDC">
+        <option value="all">All</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Lead Run?</span>
+      <select id="salesFilterLeadRun">
+        <option value="all">All</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Search</span>
+      <input type="text" id="salesFilterSearch" placeholder="Name, city...">
+    </div>
+  </div>
+
+  <!-- ── Sales summary row ── -->
+  <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
+    <div style="font-size:13px;color:var(--text-muted);">Showing <strong id="salesCount" style="color:var(--green);">0</strong> sales</div>
+    <div style="font-size:13px;color:var(--text-muted);">Total: <strong id="salesTotalValue" style="color:var(--green);">$0</strong></div>
+    <div style="font-size:13px;color:var(--text-muted);">Initial: <strong id="salesInitialValue" style="color:var(--text);">$0</strong></div>
+    <div style="font-size:13px;color:var(--text-muted);">Annual: <strong id="salesAnnualValue" style="color:var(--text);">$0</strong></div>
+  </div>
+
+  <!-- ── Sales Table ── -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Closed Date</th>
+          <th>Branch</th>
+          <th>Owner</th>
+          <th>Contact</th>
+          <th>City</th>
+          <th>Services</th>
+          <th>Initial $</th>
+          <th>Annual $</th>
+          <th>Total $</th>
+          <th>Created By</th>
+          <th>Lead Run?</th>
+          <th>BDC SOLD?</th>
+          <th>Tech SOLD</th>
+        </tr>
+      </thead>
+      <tbody id="salesTableBody">
+        <tr><td colspan="13" class="no-data">Loading sales...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  </div><!-- /viewSales -->
 
 </div><!-- /main -->
 
@@ -2271,6 +2362,7 @@ function render() {
   renderTable(filtered);
   populateBranches();
   populateMediums();
+  if (typeof renderSalesView === 'function') renderSalesView();
   updateTimestamp();
 }
 
@@ -2832,7 +2924,43 @@ function _scProcessOpp(opp, isBooked) {
     if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
     const closedDateStr = opp.closedDate ? opp.closedDate.split('T')[0] : null;
     if (!closedDateStr) return null;
-    return { branch, date: closedDateStr, datetime: opp.closedDate || '', stage: opp.salesFunnelStage || '', initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
+
+    // Extract custom fields for Sales view
+    let techSoldName = opp.techSoldName || '', countAsLeadRun = opp.countAsLeadRun || '', bdcSold = opp.bdcSold || '';
+    if (Array.isArray(opp.customFields)) {
+      opp.customFields.forEach(cf => {
+        const cfName = (cf.name || cf.label || cf.key || '');
+        const cfVal  = String(cf.value || cf.answer || '');
+        if (cfName === 'Technician SOLD Name') techSoldName = cfVal;
+        else if (cfName === 'Count as Lead Run?') countAsLeadRun = cfVal;
+        else if (cfName === 'BDC SOLD?') bdcSold = cfVal;
+      });
+    }
+
+    // Services
+    let services = opp.services || '';
+    try {
+      if (!services && Array.isArray(opp.locations) && opp.locations[0] && Array.isArray(opp.locations[0].services)) {
+        services = opp.locations[0].services.map(s => s.name || '').filter(Boolean).join(', ');
+      }
+    } catch(e) {}
+
+    // Contact
+    let contactName = opp.contactName || '';
+    let city = opp.city || '';
+    if (!contactName && opp.primaryContact) {
+      contactName = ((opp.primaryContact.firstName || '') + ' ' + (opp.primaryContact.lastName || '')).trim();
+      city = city || opp.primaryContact.city || '';
+    }
+
+    return {
+      branch, date: closedDateStr, datetime: opp.closedDate || '',
+      stage: opp.salesFunnelStage || '',
+      initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0,
+      owner: opp.owner || '', city, services, contactName,
+      createdBy: opp.opportunityCreatedBy || opp.createdBy || '',
+      techSoldName, countAsLeadRun, bdcSold
+    };
   }
 }
 
@@ -3725,6 +3853,144 @@ setTimeout(() => {
   // Stop checking after 30s to avoid infinite polling
   setTimeout(() => clearInterval(chartCheck), 30000);
 })();
+
+// ═══════════════════════════════════════════
+// SALES VIEW — filterable closed/won table
+// ═══════════════════════════════════════════
+
+let allSalesRows = []; // populated from scSalesData on render
+
+function getSalesRows() {
+  // scSalesData.ytd is the full combined deduped set (mtd + pre-mtd) once _scYtdLoaded is true
+  // Before YTD loads, just show mtd
+  if (_scYtdLoaded && scSalesData.ytd && scSalesData.ytd.length > 0) {
+    return [...scSalesData.ytd];
+  }
+  return [...(scSalesData.mtd || [])];
+}
+
+function filterSalesRows(rows) {
+  const dateVal   = document.getElementById('salesFilterDate').value;
+  const branchVal = document.getElementById('salesFilterBranch').value;
+  const ownerVal  = document.getElementById('salesFilterOwner').value;
+  const createdByVal = document.getElementById('salesFilterCreatedBy').value;
+  const bdcVal    = document.getElementById('salesFilterBDC').value;
+  const leadRunVal = document.getElementById('salesFilterLeadRun').value;
+  const search    = document.getElementById('salesFilterSearch').value.toLowerCase().trim();
+
+  // Date range calc
+  const now = new Date();
+  const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  const yd = new Date(now); yd.setDate(yd.getDate()-1);
+  const ydStr = yd.getFullYear() + '-' + String(yd.getMonth()+1).padStart(2,'0') + '-' + String(yd.getDate()).padStart(2,'0');
+  const mtdStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-01';
+  const ytdStr = now.getFullYear() + '-01-01';
+  const d7 = new Date(now); d7.setDate(d7.getDate()-7);
+  const d7Str = d7.getFullYear() + '-' + String(d7.getMonth()+1).padStart(2,'0') + '-' + String(d7.getDate()).padStart(2,'0');
+  const d30 = new Date(now); d30.setDate(d30.getDate()-30);
+  const d30Str = d30.getFullYear() + '-' + String(d30.getMonth()+1).padStart(2,'0') + '-' + String(d30.getDate()).padStart(2,'0');
+
+  return rows.filter(s => {
+    // Date filter
+    const d = s.date || '';
+    if (dateVal === 'today' && d !== todayStr) return false;
+    if (dateVal === 'yesterday' && d !== ydStr) return false;
+    if (dateVal === '7d' && d < d7Str) return false;
+    if (dateVal === '30d' && d < d30Str) return false;
+    if (dateVal === 'mtd' && d < mtdStr) return false;
+    if (dateVal === 'ytd' && d < ytdStr) return false;
+
+    // Dropdowns
+    if (branchVal !== 'all' && s.branch !== branchVal) return false;
+    if (ownerVal !== 'all' && (s.owner || '') !== ownerVal) return false;
+    if (createdByVal !== 'all' && (s.createdBy || '') !== createdByVal) return false;
+    if (bdcVal !== 'all' && (s.bdcSold || '') !== bdcVal) return false;
+    if (leadRunVal !== 'all' && (s.countAsLeadRun || '') !== leadRunVal) return false;
+
+    // Search
+    if (search) {
+      const hay = [s.contactName, s.city, s.owner, s.services, s.branch, s.createdBy, s.techSoldName].join(' ').toLowerCase();
+      if (hay.indexOf(search) === -1) return false;
+    }
+    return true;
+  });
+}
+
+function formatMoney(v) {
+  const n = Number(v) || 0;
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function renderSalesTable(rows) {
+  const tbody = document.getElementById('salesTableBody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="13" class="no-data">No sales match your filters</td></tr>';
+  } else {
+    // Sort by closed date descending
+    rows.sort((a,b) => (b.date || '').localeCompare(a.date || '') || (b.datetime || '').localeCompare(a.datetime || ''));
+    tbody.innerHTML = rows.map(s => `
+      <tr>
+        <td>${formatDateDisplay(s.date)}</td>
+        <td>${s.branch || '—'}</td>
+        <td style="font-size:12px">${s.owner || '—'}</td>
+        <td style="font-weight:600">${s.contactName || '—'}</td>
+        <td style="font-size:12px">${s.city || '—'}</td>
+        <td class="wrap" style="font-size:11px;max-width:180px" title="${(s.services||'').replace(/"/g,'&quot;')}">${truncate(s.services, 40)}</td>
+        <td style="font-family:monospace;font-size:12px;text-align:right">${formatMoney(s.initialValue)}</td>
+        <td style="font-family:monospace;font-size:12px;text-align:right">${formatMoney(s.annualValue)}</td>
+        <td style="font-family:monospace;font-size:12px;text-align:right;font-weight:600;color:var(--green)">${formatMoney(s.totalValue)}</td>
+        <td style="font-size:12px">${s.createdBy || '—'}</td>
+        <td style="font-size:12px">${s.countAsLeadRun || '—'}</td>
+        <td style="font-size:12px">${s.bdcSold || '—'}</td>
+        <td style="font-size:12px">${s.techSoldName || '—'}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Summary
+  document.getElementById('salesCount').textContent = rows.length;
+  const totInit = rows.reduce((a,s) => a + (Number(s.initialValue)||0), 0);
+  const totAnn  = rows.reduce((a,s) => a + (Number(s.annualValue)||0), 0);
+  const totVal  = rows.reduce((a,s) => a + (Number(s.totalValue)||0), 0);
+  document.getElementById('salesInitialValue').textContent = formatMoney(totInit);
+  document.getElementById('salesAnnualValue').textContent = formatMoney(totAnn);
+  document.getElementById('salesTotalValue').textContent = formatMoney(totVal);
+}
+
+function populateSalesFilters(rows) {
+  function populateSelect(id, values) {
+    const sel = document.getElementById(id);
+    const current = sel.value;
+    const firstOpt = sel.options[0].outerHTML; // keep "All" option
+    sel.innerHTML = firstOpt;
+    values.sort().forEach(v => { sel.innerHTML += `<option value="${v}">${v}</option>`; });
+    sel.value = current || 'all';
+  }
+  populateSelect('salesFilterBranch',    [...new Set(rows.map(s => s.branch).filter(Boolean))]);
+  populateSelect('salesFilterOwner',     [...new Set(rows.map(s => s.owner).filter(Boolean))]);
+  populateSelect('salesFilterCreatedBy', [...new Set(rows.map(s => s.createdBy).filter(Boolean))]);
+  populateSelect('salesFilterBDC',       [...new Set(rows.map(s => s.bdcSold).filter(Boolean))]);
+  populateSelect('salesFilterLeadRun',   [...new Set(rows.map(s => s.countAsLeadRun).filter(Boolean))]);
+}
+
+function renderSalesView() {
+  allSalesRows = getSalesRows();
+  populateSalesFilters(allSalesRows);
+  const filtered = filterSalesRows(allSalesRows);
+  renderSalesTable(filtered);
+}
+
+// Wire up sales filter events
+['salesFilterDate','salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    const filtered = filterSalesRows(allSalesRows);
+    renderSalesTable(filtered);
+  });
+});
+document.getElementById('salesFilterSearch').addEventListener('input', () => {
+  const filtered = filterSalesRows(allSalesRows);
+  renderSalesTable(filtered);
+});
 
 // ═══════════════════════════════════════════
 // VIEW TOGGLE + WALLBOARD AUTO-CYCLE

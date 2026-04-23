@@ -24,6 +24,16 @@ const WW_USER = '3146189e-5446-4523-8106-a03f32c11b65';
 const CACHE_SHEET_ID = '1LoJHJ8aryr-W6O-6H4J0WL19QuBDBfEVbw-aZI1B0tg';
 const LEADS_SHEET_ID = '17oIiQSafUmay67MI99EJtnZDq6hZDXJcB0UPWk0di-A';
 
+// ── PestPac Operational API Configuration ──
+const PP_CLIENT_ID     = 'OjCMV6522ip62LlhU08LrG5U61oa';
+const PP_CLIENT_SECRET = 'MicEfYLkplnarU18fHLH3VCfxhMa';
+const PP_USERNAME      = 'jdingwall@catseyepest.com';
+const PP_PASSWORD      = 'C@ts3y3!!';
+const PP_API_KEY       = 'IJ4Goon7ZW9EbvAvPdO33Q6Vtnt5oysT';
+const PP_TENANT_ID     = '103012';
+const PP_TOKEN_URL     = 'https://is.workwave.com/oauth2/token?scope=openid';
+const PP_API_BASE      = 'https://api.workwave.com/pestpac/v1';
+
 // GitHub config
 const GITHUB_OWNER = 'catseye-internal';
 const GITHUB_REPO = 'BDC-Dashboard';
@@ -106,7 +116,48 @@ function processOpp(opp, isBooked) {
     if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
     var closedDate = opp.closedDate ? opp.closedDate.split('T')[0] : null;
     if (!closedDate) return null;
-    return { branch: branch, date: closedDate, datetime: opp.closedDate || '', stage: opp.salesFunnelStage || '', initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0 };
+
+    // Extract custom fields for Sales view
+    var techSoldName = '', countAsLeadRun = '', bdcSold = '';
+    if (Array.isArray(opp.customFields)) {
+      opp.customFields.forEach(function(cf) {
+        var cfName = (cf.name || cf.label || cf.key || '');
+        var cfVal  = String(cf.value || cf.answer || '');
+        if (cfName === 'Technician SOLD Name') techSoldName = cfVal;
+        else if (cfName === 'Count as Lead Run?') countAsLeadRun = cfVal;
+        else if (cfName === 'BDC SOLD?') bdcSold = cfVal;
+      });
+    }
+
+    // Extract services list from locations
+    var services = '';
+    try {
+      if (Array.isArray(opp.locations) && opp.locations.length > 0 && Array.isArray(opp.locations[0].services)) {
+        services = opp.locations[0].services.map(function(s) { return s.name || ''; }).filter(Boolean).join(', ');
+      }
+    } catch(e) {}
+
+    // Primary contact name and city
+    var contactName = '', city = '';
+    var pc = opp.primaryContact || {};
+    contactName = ((pc.firstName || '') + ' ' + (pc.lastName || '')).trim();
+    city = pc.city || '';
+
+    return {
+      branch: branch, date: closedDate, datetime: opp.closedDate || '',
+      stage: opp.salesFunnelStage || '',
+      initialValue: opp.initialValue || 0,
+      annualValue: opp.annualValue || 0,
+      totalValue: opp.totalValue || 0,
+      owner: opp.owner || '',
+      city: city,
+      services: services,
+      contactName: contactName,
+      createdBy: opp.opportunityCreatedBy || '',
+      techSoldName: techSoldName,
+      countAsLeadRun: countAsLeadRun,
+      bdcSold: bdcSold
+    };
   }
 }
 
@@ -141,6 +192,57 @@ function fetchLeadsFromSheet() {
     Logger.log('  ⚠️ Could not read leads sheet: ' + err.message);
     return [];
   }
+}
+
+// ── PestPac OAuth2 token ──
+function getPestPacToken_() {
+  var creds = Utilities.base64Encode(PP_CLIENT_ID + ':' + PP_CLIENT_SECRET);
+  var resp = UrlFetchApp.fetch(PP_TOKEN_URL, {
+    method: 'post',
+    headers: { 'Authorization': 'Basic ' + creds },
+    contentType: 'application/x-www-form-urlencoded',
+    payload: 'grant_type=password&username=' + encodeURIComponent(PP_USERNAME) +
+             '&password=' + encodeURIComponent(PP_PASSWORD),
+    muteHttpExceptions: true
+  });
+  if (resp.getResponseCode() !== 200) {
+    throw new Error('PestPac token failed: ' + resp.getResponseCode() + ' - ' + resp.getContentText().substring(0, 200));
+  }
+  return JSON.parse(resp.getContentText()).access_token;
+}
+
+// ── Fetch ESTIMATE work orders from PestPac operational API ──
+function fetchLeadsRun(startDate, endDate) {
+  var token = getPestPacToken_();
+  var url = PP_API_BASE + '/ServiceOrders?orderType=Estimate&startWorkDate=' + startDate + '&endWorkDate=' + endDate;
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'apikey': PP_API_KEY,
+      'tenant-id': PP_TENANT_ID
+    },
+    muteHttpExceptions: true
+  });
+  if (resp.getResponseCode() !== 200) {
+    Logger.log('  ⚠️ PestPac ServiceOrders failed: HTTP ' + resp.getResponseCode());
+    Logger.log('    ' + resp.getContentText().substring(0, 300));
+    return [];
+  }
+  var orders = JSON.parse(resp.getContentText());
+  // Exclude specific techs (these are non-sales estimates)
+  var EXCLUDE_TECHS = ['ABG', 'ABG2', 'LAM', 'LAM2', 'SLM', 'KJA'];
+  // Only include sales-related Origins (matches PestPac Service Order List report)
+  var ALLOWED_ORIGINS = ['OneTime', 'Initial', 'OrderLink', 'Generated', 'FollowUp'];
+  return orders.filter(function(o) {
+    var tech = (o.Tech1 || '').toUpperCase();
+    var origin = o.Origin || '';
+    return EXCLUDE_TECHS.indexOf(tech) === -1 && ALLOWED_ORIGINS.indexOf(origin) !== -1;
+  }).map(function(o) {
+    var fullWd = o.WorkDate || '';
+    var wd = fullWd.split('T')[0];
+    return { branch: o.Branch || '', date: wd, datetime: fullWd };
+  }).filter(function(o) { return o.branch && o.date; });
 }
 
 // ── Date helpers ──
@@ -302,6 +404,31 @@ function refreshCache() {
     Logger.log('  Fetching leads from Google Sheet...');
     var leads = fetchLeadsFromSheet();
 
+    // ── Fetch Leads Run (ESTIMATE work orders) from PestPac ──
+    // Use today (not tomorrow) as end date so we don't pick up future-scheduled estimates
+    var todayStr = fmtDate(now);
+    Logger.log('  Fetching Leads Run (PestPac ESTIMATE orders)...');
+    var runMtd = [], runPre = [];
+    try {
+      runMtd = fetchLeadsRun(mtdStart, todayStr);
+      // Pre-MTD: chunk into 31-day segments (PestPac API limit)
+      var chunkStart = new Date(now.getFullYear(), 0, 1); // Jan 1
+      var chunkEnd;
+      var preEnd = new Date(now.getFullYear(), now.getMonth(), 0); // last day prev month
+      while (chunkStart <= preEnd) {
+        chunkEnd = new Date(chunkStart);
+        chunkEnd.setDate(chunkEnd.getDate() + 30); // 31-day window
+        if (chunkEnd > preEnd) chunkEnd = preEnd;
+        var chunk = fetchLeadsRun(fmtDate(chunkStart), fmtDate(chunkEnd));
+        for (var ci = 0; ci < chunk.length; ci++) runPre.push(chunk[ci]);
+        chunkStart = new Date(chunkEnd);
+        chunkStart.setDate(chunkStart.getDate() + 1);
+      }
+      Logger.log('  Leads Run: ' + runMtd.length + ' MTD, ' + runPre.length + ' pre-MTD');
+    } catch (err) {
+      Logger.log('  ⚠️ Leads Run fetch error (non-fatal): ' + err.message);
+    }
+
     // ── Build cache payload ──
     var cacheData = {
       updated: new Date().toISOString(),
@@ -309,6 +436,7 @@ function refreshCache() {
       ytdStart: ytdStart,
       booked: { mtd: bookedMtd, preMtd: bookedPre },
       sales: { mtd: salesMtd, preMtd: salesPre },
+      leadsRun: { mtd: runMtd, preMtd: runPre },
       leads: leads
     };
 
@@ -378,6 +506,8 @@ function testCacheRead() {
   Logger.log('Sales MTD: ' + data.sales.mtd.length + ' items');
   Logger.log('Booked pre-MTD: ' + data.booked.preMtd.length + ' items');
   Logger.log('Sales pre-MTD: ' + data.sales.preMtd.length + ' items');
+  Logger.log('Leads Run MTD: ' + (data.leadsRun ? data.leadsRun.mtd.length : 0) + ' items');
+  Logger.log('Leads Run pre-MTD: ' + (data.leadsRun ? data.leadsRun.preMtd.length : 0) + ' items');
   Logger.log('Leads: ' + (data.leads ? data.leads.length : 0) + ' rows');
 }
 
