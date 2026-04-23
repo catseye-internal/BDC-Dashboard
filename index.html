@@ -918,6 +918,94 @@
     th, td { padding: 6px 8px; }
     td { max-width: 120px; }
   }
+
+  /* ══════════════════════════════════════════════════════
+     SALES VIEW — MOBILE OPTIMIZATIONS
+     ══════════════════════════════════════════════════════ */
+
+  /* Filter toggle button (hidden on desktop) */
+  .sales-filter-toggle {
+    display: none; /* shown only on mobile via media query */
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 16px; border-radius: 8px;
+    cursor: pointer; width: 100%; margin-bottom: 12px;
+    transition: border-color 0.15s;
+  }
+  .sales-filter-toggle:hover { border-color: var(--orange); }
+  .sales-filter-toggle .filter-count {
+    font-size: 11px; font-weight: 400; color: var(--text-muted); margin-left: 6px;
+  }
+
+  /* Scroll-hint shadow on table container */
+  .table-scroll-hint {
+    position: relative;
+  }
+  .table-scroll-hint::after {
+    content: ''; position: absolute; top: 0; right: 0;
+    width: 32px; height: 100%; pointer-events: none;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.4));
+    border-radius: 0 10px 10px 0;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .table-scroll-hint.show-shadow::after { opacity: 1; }
+
+  /* Sticky first column */
+  #viewSales table thead th:first-child,
+  #viewSales table tbody td:first-child {
+    position: sticky; left: 0; z-index: 5;
+  }
+  #viewSales table thead th:first-child {
+    z-index: 15; background: #1A1816;
+  }
+  #viewSales table tbody td:first-child {
+    background: var(--bg-card);
+  }
+  #viewSales table tbody tr:nth-child(even) td:first-child {
+    background: var(--bg-table-alt);
+  }
+  #viewSales table tbody tr:hover td:first-child {
+    background: var(--bg-card-hover);
+  }
+  /* Subtle right border on sticky col */
+  #viewSales table thead th:first-child,
+  #viewSales table tbody td:first-child {
+    border-right: 1px solid var(--border);
+  }
+
+  @media (max-width: 768px) {
+    /* Show filter toggle on mobile */
+    .sales-filter-toggle { display: block; }
+
+    /* Hide sales filter bar by default on mobile */
+    #salesFilterBar.collapsed { display: none !important; }
+
+    /* Sales table — wider min for 13 cols, tighter cells */
+    #viewSales table { min-width: 900px; font-size: 11px; }
+    #viewSales table th { padding: 8px 8px; font-size: 9px; letter-spacing: 0.4px; }
+    #viewSales table td { padding: 8px 8px; max-width: 100px; }
+
+    /* Sales summary row compact */
+    #viewSales .sales-summary { gap: 8px; }
+    #viewSales .sales-summary div { font-size: 11px; }
+
+    /* Swipe hint text */
+    .swipe-hint {
+      display: block; text-align: center;
+      font-size: 10px; color: var(--text-dim); margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .swipe-hint { display: none; }
+  }
+
+  @media (max-width: 480px) {
+    #viewSales table { min-width: 800px; font-size: 10px; }
+    #viewSales table th { padding: 6px 6px; font-size: 8px; }
+    #viewSales table td { padding: 6px 6px; max-width: 80px; }
+  }
 </style>
 </head>
 <body>
@@ -1214,6 +1302,12 @@
   <!-- ═══════════════════════════════════════ -->
   <div class="view-container" id="viewSales">
 
+  <!-- ── Mobile filter toggle ── -->
+  <button class="sales-filter-toggle" id="salesFilterToggle" onclick="toggleSalesFilters()">
+    Filters <span class="filter-count" id="salesActiveFilterCount"></span>
+    <span style="float:right;font-size:10px;opacity:0.6;" id="salesFilterChevron">&#9660;</span>
+  </button>
+
   <!-- ── Filters ── -->
   <div class="filter-bar" id="salesFilterBar">
     <div class="filter-group">
@@ -1275,7 +1369,7 @@
   </div>
 
   <!-- ── Sales summary row ── -->
-  <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
+  <div class="sales-summary" style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
     <div style="font-size:13px;color:var(--text-muted);">Showing <strong id="salesCount" style="color:var(--green);">0</strong> sales</div>
     <div style="font-size:13px;color:var(--text-muted);">Total: <strong id="salesTotalValue" style="color:var(--green);">$0</strong></div>
     <div style="font-size:13px;color:var(--text-muted);">Initial: <strong id="salesInitialValue" style="color:var(--text);">$0</strong></div>
@@ -1283,7 +1377,8 @@
   </div>
 
   <!-- ── Sales Table ── -->
-  <div class="table-container">
+  <div class="swipe-hint">Swipe table to see all columns &rarr;</div>
+  <div class="table-container table-scroll-hint" id="salesTableContainer">
     <table>
       <thead>
         <tr>
@@ -3988,6 +4083,9 @@ function renderSalesView() {
   populateSalesFilters(allSalesRows);
   const filtered = filterSalesRows(allSalesRows);
   renderSalesTable(filtered);
+  // Mobile helpers
+  if (typeof updateSalesFilterCount === 'function') updateSalesFilterCount();
+  if (typeof initSalesScrollShadow === 'function') initSalesScrollShadow();
 }
 
 // Wire up sales filter events
@@ -4113,6 +4211,85 @@ document.addEventListener('click', (e) => {
   if (panel && !e.target.closest('.filter-group') && panel.classList.contains('visible')) {
     panel.classList.remove('visible');
   }
+});
+
+// ═══════════════════════════════════════════
+// SALES VIEW — MOBILE HELPERS
+// ═══════════════════════════════════════════
+
+// Toggle filter bar visibility on mobile
+function toggleSalesFilters() {
+  const bar = document.getElementById('salesFilterBar');
+  const chevron = document.getElementById('salesFilterChevron');
+  bar.classList.toggle('collapsed');
+  chevron.innerHTML = bar.classList.contains('collapsed') ? '&#9660;' : '&#9650;';
+}
+
+// Auto-collapse filters on mobile on page load
+function initSalesMobileFilters() {
+  if (window.innerWidth <= 768) {
+    const bar = document.getElementById('salesFilterBar');
+    if (bar) {
+      bar.classList.add('collapsed');
+      const chevron = document.getElementById('salesFilterChevron');
+      if (chevron) chevron.innerHTML = '&#9660;';
+    }
+  }
+}
+
+// Update active filter count badge
+function updateSalesFilterCount() {
+  let count = 0;
+  const dateVal = document.getElementById('salesFilterDate')?.value;
+  if (dateVal && dateVal !== 'today') count++;
+  ['salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun'].forEach(id => {
+    if (document.getElementById(id)?.value !== 'all') count++;
+  });
+  if ((document.getElementById('salesFilterSearch')?.value || '').trim()) count++;
+  const badge = document.getElementById('salesActiveFilterCount');
+  if (badge) badge.textContent = count > 0 ? `(${count} active)` : '';
+}
+
+// Scroll shadow: show right-edge shadow when table can scroll
+function initSalesScrollShadow() {
+  const container = document.getElementById('salesTableContainer');
+  if (!container) return;
+  function checkShadow() {
+    const canScroll = container.scrollWidth > container.clientWidth + 2;
+    const atEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 2;
+    container.classList.toggle('show-shadow', canScroll && !atEnd);
+  }
+  container.addEventListener('scroll', checkShadow, { passive: true });
+  window.addEventListener('resize', checkShadow);
+  // Re-check after render
+  setTimeout(checkShadow, 500);
+  // Observe table body changes
+  const obs = new MutationObserver(checkShadow);
+  const tbody = document.getElementById('salesTableBody');
+  if (tbody) obs.observe(tbody, { childList: true });
+}
+
+// Init mobile helpers on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  initSalesMobileFilters();
+  initSalesScrollShadow();
+});
+
+// Also re-check after data loads
+if (typeof window._salesMobileInited === 'undefined') {
+  window._salesMobileInited = true;
+  const _origRenderSalesView = typeof renderSalesView === 'function' ? renderSalesView : null;
+  if (_origRenderSalesView) {
+    // Patch renderSalesView to update mobile helpers after render
+    // (already called from main render(), just hook the filter count update)
+  }
+}
+
+// Hook filter changes to update badge
+['salesFilterDate','salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun','salesFilterSearch'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', updateSalesFilterCount);
+  if (el && el.tagName === 'INPUT') el.addEventListener('input', updateSalesFilterCount);
 });
 
 // ═══════════════════════════════════════════
