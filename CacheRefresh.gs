@@ -129,11 +129,23 @@ function processOpp(opp, isBooked) {
       });
     }
 
-    // Extract services list from locations
+    // Extract services list + per-service pricing from locations
     var services = '';
+    var serviceDetails = [];
     try {
       if (Array.isArray(opp.locations) && opp.locations.length > 0 && Array.isArray(opp.locations[0].services)) {
-        services = opp.locations[0].services.map(function(s) { return s.name || ''; }).filter(Boolean).join(', ');
+        var svcs = opp.locations[0].services;
+        services = svcs.map(function(s) { return s.name || ''; }).filter(Boolean).join(', ');
+        serviceDetails = svcs.map(function(s) {
+          return {
+            name: s.name || '',
+            description: s.description || '',
+            initialPrice: s.initialPrice || 0,
+            recurringPrice: s.recurringPrice || 0,
+            annualOccurrences: s.annualOccurrences || 0,
+            quantity: s.quantity || 1
+          };
+        });
       }
     } catch(e) {}
 
@@ -152,6 +164,7 @@ function processOpp(opp, isBooked) {
       owner: opp.owner || '',
       city: city,
       services: services,
+      serviceDetails: serviceDetails,
       contactName: contactName,
       createdBy: opp.opportunityCreatedBy || '',
       techSoldName: techSoldName,

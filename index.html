@@ -920,6 +920,39 @@
   }
 
   /* ══════════════════════════════════════════════════════
+     SALES VIEW — EXPANDABLE SERVICE DETAIL ROWS
+     ══════════════════════════════════════════════════════ */
+
+  .svc-expandable { cursor: pointer; }
+  .svc-expandable:hover { background: var(--bg-card-hover) !important; }
+  .svc-expand-icon {
+    display: inline-block; font-size: 8px; margin-right: 6px;
+    transition: transform 0.2s; color: var(--text-muted);
+    vertical-align: middle;
+  }
+  .svc-expand-icon.expanded { transform: rotate(90deg); color: var(--orange); }
+  .svc-detail-row td { background: rgba(30, 28, 26, 0.6) !important; }
+  .svc-detail-wrap {
+    padding: 8px 16px 12px 32px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .svc-detail-table {
+    min-width: auto !important; width: auto; border-collapse: collapse;
+    font-size: 12px; background: transparent;
+  }
+  .svc-detail-table thead th {
+    background: transparent !important; border-bottom: 1px solid var(--border);
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-dim); padding: 6px 12px;
+    position: static;
+  }
+  .svc-detail-table tbody td {
+    padding: 6px 12px; border-bottom: 1px solid rgba(58,54,50,0.3);
+    color: var(--text); max-width: none;
+  }
+  .svc-detail-table tbody tr:last-child td { border-bottom: none; }
+
+  /* ══════════════════════════════════════════════════════
      SALES VIEW — MOBILE OPTIMIZATIONS
      ══════════════════════════════════════════════════════ */
 
@@ -995,6 +1028,12 @@
       font-size: 10px; color: var(--text-dim); margin-bottom: 6px;
       letter-spacing: 0.3px;
     }
+
+    /* Service detail rows on mobile */
+    .svc-detail-wrap { padding: 6px 8px 10px 16px; }
+    .svc-detail-table { font-size: 11px; }
+    .svc-detail-table thead th { font-size: 9px; padding: 4px 8px; }
+    .svc-detail-table tbody td { padding: 4px 8px; font-size: 11px; }
   }
 
   @media (min-width: 769px) {
@@ -3043,11 +3082,23 @@ function _scProcessOpp(opp, isBooked) {
       });
     }
 
-    // Services
+    // Services + per-service pricing
     let services = opp.services || '';
+    let serviceDetails = opp.serviceDetails || [];
     try {
-      if (!services && Array.isArray(opp.locations) && opp.locations[0] && Array.isArray(opp.locations[0].services)) {
-        services = opp.locations[0].services.map(s => s.name || '').filter(Boolean).join(', ');
+      if (Array.isArray(opp.locations) && opp.locations[0] && Array.isArray(opp.locations[0].services)) {
+        const svcs = opp.locations[0].services;
+        if (!services) services = svcs.map(s => s.name || '').filter(Boolean).join(', ');
+        if (!serviceDetails.length) {
+          serviceDetails = svcs.map(s => ({
+            name: s.name || '',
+            description: s.description || '',
+            initialPrice: s.initialPrice || 0,
+            recurringPrice: s.recurringPrice || 0,
+            annualOccurrences: s.annualOccurrences || 0,
+            quantity: s.quantity || 1
+          }));
+        }
       }
     } catch(e) {}
 
@@ -3063,7 +3114,7 @@ function _scProcessOpp(opp, isBooked) {
       branch, date: closedDateStr, datetime: opp.closedDate || '',
       stage: opp.salesFunnelStage || '',
       initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0,
-      owner: opp.owner || '', city, services, contactName,
+      owner: opp.owner || '', city, services, serviceDetails, contactName,
       createdBy: opp.opportunityCreatedBy || opp.createdBy || '',
       techSoldName, countAsLeadRun, bdcSold
     };
@@ -4033,9 +4084,42 @@ function renderSalesTable(rows) {
     tbody.innerHTML = '<tr><td colspan="13" class="no-data">No sales match your filters</td></tr>';
   } else {
     rows.sort(salesMultiSort);
-    tbody.innerHTML = rows.map(s => `
-      <tr>
-        <td>${formatDateDisplay(s.date)}</td>
+    tbody.innerHTML = rows.map((s, idx) => {
+      const hasDetails = Array.isArray(s.serviceDetails) && s.serviceDetails.length > 0;
+      const expandIcon = hasDetails ? '<span class="svc-expand-icon">&#9654;</span>' : '';
+      const clickAttr = hasDetails ? `onclick="toggleServiceDetail(this, ${idx})" style="cursor:pointer"` : '';
+      let detailRow = '';
+      if (hasDetails) {
+        detailRow = `<tr class="svc-detail-row" id="svcDetail-${idx}" style="display:none">
+          <td colspan="13" style="padding:0;border:none">
+            <div class="svc-detail-wrap">
+              <table class="svc-detail-table">
+                <thead><tr>
+                  <th>Service</th>
+                  <th>Description</th>
+                  <th style="text-align:right">Initial</th>
+                  <th style="text-align:right">Recurring</th>
+                  <th style="text-align:center">Annual Occ.</th>
+                  <th style="text-align:right">Est. Annual</th>
+                </tr></thead>
+                <tbody>${s.serviceDetails.map(svc => {
+                  const estAnnual = (svc.recurringPrice || 0) * (svc.annualOccurrences || 0);
+                  return `<tr>
+                    <td style="font-weight:600;white-space:nowrap">${svc.name || '—'}</td>
+                    <td style="font-size:11px;max-width:220px;white-space:normal">${svc.description || '—'}</td>
+                    <td style="text-align:right;font-family:monospace">${formatMoney(svc.initialPrice)}</td>
+                    <td style="text-align:right;font-family:monospace">${formatMoney(svc.recurringPrice)}</td>
+                    <td style="text-align:center">${svc.annualOccurrences || 0}</td>
+                    <td style="text-align:right;font-family:monospace;font-weight:600">${formatMoney(estAnnual)}</td>
+                  </tr>`;
+                }).join('')}</tbody>
+              </table>
+            </div>
+          </td>
+        </tr>`;
+      }
+      return `<tr ${clickAttr} class="${hasDetails ? 'svc-expandable' : ''}">
+        <td>${expandIcon}${formatDateDisplay(s.date)}</td>
         <td>${s.branch || '—'}</td>
         <td style="font-size:12px">${s.owner || '—'}</td>
         <td style="font-weight:600">${s.contactName || '—'}</td>
@@ -4048,8 +4132,8 @@ function renderSalesTable(rows) {
         <td style="font-size:12px">${s.countAsLeadRun || '—'}</td>
         <td style="font-size:12px">${s.bdcSold || '—'}</td>
         <td style="font-size:12px">${s.techSoldName || '—'}</td>
-      </tr>
-    `).join('');
+      </tr>${detailRow}`;
+    }).join('');
   }
 
   // Summary
@@ -4060,6 +4144,15 @@ function renderSalesTable(rows) {
   document.getElementById('salesInitialValue').textContent = formatMoney(totInit);
   document.getElementById('salesAnnualValue').textContent = formatMoney(totAnn);
   document.getElementById('salesTotalValue').textContent = formatMoney(totVal);
+}
+
+function toggleServiceDetail(parentRow, idx) {
+  const detailRow = document.getElementById('svcDetail-' + idx);
+  if (!detailRow) return;
+  const isOpen = detailRow.style.display !== 'none';
+  detailRow.style.display = isOpen ? 'none' : 'table-row';
+  const icon = parentRow.querySelector('.svc-expand-icon');
+  if (icon) icon.classList.toggle('expanded', !isOpen);
 }
 
 function populateSalesFilters(rows) {
