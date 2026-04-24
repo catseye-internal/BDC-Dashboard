@@ -1368,6 +1368,15 @@
       </select>
     </div>
     <div class="filter-group">
+      <span class="filter-label">Stage</span>
+      <select id="salesFilterStage">
+        <option value="won" selected>Closed/Won</option>
+        <option value="all">All Stages</option>
+        <option value="lost">Lost</option>
+        <option value="open">Open</option>
+      </select>
+    </div>
+    <div class="filter-group">
       <span class="filter-label">Branch</span>
       <select id="salesFilterBranch">
         <option value="all">All Branches</option>
@@ -1428,11 +1437,13 @@
     <table>
       <thead>
         <tr>
-          <th>Closed Date</th>
+          <th>Date</th>
+          <th>Stage</th>
           <th>Branch</th>
           <th>Owner</th>
           <th>Contact</th>
           <th>City</th>
+          <th>Location #</th>
           <th>Services</th>
           <th>Initial $</th>
           <th>Annual $</th>
@@ -1444,7 +1455,7 @@
         </tr>
       </thead>
       <tbody id="salesTableBody">
-        <tr><td colspan="13" class="no-data">Loading sales...</td></tr>
+        <tr><td colspan="15" class="no-data">Loading sales...</td></tr>
       </tbody>
     </table>
   </div>
@@ -2534,6 +2545,7 @@ const SC_ALL_BRANCHES = [...SC_CATSEYE_BRANCHES, ...SC_USX_BRANCHES];
 let scBookedData = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
 let scSalesData  = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
 let scRunData    = { today: [], yesterday: [], wk: [], mtd: [], ytd: [] };
+let scAllStagesData = []; // All stages (won, lost, open) for Sales view stage filter
 let _scDataReady = false; // flips true after first successful data load (cache or API)
 const _scPageLoadTime = Date.now(); // track page load for loading grace period
 
@@ -2590,7 +2602,11 @@ function _processRawCache(source) {
     // No dedup for leadsRun — each PestPac ServiceOrder is unique, and
     // CacheRefresh uses non-overlapping date ranges so no boundary dupes.
 
-    console.log(`🔄 _processRawCache(${source}): ${dedupBooked.length} booked, ${dedupSales.length} sales, ${allRun.length} run`);
+    // All-stages data for Sales view (includes lost, open, etc.)
+    const seenAllStages = new Set();
+    scAllStagesData = allSales.filter(s => { const k = dedupKey(s); if (seenAllStages.has(k)) return false; seenAllStages.add(k); return true; });
+
+    console.log(`🔄 _processRawCache(${source}): ${dedupBooked.length} booked, ${dedupSales.length} won, ${scAllStagesData.length} all-stages, ${allRun.length} run`);
     if (dedupBooked.length === 0 && dedupSales.length === 0) return false;
     scBookedData = _scBucketItems(dedupBooked);
     scSalesData = _scBucketItems(dedupSales);
@@ -3085,11 +3101,17 @@ function _scProcessOpp(opp, isBooked) {
     if (!countAsLead) return null;
     return { branch, date: created, datetime: opp.createdDate || '' };
   } else {
-    const stage = (opp.salesFunnelStage || '').toLowerCase();
-    // Explicitly reject lost/open/other stages
-    if (stage.indexOf('lost') > -1) return null;
-    if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
-    const closedDateStr = opp.closedDate ? opp.closedDate.split('T')[0] : null;
+    // Keep all stages — Sales view filters by stage in UI
+    // Convert closedDate from UTC to local timezone
+    let closedDateStr = opp.date || null; // from cache (already converted)
+    if (!closedDateStr && opp.closedDate) {
+      const dt = new Date(opp.closedDate);
+      closedDateStr = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+    }
+    if (!closedDateStr && opp.createdDate) {
+      const dtc = new Date(opp.createdDate);
+      closedDateStr = dtc.getFullYear() + '-' + String(dtc.getMonth()+1).padStart(2,'0') + '-' + String(dtc.getDate()).padStart(2,'0');
+    }
     if (!closedDateStr) return null;
 
     // Extract custom fields for Sales view
@@ -3104,22 +3126,27 @@ function _scProcessOpp(opp, isBooked) {
       });
     }
 
-    // Services + per-service pricing
+    // Services + per-service pricing + location ID
     let services = opp.services || '';
     let serviceDetails = opp.serviceDetails || [];
+    let serviceLocationId = opp.serviceLocationId || '';
     try {
-      if (Array.isArray(opp.locations) && opp.locations[0] && Array.isArray(opp.locations[0].services)) {
-        const svcs = opp.locations[0].services;
-        if (!services) services = svcs.map(s => s.name || '').filter(Boolean).join(', ');
-        if (!serviceDetails.length) {
-          serviceDetails = svcs.map(s => ({
-            name: s.name || '',
-            description: s.description || '',
-            initialPrice: s.initialPrice || 0,
-            recurringPrice: s.recurringPrice || 0,
-            annualOccurrences: s.annualOccurrences || 0,
-            quantity: s.quantity || 1
-          }));
+      if (Array.isArray(opp.locations) && opp.locations[0]) {
+        const loc = opp.locations[0];
+        if (!serviceLocationId) serviceLocationId = String(loc.serviceLocationId || loc.locationCode || loc.locationId || '');
+        if (Array.isArray(loc.services)) {
+          const svcs = loc.services;
+          if (!services) services = svcs.map(s => s.name || '').filter(Boolean).join(', ');
+          if (!serviceDetails.length) {
+            serviceDetails = svcs.map(s => ({
+              name: s.name || '',
+              description: s.description || '',
+              initialPrice: s.initialPrice || 0,
+              recurringPrice: s.recurringPrice || 0,
+              annualOccurrences: s.annualOccurrences || 0,
+              quantity: s.quantity || 1
+            }));
+          }
         }
       }
     } catch(e) {}
@@ -3133,10 +3160,10 @@ function _scProcessOpp(opp, isBooked) {
     }
 
     return {
-      branch, date: closedDateStr, datetime: opp.closedDate || '',
+      branch, date: closedDateStr, datetime: opp.closedDate || opp.createdDate || '',
       stage: opp.salesFunnelStage || '',
       initialValue: opp.initialValue || 0, annualValue: opp.annualValue || 0, totalValue: opp.totalValue || 0,
-      owner: opp.owner || '', city, services, serviceDetails, contactName,
+      owner: opp.owner || '', city, services, serviceDetails, serviceLocationId, contactName,
       createdBy: opp.opportunityCreatedBy || opp.createdBy || '',
       techSoldName, countAsLeadRun, bdcSold
     };
@@ -4040,8 +4067,12 @@ setTimeout(() => {
 let allSalesRows = []; // populated from scSalesData on render
 
 function getSalesRows() {
-  // scSalesData.ytd is the full combined deduped set (mtd + pre-mtd) once _scYtdLoaded is true
-  // Before YTD loads, just show mtd
+  const stageFilter = document.getElementById('salesFilterStage')?.value || 'won';
+  if (stageFilter !== 'won' && scAllStagesData.length > 0) {
+    // All stages view — use the full unfiltered set
+    return [...scAllStagesData];
+  }
+  // Won-only (default) — use the dashboard pipeline
   if (_scYtdLoaded && scSalesData.ytd && scSalesData.ytd.length > 0) {
     return [...scSalesData.ytd];
   }
@@ -4055,6 +4086,7 @@ function filterSalesRows(rows) {
   const createdByVal = document.getElementById('salesFilterCreatedBy').value;
   const bdcVal    = document.getElementById('salesFilterBDC').value;
   const leadRunVal = document.getElementById('salesFilterLeadRun').value;
+  const stageVal  = document.getElementById('salesFilterStage')?.value || 'won';
   const search    = document.getElementById('salesFilterSearch').value.toLowerCase().trim();
 
   // Date range calc
@@ -4086,9 +4118,16 @@ function filterSalesRows(rows) {
     if (bdcVal !== 'all' && (s.bdcSold || '') !== bdcVal) return false;
     if (leadRunVal !== 'all' && (s.countAsLeadRun || '') !== leadRunVal) return false;
 
+    // Stage filter (within the already-selected data source)
+    if (stageVal !== 'won' && stageVal !== 'all') {
+      const sStage = (s.stage || '').toLowerCase();
+      if (stageVal === 'lost' && sStage !== 'lost') return false;
+      if (stageVal === 'open' && sStage !== 'open') return false;
+    }
+
     // Search
     if (search) {
-      const hay = [s.contactName, s.city, s.owner, s.services, s.branch, s.createdBy, s.techSoldName].join(' ').toLowerCase();
+      const hay = [s.contactName, s.city, s.owner, s.services, s.branch, s.createdBy, s.techSoldName, s.stage, s.serviceLocationId].join(' ').toLowerCase();
       if (hay.indexOf(search) === -1) return false;
     }
     return true;
@@ -4103,7 +4142,7 @@ function formatMoney(v) {
 function renderSalesTable(rows) {
   const tbody = document.getElementById('salesTableBody');
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13" class="no-data">No sales match your filters</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" class="no-data">No sales match your filters</td></tr>';
   } else {
     rows.sort(salesMultiSort);
     tbody.innerHTML = rows.map((s, idx) => {
@@ -4113,7 +4152,7 @@ function renderSalesTable(rows) {
       let detailRow = '';
       if (hasDetails) {
         detailRow = `<tr class="svc-detail-row" id="svcDetail-${idx}" style="display:none">
-          <td colspan="13" style="padding:0;border:none">
+          <td colspan="15" style="padding:0;border:none">
             <div class="svc-detail-wrap">
               <table class="svc-detail-table">
                 <thead><tr>
@@ -4142,10 +4181,12 @@ function renderSalesTable(rows) {
       }
       return `<tr ${clickAttr} class="${hasDetails ? 'svc-expandable' : ''}">
         <td>${expandIcon}${formatDateDisplay(s.date)}</td>
+        <td style="font-size:12px">${s.stage || '—'}</td>
         <td>${s.branch || '—'}</td>
         <td style="font-size:12px">${s.owner || '—'}</td>
         <td style="font-weight:600">${s.contactName || '—'}</td>
         <td style="font-size:12px">${s.city || '—'}</td>
+        <td style="font-size:12px;font-family:monospace">${s.serviceLocationId || '—'}</td>
         <td class="wrap" style="font-size:11px;max-width:180px" title="${(s.services||'').replace(/"/g,'&quot;')}">${truncate(s.services, 40)}</td>
         <td style="font-family:monospace;font-size:12px;text-align:right">${formatMoney(s.initialValue)}</td>
         <td style="font-family:monospace;font-size:12px;text-align:right">${formatMoney(s.annualValue)}</td>
@@ -4208,20 +4249,28 @@ function renderSalesView() {
   document.getElementById(id).addEventListener('change', () => {
     const filtered = filterSalesRows(allSalesRows);
     renderSalesTable(filtered);
+    if (typeof updateSalesFilterCount === 'function') updateSalesFilterCount();
   });
 });
 document.getElementById('salesFilterSearch').addEventListener('input', () => {
   const filtered = filterSalesRows(allSalesRows);
   renderSalesTable(filtered);
+  if (typeof updateSalesFilterCount === 'function') updateSalesFilterCount();
+});
+// Stage filter changes the data source, so re-run full renderSalesView
+document.getElementById('salesFilterStage').addEventListener('change', () => {
+  renderSalesView();
 });
 
 // ── Sales Sort ──
 const SALES_SORT_COLUMNS = [
   { key: 'date', label: 'Closed Date' },
+  { key: 'stage', label: 'Stage' },
   { key: 'branch', label: 'Branch' },
   { key: 'owner', label: 'Owner' },
   { key: 'contact', label: 'Contact' },
   { key: 'city', label: 'City' },
+  { key: 'locationId', label: 'Location #' },
   { key: 'services', label: 'Services' },
   { key: 'initial', label: 'Initial $' },
   { key: 'annual', label: 'Annual $' },
@@ -4289,10 +4338,12 @@ function updateSalesSortLabel() {
 function getSalesSortValue(s, key) {
   switch (key) {
     case 'date': return s.date || '';
+    case 'stage': return (s.stage || '').toLowerCase();
     case 'branch': return (s.branch || '').toLowerCase();
     case 'owner': return (s.owner || '').toLowerCase();
     case 'contact': return (s.contactName || '').toLowerCase();
     case 'city': return (s.city || '').toLowerCase();
+    case 'locationId': return (s.serviceLocationId || '').toLowerCase();
     case 'services': return (s.services || '').toLowerCase();
     case 'initial': return Number(s.initialValue) || 0;
     case 'annual': return Number(s.annualValue) || 0;
@@ -4357,6 +4408,8 @@ function updateSalesFilterCount() {
   let count = 0;
   const dateVal = document.getElementById('salesFilterDate')?.value;
   if (dateVal && dateVal !== 'today') count++;
+  const stageVal = document.getElementById('salesFilterStage')?.value;
+  if (stageVal && stageVal !== 'won') count++;
   ['salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun'].forEach(id => {
     if (document.getElementById(id)?.value !== 'all') count++;
   });
@@ -4401,7 +4454,7 @@ if (typeof window._salesMobileInited === 'undefined') {
 }
 
 // Hook filter changes to update badge
-['salesFilterDate','salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun','salesFilterSearch'].forEach(id => {
+['salesFilterDate','salesFilterStage','salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun','salesFilterSearch'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', updateSalesFilterCount);
   if (el && el.tagName === 'INPUT') el.addEventListener('input', updateSalesFilterCount);

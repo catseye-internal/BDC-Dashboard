@@ -111,10 +111,23 @@ function processOpp(opp, isBooked) {
     return { branch: branch, date: created, datetime: opp.createdDate || '' };
   } else {
     var stage = (opp.salesFunnelStage || '').toLowerCase();
-    // Explicitly reject lost/open/other stages
-    if (stage.indexOf('lost') > -1) return null;
-    if (stage !== 'closed/won' && stage !== 'closed won' && stage !== 'closedwon' && stage !== 'won') return null;
-    var closedDate = opp.closedDate ? opp.closedDate.split('T')[0] : null;
+    // Keep all stages (won, lost, open) — Sales view filters by stage in UI
+    // But skip if no closedDate AND not won (open opps without dates are noise)
+    var rawClosed = opp.closedDate || '';
+    var closedDate = null;
+    if (rawClosed) {
+      // Convert UTC ISO datetime to ET local date (Apps Script runs in project TZ)
+      var dt = new Date(rawClosed);
+      closedDate = dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
+    }
+    // For non-closed opps, use createdDate as fallback
+    if (!closedDate) {
+      var rawCreated = opp.createdDate || '';
+      if (rawCreated) {
+        var dtc = new Date(rawCreated);
+        closedDate = dtc.getFullYear() + '-' + pad(dtc.getMonth() + 1) + '-' + pad(dtc.getDate());
+      }
+    }
     if (!closedDate) return null;
 
     // Extract custom fields for Sales view
@@ -129,23 +142,28 @@ function processOpp(opp, isBooked) {
       });
     }
 
-    // Extract services list + per-service pricing from locations
+    // Extract services list + per-service pricing + location ID from locations
     var services = '';
     var serviceDetails = [];
+    var serviceLocationId = '';
     try {
-      if (Array.isArray(opp.locations) && opp.locations.length > 0 && Array.isArray(opp.locations[0].services)) {
-        var svcs = opp.locations[0].services;
-        services = svcs.map(function(s) { return s.name || ''; }).filter(Boolean).join(', ');
-        serviceDetails = svcs.map(function(s) {
-          return {
-            name: s.name || '',
-            description: s.description || '',
-            initialPrice: s.initialPrice || 0,
-            recurringPrice: s.recurringPrice || 0,
-            annualOccurrences: s.annualOccurrences || 0,
-            quantity: s.quantity || 1
-          };
-        });
+      if (Array.isArray(opp.locations) && opp.locations.length > 0) {
+        var loc = opp.locations[0];
+        serviceLocationId = String(loc.serviceLocationId || loc.locationCode || loc.locationId || '');
+        if (Array.isArray(loc.services)) {
+          var svcs = loc.services;
+          services = svcs.map(function(s) { return s.name || ''; }).filter(Boolean).join(', ');
+          serviceDetails = svcs.map(function(s) {
+            return {
+              name: s.name || '',
+              description: s.description || '',
+              initialPrice: s.initialPrice || 0,
+              recurringPrice: s.recurringPrice || 0,
+              annualOccurrences: s.annualOccurrences || 0,
+              quantity: s.quantity || 1
+            };
+          });
+        }
       }
     } catch(e) {}
 
@@ -156,7 +174,7 @@ function processOpp(opp, isBooked) {
     city = pc.city || '';
 
     return {
-      branch: branch, date: closedDate, datetime: opp.closedDate || '',
+      branch: branch, date: closedDate, datetime: opp.closedDate || opp.createdDate || '',
       stage: opp.salesFunnelStage || '',
       initialValue: opp.initialValue || 0,
       annualValue: opp.annualValue || 0,
@@ -165,6 +183,7 @@ function processOpp(opp, isBooked) {
       city: city,
       services: services,
       serviceDetails: serviceDetails,
+      serviceLocationId: serviceLocationId,
       contactName: contactName,
       createdBy: opp.opportunityCreatedBy || '',
       techSoldName: techSoldName,
