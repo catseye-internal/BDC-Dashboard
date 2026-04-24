@@ -1297,6 +1297,13 @@
       <span class="filter-label">Search</span>
       <input type="text" id="filterSearch" placeholder="Name, phone...">
     </div>
+    <div class="filter-group">
+      <span class="filter-label">Dedup</span>
+      <span class="inbound-unique-toggle" id="leadsUniqueToggle">
+        <button class="sc-period-btn iu-btn active" data-liu="all">All</button>
+        <button class="sc-period-btn iu-btn" data-liu="unique">Unique</button>
+      </span>
+    </div>
     <div class="filter-group" style="margin-left:auto;">
       <span class="filter-label">Sort</span>
       <div style="position:relative;">
@@ -1461,6 +1468,7 @@ const CACHE_SHEET_CSV = `https://docs.google.com/spreadsheets/d/${CACHE_SHEET_ID
 
 let allLeads = [];
 var inboundUnique = false; // All vs Unique toggle — false = show all, true = deduplicate
+var leadsViewUnique = false; // All vs Unique toggle for the Leads tab table
 // chart instances managed inside renderTypeChart / renderSourceChart
 let refreshTimer = null;
 let isRefreshing = false; // guard against overlapping refreshes
@@ -1873,7 +1881,9 @@ function getFilteredLeads() {
       if (!s.includes(search)) return false;
     }
     return true;
-  }).sort(multiSort);
+  });
+  const sorted = filtered.sort(multiSort);
+  return leadsViewUnique ? dedupeLeads(sorted) : sorted;
 }
 
 // (KPI block removed — Leads Booked / Sales now handled by Sales Center rows)
@@ -2951,16 +2961,28 @@ document.querySelectorAll('.master-dash-btn').forEach(btn => {
   });
 });
 
-// ── All / Unique toggle ──
-document.querySelectorAll('.iu-btn').forEach(btn => {
+// ── All / Unique toggle (dashboard inbound section) ──
+document.querySelectorAll('#inboundUniqueToggle .iu-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const mode = btn.dataset.iu;
     inboundUnique = (mode === 'unique');
-    document.querySelectorAll('.iu-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#inboundUniqueToggle .iu-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     // Re-render inbound sections + trend
     render();
     trendUpdateSection('inbound');
+  });
+});
+
+// ── All / Unique toggle (Leads view tab) ──
+document.querySelectorAll('#leadsUniqueToggle .iu-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.liu;
+    leadsViewUnique = (mode === 'unique');
+    document.querySelectorAll('#leadsUniqueToggle .iu-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filtered = getFilteredLeads();
+    renderTable(filtered);
   });
 });
 
