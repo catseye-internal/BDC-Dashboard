@@ -3186,8 +3186,22 @@ function scRenderByOwner(salesItems, runItems) {
     }
   });
 
-  // Sort by total $ descending
-  const sorted = Object.entries(owners).sort((a, b) => b[1].total - a[1].total);
+  // Seed run-only inspectors — anyone in TECH_OWNER_MAP who ran leads but didn't close any
+  runItems.forEach(r => {
+    const tech = (r.tech || '').toUpperCase();
+    const ownerName = TECH_OWNER_MAP[tech];
+    if (ownerName && !owners[ownerName]) {
+      owners[ownerName] = { won: 0, initial: 0, annual: 0, total: 0, qWon: 0 };
+    }
+  });
+
+  // Sort by total $ desc, then by run count desc (so run-only inspectors appear sorted by activity)
+  const sorted = Object.entries(owners).sort((a, b) => {
+    if (b[1].total !== a[1].total) return b[1].total - a[1].total;
+    const aRun = _ownerRunCount(a[0], runItems) || 0;
+    const bRun = _ownerRunCount(b[0], runItems) || 0;
+    return bRun - aRun;
+  });
 
   // Totals
   let tWon = 0, tInitial = 0, tAnnual = 0, tTotal = 0, tRun = 0;
