@@ -3102,9 +3102,8 @@ function _buildKpiCard(salesItems, runItems, branches) {
   const allSales = branches ? salesItems.filter(s => branches.includes(s.branch)) : salesItems;
   const run = branches ? runItems.filter(r => branches.includes(r.branch)) : runItems;
 
-  // KPIs only count inspector-owned deals (owners mapped in TECH_OWNER_MAP)
-  const techOwnerNames = new Set(Object.values(TECH_OWNER_MAP));
-  const sales = allSales.filter(s => techOwnerNames.has(s.owner));
+  // Exclude deals explicitly marked "No" for Count as Lead Run
+  const sales = allSales.filter(s => (s.countAsLeadRun || '').toLowerCase() !== 'no');
 
   const wonCount = sales.length;
   const runCount = run.length;
@@ -3177,16 +3176,22 @@ function scRenderByOwner(salesItems, runItems) {
     return;
   }
 
-  // Group ALL closed/won by owner
+  // Group ALL closed/won by owner — track qualified subset (excl. countAsLeadRun=No) for KPI rates
   const owners = {};
   salesItems.forEach(s => {
     const o = s.owner || 'Unknown';
-    if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, programs: 0 };
+    if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, programs: 0, qWon: 0, qInitial: 0, qPrograms: 0 };
     owners[o].won += 1;
     owners[o].initial += (s.initialValue || 0);
     owners[o].annual += (s.annualValue || 0);
     owners[o].total += (s.totalValue || 0);
     if ((s.annualValue || 0) > 0) owners[o].programs += 1;
+    // Qualified = not explicitly marked "No"
+    if ((s.countAsLeadRun || '').toLowerCase() !== 'no') {
+      owners[o].qWon += 1;
+      owners[o].qInitial += (s.initialValue || 0);
+      if ((s.annualValue || 0) > 0) owners[o].qPrograms += 1;
+    }
   });
 
   // Sort by total $ descending
@@ -3201,9 +3206,9 @@ function scRenderByOwner(salesItems, runItems) {
   sorted.forEach(([name, d]) => {
     const runCount = _ownerRunCount(name, runItems);
     const hasRun = runCount !== null;
-    const closePct = hasRun && runCount > 0 ? Math.round((d.won / runCount) * 100) + '%' : '—';
-    const progPct = hasRun ? (d.won > 0 ? Math.round((d.programs / d.won) * 100) + '%' : '0%') : '—';
-    const dpl = hasRun && runCount > 0 ? scFmt.format(Math.round(d.initial / runCount)) : '—';
+    const closePct = hasRun && runCount > 0 ? Math.round((d.qWon / runCount) * 100) + '%' : '—';
+    const progPct = hasRun ? (d.qWon > 0 ? Math.round((d.qPrograms / d.qWon) * 100) + '%' : '0%') : '—';
+    const dpl = hasRun && runCount > 0 ? scFmt.format(Math.round(d.qInitial / runCount)) : '—';
 
     tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total; tPrograms += d.programs;
     if (hasRun) tRun += runCount;
@@ -3222,19 +3227,16 @@ function scRenderByOwner(salesItems, runItems) {
   });
   tbody.innerHTML = html;
 
-  // Footer totals — KPI rates use only inspector-owned deals
-  let tInspWon = 0, tInspInitial = 0, tInspPrograms = 0;
+  // Footer totals — KPI rates exclude countAsLeadRun=No deals
+  let tqWon = 0, tqInitial = 0, tqPrograms = 0;
   sorted.forEach(([name, d]) => {
-    const rc = _ownerRunCount(name, runItems);
-    if (rc !== null) {
-      tInspWon += d.won;
-      tInspInitial += d.initial;
-      tInspPrograms += d.programs;
-    }
+    tqWon += d.qWon;
+    tqInitial += d.qInitial;
+    tqPrograms += d.qPrograms;
   });
-  const totalClosePct = totalRunAll > 0 ? Math.round((tInspWon / totalRunAll) * 100) + '%' : '—';
-  const totalProgPct = tInspWon > 0 ? Math.round((tInspPrograms / tInspWon) * 100) + '%' : '—';
-  const totalDpl = totalRunAll > 0 ? scFmt.format(Math.round(tInspInitial / totalRunAll)) : '—';
+  const totalClosePct = totalRunAll > 0 ? Math.round((tqWon / totalRunAll) * 100) + '%' : '—';
+  const totalProgPct = tqWon > 0 ? Math.round((tqPrograms / tqWon) * 100) + '%' : '—';
+  const totalDpl = totalRunAll > 0 ? scFmt.format(Math.round(tqInitial / totalRunAll)) : '—';
   tfoot.innerHTML = `<tr>
     <td>Total</td>
     <td class="owner-col-num">${totalRunAll}</td>
