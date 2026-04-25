@@ -210,6 +210,14 @@
     background: rgba(251, 191, 36, 0.06);
   }
 
+  /* ── Trends View Filter Bar ── */
+  .trend-filter-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 12px;
+  }
+  .trend-filter-left { display: flex; align-items: center; gap: 12px; }
+
   /* ── Trend Line Charts ── */
   .trend-block {
     background: var(--bg-card); border: 1px solid var(--border);
@@ -244,7 +252,7 @@
   }
   .trend-date-range.visible { display: flex; }
   .trend-chart-wrap {
-    position: relative; height: 180px;
+    position: relative; height: 220px;
   }
 
   /* ── Sales Center Rows (Leads Booked + Sales Closed/Won) ── */
@@ -671,10 +679,8 @@
   body.wallboard .iu-divider { display: none; }
   body.wallboard .sc-period-toggle { gap: 4px; }
 
-  /* Wallboard: Hide trend charts */
-  body.wallboard .trend-block { display: none; }
-  body.wallboard .master-trend-filter { display: none; }
-  body.wallboard .trend-divider { display: none; }
+  /* Wallboard: Hide trends tab button */
+  body.wallboard .view-tab[data-view="trends"] { display: none; }
 
   /* ── Master Filter Bars ── */
   .master-filter {
@@ -862,10 +868,12 @@
     .branch-card { padding: 8px 10px; }
 
     /* Trend charts */
+    .trend-filter-bar { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; }
+    .trend-filter-left .sc-period-toggle { flex-wrap: wrap; }
     .trend-block { margin-top: 6px; }
     .trend-header { flex-direction: column; align-items: flex-start; gap: 6px; }
     .trend-toggle { flex-wrap: wrap; }
-    .trend-chart-wrap { height: 150px; }
+    .trend-chart-wrap { height: 170px; }
 
     /* Leads view — compact mobile layout */
     .filter-bar {
@@ -1063,6 +1071,7 @@
       <button class="view-tab active" data-view="dashboard">Dashboard</button>
       <button class="view-tab" data-view="leads">Leads</button>
       <button class="view-tab" data-view="sales">Sales</button>
+      <button class="view-tab" data-view="trends">Trends</button>
       <button class="view-tab" data-view="wallboard">Wallboard</button>
     </div>
   </div>
@@ -1198,50 +1207,6 @@
         <div id="salesCombined" class="sc-loading">Loading...</div>
       </div>
     </div>
-  </div>
-
-  <!-- ── Trend Line Charts ── -->
-  <div class="trend-divider" style="border-top: 2px solid var(--border); margin: 12px 0 8px; opacity: 0.5;"></div>
-
-  <div class="trend-block master-trend-filter" id="masterTrendFilter">
-    <div class="trend-header">
-      <div class="trend-title"><span style="color:var(--orange)">Inbound</span> Trend</div>
-      <div class="sc-period-toggle" style="gap:4px;">
-        <button class="sc-period-btn master-trend-btn" data-range="yesterday">Yesterday</button>
-        <button class="sc-period-btn master-trend-btn" data-range="today">Today</button>
-        <button class="sc-period-btn master-trend-btn" data-range="wk">WK</button>
-        <button class="sc-period-btn master-trend-btn active" data-range="mtd">MTD</button>
-        <button class="sc-period-btn master-trend-btn" data-range="ytd">YTD</button>
-        <button class="sc-period-btn master-trend-btn" data-range="custom">Custom</button>
-        <div class="sc-date-range" id="trendDateRangeMaster">
-          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromMaster"></div>
-          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToMaster"></div>
-          <button class="sc-date-apply master-trend-apply">Apply</button>
-        </div>
-      </div>
-    </div>
-    <div class="trend-chart-wrap"><canvas id="trendChartInbound"></canvas></div>
-  </div>
-
-  <div class="trend-block">
-    <div class="trend-header">
-      <div class="trend-title"><span style="color:var(--orange)">Booked</span> Trend</div>
-    </div>
-    <div class="trend-chart-wrap"><canvas id="trendChartBooked"></canvas></div>
-  </div>
-
-  <div class="trend-block">
-    <div class="trend-header">
-      <div class="trend-title"><span style="color:var(--orange)">Run</span> Trend</div>
-    </div>
-    <div class="trend-chart-wrap"><canvas id="trendChartRun"></canvas></div>
-  </div>
-
-  <div class="trend-block">
-    <div class="trend-header">
-      <div class="trend-title"><span style="color:var(--orange)">Sales</span> Trend</div>
-    </div>
-    <div class="trend-chart-wrap"><canvas id="trendChartSales"></canvas></div>
   </div>
 
   </div><!-- /viewDashboard -->
@@ -1462,6 +1427,61 @@
 
   </div><!-- /viewSales -->
 
+  <!-- ═══════════════════════════════════════ -->
+  <!-- VIEW 5: TRENDS (dedicated chart view)  -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="view-container" id="viewTrends">
+
+  <!-- ── Trend Filter Bar ── -->
+  <div class="trend-filter-bar">
+    <div class="trend-filter-left">
+      <div class="sc-period-toggle" style="gap:4px;">
+        <button class="sc-period-btn master-trend-btn" data-range="yesterday">Yesterday</button>
+        <button class="sc-period-btn master-trend-btn" data-range="today">Today</button>
+        <button class="sc-period-btn master-trend-btn" data-range="wk">WK</button>
+        <button class="sc-period-btn master-trend-btn active" data-range="mtd">MTD</button>
+        <button class="sc-period-btn master-trend-btn" data-range="ytd">YTD</button>
+        <button class="sc-period-btn master-trend-btn" data-range="custom">Custom</button>
+        <div class="sc-date-range" id="trendDateRangeMaster">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="trendFromMaster"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="trendToMaster"></div>
+          <button class="sc-date-apply master-trend-apply">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4 Trend Charts ── -->
+  <div class="trend-block" id="masterTrendFilter">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Inbound</span> Trend</div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartInbound"></canvas></div>
+  </div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Booked</span> Trend</div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartBooked"></canvas></div>
+  </div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Run</span> Trend</div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartRun"></canvas></div>
+  </div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--orange)">Sales</span> Trend</div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartSales"></canvas></div>
+  </div>
+
+  </div><!-- /viewTrends -->
+
 </div><!-- /main -->
 
 <script>
@@ -1486,8 +1506,8 @@ let isRefreshing = false; // guard against overlapping refreshes
 
 // ── Mobile Performance ──
 const isMobile = window.innerWidth <= 768 || /Mobi|Android/i.test(navigator.userAgent);
-if (isMobile) console.log('📱 Mobile mode — animations disabled, trend charts lazy-loaded');
-// Flag: trend charts init deferred until visible on mobile
+if (isMobile) console.log('📱 Mobile mode — animations disabled');
+// Flag: trend charts init deferred until Trends tab is opened
 let trendChartsReady = false;
 
 // ── Quick test: call from browser console → testWorkWave() ──
@@ -2989,9 +3009,9 @@ document.querySelectorAll('#inboundUniqueToggle .iu-btn').forEach(btn => {
     inboundUnique = (mode === 'unique');
     document.querySelectorAll('#inboundUniqueToggle .iu-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    // Re-render inbound sections + trend
+    // Re-render inbound sections + refresh inbound trend if tab is active
     render();
-    trendUpdateSection('inbound');
+    if (trendChartsReady) trendUpdate('inbound').catch(e => console.error('Inbound trend refresh error:', e));
   });
 });
 
@@ -3645,21 +3665,7 @@ async function trendInitAll() {
   await Promise.allSettled([trendUpdate('booked'), trendUpdate('run'), trendUpdate('sales'), trendUpdate('inbound')]);
 }
 
-// ── Lazy-load trend charts on mobile (IntersectionObserver) ──
-let _trendObserver = null;
-function setupTrendObserver() {
-  if (!isMobile || _trendObserver) return;
-  const target = document.getElementById('masterTrendFilter');
-  if (!target) return;
-  _trendObserver = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && !trendChartsReady) {
-      console.log('📊 Trend charts scrolled into view — initializing');
-      trendInitAll().catch(e => console.error('Lazy trend init error:', e));
-      _trendObserver.disconnect();
-    }
-  }, { rootMargin: '200px' }); // start loading 200px before visible
-  _trendObserver.observe(target);
-}
+// (Trend charts now live on dedicated Trends tab — no lazy-load observer needed)
 
 // ── Persistent Cache (localStorage + IndexedDB fallback) ──
 // Safari aggressively purges localStorage after 7 days of non-use.
@@ -3975,13 +3981,11 @@ async function refresh(isInitial) {
     try { renderSalesCenter(); } catch(e) { console.error('Safety renderSalesCenter() error:', e); }
   }
 
-  // ── Init trend charts AFTER all data & rendering is settled ──
+  // ── Init trend charts only if Trends tab is currently active ──
   requestAnimationFrame(() => {
-    console.log(`📊 Trend init: booked.mtd=${scBookedData.mtd.length}, sales.mtd=${scSalesData.mtd.length}, leads=${allLeads.length}`);
-    if (isMobile && !trendChartsReady) {
-      // On mobile: defer trend charts until user scrolls down to them
-      setupTrendObserver();
-    } else {
+    console.log(`📊 Trend data ready: booked.mtd=${scBookedData.mtd.length}, sales.mtd=${scSalesData.mtd.length}, leads=${allLeads.length}`);
+    const trendsTabActive = document.getElementById('viewTrends')?.classList.contains('active');
+    if (trendsTabActive) {
       trendInitAll().catch(e => console.error('Trend init error:', e));
     }
   });
@@ -4056,7 +4060,7 @@ setTimeout(() => {
       console.log('📊 Chart.js now available — re-rendering');
       try { render(); } catch(e) { console.error('Chart.js late render() error:', e); }
       try { renderSalesCenter(); } catch(e) { console.error('Chart.js late renderSalesCenter() error:', e); }
-      if (!trendChartsReady && !isMobile) {
+      if (!trendChartsReady && document.getElementById('viewTrends')?.classList.contains('active')) {
         trendInitAll().catch(e => console.error('Chart.js late trendInitAll error:', e));
       }
     }
@@ -4497,6 +4501,10 @@ function switchView(viewName) {
       c.id === 'view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)));
     // Re-render charts if leaving wallboard so legends restore
     if (wasWallboard) render();
+    // Init trend charts when Trends tab is first opened
+    if (viewName === 'trends') {
+      trendInitAll().catch(e => console.error('Trend tab init error:', e));
+    }
   }
 }
 
@@ -4524,9 +4532,10 @@ viewTabs.forEach(tab => {
   tab.addEventListener('click', () => switchView(tab.dataset.view));
 });
 
-// URL param support: ?view=leads or ?wallboard
+// URL param support: ?view=leads or ?view=trends or ?wallboard
 const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('view') === 'leads') switchView('leads');
+const urlView = urlParams.get('view');
+if (urlView === 'leads' || urlView === 'sales' || urlView === 'trends') switchView(urlView);
 if (urlParams.has('wallboard')) switchView('wallboard');
 
 // ── Timestamp display ──
