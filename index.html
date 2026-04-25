@@ -1451,12 +1451,19 @@
     </div>
   </div>
 
-  <!-- ── 4 Trend Charts ── -->
+  <!-- ── 5 Trend Charts ── -->
   <div class="trend-block" id="masterTrendFilter">
     <div class="trend-header">
       <div class="trend-title"><span style="color:var(--orange)">Inbound</span> Trend</div>
     </div>
     <div class="trend-chart-wrap"><canvas id="trendChartInbound"></canvas></div>
+  </div>
+
+  <div class="trend-block">
+    <div class="trend-header">
+      <div class="trend-title"><span style="color:var(--yellow)">Conv %</span> Trend</div>
+    </div>
+    <div class="trend-chart-wrap"><canvas id="trendChartConv"></canvas></div>
   </div>
 
   <div class="trend-block">
@@ -3011,7 +3018,10 @@ document.querySelectorAll('#inboundUniqueToggle .iu-btn').forEach(btn => {
     btn.classList.add('active');
     // Re-render inbound sections + refresh inbound trend if tab is active
     render();
-    if (trendChartsReady) trendUpdate('inbound').catch(e => console.error('Inbound trend refresh error:', e));
+    if (trendChartsReady) {
+      trendUpdate('inbound').catch(e => console.error('Inbound trend refresh error:', e));
+      trendUpdate('conv').catch(e => console.error('Conv trend refresh error:', e));
+    }
   });
 });
 
@@ -3400,7 +3410,8 @@ const trendState = {
   booked:  { range: masterTrendRange, chartInstance: null },
   run:     { range: masterTrendRange, chartInstance: null },
   sales:   { range: masterTrendRange, chartInstance: null },
-  inbound: { range: masterTrendRange, chartInstance: null }
+  inbound: { range: masterTrendRange, chartInstance: null },
+  conv:    { range: masterTrendRange, chartInstance: null }
 };
 
 // Cache for API fetches keyed by date range
@@ -3559,6 +3570,84 @@ function trendRender(section, items, from, to, valueField, hourly) {
   });
 }
 
+// Render Conv % trend (derived: booked / inbound per bucket)
+function trendRenderConv(inboundItems, bookedItems, from, to, hourly) {
+  let fmtLabels, values;
+
+  if (hourly) {
+    fmtLabels = trendHourLabels();
+    const inbH = trendAggregateHourly(inboundItems, null, 'datetime');
+    const bkH = trendAggregateHourly(bookedItems, null, 'datetime');
+    values = inbH.map((inb, i) => inb > 0 ? Math.round(bkH[i] / inb * 100) : 0);
+  } else {
+    const allDates = trendDateSeq(from, to);
+    const inbD = trendAggregate(inboundItems, allDates, null);
+    const bkD = trendAggregate(bookedItems, allDates, null);
+
+    const useWeekly = allDates.length >= 60;
+    if (useWeekly) {
+      const wInb = trendToWeekly(allDates, inbD);
+      const wBk = trendToWeekly(allDates, bkD);
+      fmtLabels = wInb.labels.map(trendFmtLabel);
+      values = wInb.values.map((inb, i) => inb > 0 ? Math.round(wBk.values[i] / inb * 100) : 0);
+    } else {
+      fmtLabels = allDates.map(trendFmtLabel);
+      values = inbD.map((inb, i) => inb > 0 ? Math.round(bkD[i] / inb * 100) : 0);
+    }
+  }
+
+  const state = trendState.conv;
+  const canvas = document.getElementById('trendChartConv');
+
+  if (state.chartInstance) {
+    state.chartInstance.data.labels = fmtLabels;
+    state.chartInstance.data.datasets[0].data = values;
+    state.chartInstance.data.datasets[0].pointRadius = fmtLabels.length > 60 ? 0 : 3;
+    state.chartInstance.update('none');
+    return;
+  }
+
+  state.chartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: fmtLabels,
+      datasets: [{
+        label: 'Conv %', data: values,
+        borderColor: '#FBBF24', backgroundColor: 'rgba(251, 191, 36, 0.12)',
+        fill: true, tension: 0.3,
+        pointRadius: fmtLabels.length > 60 ? 0 : 3,
+        pointHoverRadius: 5, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: isMobile ? false : { duration: 300 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (tip) => tip.parsed.y + '%'
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#888', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#888', font: { size: 10 },
+            callback: (v) => v + '%'
+          },
+          grid: { color: 'rgba(255,255,255,0.08)' }
+        }
+      }
+    }
+  });
+}
+
 // Convert inbound lead → { date, datetime }
 function trendLeadToItem(l) {
   const ts = parseLeadDate(l);
@@ -3588,7 +3677,13 @@ async function trendUpdate(section) {
   const hourly = trendIsHourly(state.range);
 
   try {
-    if (section === 'inbound') {
+    if (section === 'conv') {
+      // Conv % = (booked / inbound) × 100 per bucket
+      const src = inboundUnique ? deduplicateLeads(allLeads) : allLeads;
+      const inboundItems = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
+      const bookedItems = await trendFetchItems('booked', from, to);
+      trendRenderConv(inboundItems, bookedItems, from, to, hourly);
+    } else if (section === 'inbound') {
       const src = inboundUnique ? deduplicateLeads(allLeads) : allLeads;
       const items = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
       trendRender('inbound', items, from, to, null, hourly);
@@ -3608,7 +3703,7 @@ async function trendUpdate(section) {
 }
 
 // ═══════════════════════════════════════════
-// MASTER TREND FILTER (bottom 3 charts)
+// MASTER TREND FILTER (all trend charts)
 // ═══════════════════════════════════════════
 
 function setMasterTrendRange(range) {
@@ -3616,6 +3711,7 @@ function setMasterTrendRange(range) {
   trendState.booked.range = range;
   trendState.run.range = range;
   trendState.sales.range = range;
+  trendState.conv.range = range;
   trendState.inbound.range = range;
   localStorage.setItem('bdc_masterTrendRange', range);
 }
@@ -3662,7 +3758,7 @@ async function trendInitAll() {
     return;
   }
   trendChartsReady = true;
-  await Promise.allSettled([trendUpdate('booked'), trendUpdate('run'), trendUpdate('sales'), trendUpdate('inbound')]);
+  await Promise.allSettled([trendUpdate('inbound'), trendUpdate('conv'), trendUpdate('booked'), trendUpdate('run'), trendUpdate('sales')]);
 }
 
 // (Trend charts now live on dedicated Trends tab — no lazy-load observer needed)
