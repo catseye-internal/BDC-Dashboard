@@ -3103,7 +3103,7 @@ function _buildKpiCard(salesItems, runItems, branches) {
   const run = branches ? runItems.filter(r => branches.includes(r.branch)) : runItems;
 
   // Exclude deals explicitly marked "No" for Count as Lead Run
-  const sales = allSales.filter(s => (s.countAsLeadRun || '').toLowerCase() !== 'no');
+  const sales = allSales.filter(s => s.countAsLeadRun !== 'No');
 
   // Closing % and $/Lead use qualified (excl. No) deals vs run count
   const wonCount = sales.length;
@@ -3190,7 +3190,7 @@ function scRenderByOwner(salesItems, runItems) {
     owners[o].total += (s.totalValue || 0);
     if ((s.annualValue || 0) > 0) owners[o].programs += 1;
     // Qualified = not explicitly marked "No"
-    if ((s.countAsLeadRun || '').toLowerCase() !== 'no') {
+    if (s.countAsLeadRun !== 'No') {
       owners[o].qWon += 1;
       owners[o].qInitial += (s.initialValue || 0);
       if ((s.annualValue || 0) > 0) owners[o].qPrograms += 1;
