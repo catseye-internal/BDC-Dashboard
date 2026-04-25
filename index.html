@@ -881,7 +881,10 @@
 
     /* Trend charts */
     .trend-filter-bar { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; }
+    .trend-filter-left { flex-wrap: wrap; gap: 8px; }
     .trend-filter-left .sc-period-toggle { flex-wrap: wrap; }
+    .compare-group { order: 0; }
+    .compare-btn { font-size: 9px; padding: 4px 10px; }
     .trend-block { margin-top: 6px; }
     .trend-header { flex-direction: column; align-items: flex-start; gap: 6px; }
     .trend-toggle { flex-wrap: wrap; }
@@ -929,6 +932,7 @@
 
     /* Trend */
     .trend-btn { font-size: 9px; padding: 3px 8px; }
+    .compare-btn { font-size: 8px; padding: 3px 8px; }
     .trend-chart-wrap { height: 130px; }
 
     /* Table */
@@ -1467,7 +1471,7 @@
       </span>
       <span class="iu-divider"></span>
       <span class="compare-group" id="compareGroup">
-        <button class="compare-btn" id="compareToggle">Compare</button>
+        <button class="compare-btn active" id="compareToggle">Compare</button>
       </span>
     </div>
   </div>
@@ -3461,7 +3465,7 @@ const trendState = {
 };
 
 // ── Compare state (NOT persisted — always off on fresh open) ──
-var trendCompareOn = false;
+var trendCompareOn = true;
 
 // Auto-derive comparison period from the active date filter
 function trendComparePeriodFromRange() {
