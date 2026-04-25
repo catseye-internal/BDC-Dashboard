@@ -1315,6 +1315,7 @@
             <th class="owner-col-name">Owner</th>
             <th class="owner-col-num">Run</th>
             <th class="owner-col-num">Won</th>
+            <th class="owner-col-num">Pgm</th>
             <th class="owner-col-money">Initial</th>
             <th class="owner-col-money">Annual</th>
             <th class="owner-col-money">Total</th>
@@ -3221,6 +3222,7 @@ function scRenderByOwner(salesItems, runItems) {
       <td>${name}</td>
       <td class="owner-col-num">${hasRun ? runCount : '—'}</td>
       <td class="owner-col-num">${d.won}</td>
+      <td class="owner-col-num">${d.programs}</td>
       <td class="owner-col-money owner-val-initial">${scFmt.format(d.initial)}</td>
       <td class="owner-col-money owner-val-annual">${scFmt.format(d.annual)}</td>
       <td class="owner-col-money owner-val-total">${scFmt.format(d.total)}</td>
@@ -3245,6 +3247,7 @@ function scRenderByOwner(salesItems, runItems) {
     <td>Total</td>
     <td class="owner-col-num">${totalRunAll}</td>
     <td class="owner-col-num">${tWon}</td>
+    <td class="owner-col-num">${tPrograms}</td>
     <td class="owner-col-money owner-val-initial">${scFmt.format(tInitial)}</td>
     <td class="owner-col-money owner-val-annual">${scFmt.format(tAnnual)}</td>
     <td class="owner-col-money owner-val-total">${scFmt.format(tTotal)}</td>
