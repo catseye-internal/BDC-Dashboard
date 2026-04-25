@@ -218,6 +218,26 @@
   }
   .trend-filter-left { display: flex; align-items: center; gap: 12px; }
 
+  /* ── Compare Toggle ── */
+  .compare-group { display: flex; align-items: center; gap: 6px; }
+  .compare-btn {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .compare-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .compare-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .compare-select {
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--text); cursor: pointer;
+    display: none;
+  }
+  .compare-select.visible { display: inline-block; }
+  body.wallboard .compare-group { display: none; }
+
   /* ── Trend Line Charts ── */
   .trend-block {
     background: var(--bg-card); border: 1px solid var(--border);
@@ -1451,6 +1471,15 @@
       <span class="inbound-unique-toggle" id="trendsUniqueToggle">
         <button class="sc-period-btn iu-btn active" data-tiu="all">All</button>
         <button class="sc-period-btn iu-btn" data-tiu="unique">Unique</button>
+      </span>
+      <span class="iu-divider"></span>
+      <span class="compare-group" id="compareGroup">
+        <button class="compare-btn" id="compareToggle">Compare</button>
+        <select class="compare-select" id="compareSelect">
+          <option value="prev_day">Previous Day</option>
+          <option value="prev_week">Previous Week</option>
+          <option value="prev_month" selected>Previous Month</option>
+        </select>
       </span>
     </div>
   </div>
@@ -3039,6 +3068,22 @@ document.querySelectorAll('#trendsUniqueToggle .iu-btn').forEach(btn => {
   });
 });
 
+// ── Compare toggle (Trends view) ──
+document.getElementById('compareToggle').addEventListener('click', function() {
+  trendCompareOn = !trendCompareOn;
+  this.classList.toggle('active', trendCompareOn);
+  document.getElementById('compareSelect').classList.toggle('visible', trendCompareOn);
+  if (trendChartsReady) {
+    trendInitAll().catch(function(e) { console.error('Compare toggle refresh error:', e); });
+  }
+});
+document.getElementById('compareSelect').addEventListener('change', function() {
+  trendComparePeriod = this.value;
+  if (trendCompareOn && trendChartsReady) {
+    trendInitAll().catch(function(e) { console.error('Compare period change error:', e); });
+  }
+});
+
 // ── All / Unique toggle (Leads view tab) ──
 document.querySelectorAll('#leadsUniqueToggle .iu-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -3428,6 +3473,44 @@ const trendState = {
   conv:    { range: masterTrendRange, chartInstance: null }
 };
 
+// ── Compare state (NOT persisted — always off on fresh open) ──
+var trendCompareOn = false;
+var trendComparePeriod = 'prev_month';
+
+// Compute comparison date range based on primary range + selected comparison period
+function trendCompareRange(primaryFrom, primaryTo) {
+  var pf = new Date(primaryFrom + 'T12:00:00');
+  var pt = new Date(primaryTo + 'T12:00:00');
+  var spanDays = Math.round((pt - pf) / 86400000); // days in primary range
+  var pad = function(v) { return String(v).padStart(2, '0'); };
+  var fmt = function(d) { return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
+
+  switch (trendComparePeriod) {
+    case 'prev_day': {
+      // Shift entire range back by 1 day
+      var cf = new Date(pf); cf.setDate(cf.getDate() - 1);
+      var ct = new Date(pt); ct.setDate(ct.getDate() - 1);
+      return { from: fmt(cf), to: fmt(ct) };
+    }
+    case 'prev_week': {
+      // Shift entire range back by 7 days
+      var cf = new Date(pf); cf.setDate(cf.getDate() - 7);
+      var ct = new Date(pt); ct.setDate(ct.getDate() - 7);
+      return { from: fmt(cf), to: fmt(ct) };
+    }
+    case 'prev_month': {
+      // Same day-of-month range but one calendar month earlier
+      var cf = new Date(pf); cf.setMonth(cf.getMonth() - 1);
+      var ct = new Date(pt); ct.setMonth(ct.getMonth() - 1);
+      // Clamp to end of previous month if day overflows (e.g., Mar 31 → Feb 28)
+      if (cf.getDate() !== pf.getDate()) cf.setDate(0);
+      if (ct.getDate() !== pt.getDate()) ct.setDate(0);
+      return { from: fmt(cf), to: fmt(ct) };
+    }
+    default: return { from: primaryFrom, to: primaryTo };
+  }
+}
+
 // Cache for API fetches keyed by date range
 const _trendCache = {};
 
@@ -3505,16 +3588,14 @@ async function trendFetchItems(section, from, to) {
   return items;
 }
 
-// Render / update a trend line chart
-function trendRender(section, items, from, to, valueField, hourly) {
+// Render / update a trend line chart (with optional comparison dataset)
+function trendRender(section, items, from, to, valueField, hourly, compareValues) {
   let fmtLabels, values;
 
   if (hourly) {
-    // Hourly mode: full 24 buckets (12 AM – 11 PM)
     fmtLabels = trendHourLabels();
     values = trendAggregateHourly(items, valueField, 'datetime');
   } else {
-    // Daily/weekly mode (existing behavior)
     const allDates = trendDateSeq(from, to);
     const daily = trendAggregate(items, allDates, valueField);
     const useWeekly = allDates.length >= 60;
@@ -3526,42 +3607,74 @@ function trendRender(section, items, from, to, valueField, hourly) {
   const state = trendState[section];
   const canvasId = 'trendChart' + section.charAt(0).toUpperCase() + section.slice(1);
   const canvas = document.getElementById(canvasId);
+  const color = section === 'sales' ? '#22c55e' : section === 'run' ? '#60a5fa' : '#f97316';
+  const label = section === 'booked' ? 'Leads Booked' : section === 'run' ? 'Leads Run' : section === 'sales' ? 'Revenue ($)' : 'Inbound Leads';
+  var comparePeriodLabel = { prev_day: 'Prev Day', prev_week: 'Prev Week', prev_month: 'Prev Month' }[trendComparePeriod] || 'Compare';
 
-  // Update existing chart if possible (avoids canvas sizing bugs on destroy/recreate)
+  // Update existing chart
   if (state.chartInstance) {
     state.chartInstance.data.labels = fmtLabels;
     state.chartInstance.data.datasets[0].data = values;
     state.chartInstance.data.datasets[0].pointRadius = fmtLabels.length > 60 ? 0 : 3;
+    // Manage comparison dataset
+    if (compareValues && compareValues.length) {
+      if (state.chartInstance.data.datasets.length > 1) {
+        state.chartInstance.data.datasets[1].data = compareValues;
+        state.chartInstance.data.datasets[1].label = comparePeriodLabel;
+        state.chartInstance.data.datasets[1].pointRadius = fmtLabels.length > 60 ? 0 : 2;
+      } else {
+        state.chartInstance.data.datasets.push({
+          label: comparePeriodLabel, data: compareValues,
+          borderColor: color + '66', backgroundColor: 'transparent',
+          fill: false, tension: 0.3, borderDash: [6, 3],
+          pointRadius: fmtLabels.length > 60 ? 0 : 2,
+          pointHoverRadius: 4, borderWidth: 1.5
+        });
+      }
+      state.chartInstance.options.plugins.legend.display = true;
+    } else {
+      // Remove comparison dataset if present
+      if (state.chartInstance.data.datasets.length > 1) {
+        state.chartInstance.data.datasets.splice(1);
+      }
+      state.chartInstance.options.plugins.legend.display = false;
+    }
     state.chartInstance.update('none');
     return;
   }
 
   // First render — create chart
-  const color = section === 'sales' ? '#22c55e' : section === 'run' ? '#60a5fa' : '#f97316';
-  const label = section === 'booked' ? 'Leads Booked' : section === 'run' ? 'Leads Run' : section === 'sales' ? 'Revenue ($)' : 'Inbound Leads';
+  var datasets = [{
+    label: label, data: values,
+    borderColor: color, backgroundColor: color + '22',
+    fill: true, tension: 0.3,
+    pointRadius: fmtLabels.length > 60 ? 0 : 3,
+    pointHoverRadius: 5, borderWidth: 2
+  }];
+  if (compareValues && compareValues.length) {
+    datasets.push({
+      label: comparePeriodLabel, data: compareValues,
+      borderColor: color + '66', backgroundColor: 'transparent',
+      fill: false, tension: 0.3, borderDash: [6, 3],
+      pointRadius: fmtLabels.length > 60 ? 0 : 2,
+      pointHoverRadius: 4, borderWidth: 1.5
+    });
+  }
 
   state.chartInstance = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    data: {
-      labels: fmtLabels,
-      datasets: [{
-        label, data: values,
-        borderColor: color, backgroundColor: color + '22',
-        fill: true, tension: 0.3,
-        pointRadius: fmtLabels.length > 60 ? 0 : 3,
-        pointHoverRadius: 5, borderWidth: 2
-      }]
-    },
+    data: { labels: fmtLabels, datasets: datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       animation: isMobile ? false : { duration: 300 },
       plugins: {
-        legend: { display: false },
+        legend: { display: !!(compareValues && compareValues.length), labels: { color: '#888', font: { size: 10 }, boxWidth: 12 } },
         tooltip: {
           callbacks: {
-            label: (tip) => {
-              const v = tip.parsed.y;
-              return section === 'sales' ? '$' + v.toLocaleString() : v.toLocaleString() + (section === 'run' ? ' estimates' : ' leads');
+            label: function(tip) {
+              var v = tip.parsed.y;
+              var prefix = tip.datasetIndex === 1 ? (comparePeriodLabel + ': ') : '';
+              return prefix + (section === 'sales' ? '$' + v.toLocaleString() : v.toLocaleString() + (section === 'run' ? ' estimates' : ' leads'));
             }
           }
         }
@@ -3575,7 +3688,7 @@ function trendRender(section, items, from, to, valueField, hourly) {
           beginAtZero: true,
           ticks: {
             color: '#888', font: { size: 10 },
-            callback: (v) => section === 'sales' ? '$' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) : v
+            callback: function(v) { return section === 'sales' ? '$' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) : v; }
           },
           grid: { color: 'rgba(255,255,255,0.08)' }
         }
@@ -3584,8 +3697,8 @@ function trendRender(section, items, from, to, valueField, hourly) {
   });
 }
 
-// Render Conv % trend (derived: booked / inbound per bucket)
-function trendRenderConv(inboundItems, bookedItems, from, to, hourly) {
+// Render Conv % trend (derived: booked / inbound per bucket, with optional comparison)
+function trendRenderConv(inboundItems, bookedItems, from, to, hourly, compareValues) {
   let fmtLabels, values;
 
   if (hourly) {
@@ -3612,35 +3725,69 @@ function trendRenderConv(inboundItems, bookedItems, from, to, hourly) {
 
   const state = trendState.conv;
   const canvas = document.getElementById('trendChartConv');
+  var comparePeriodLabel = { prev_day: 'Prev Day', prev_week: 'Prev Week', prev_month: 'Prev Month' }[trendComparePeriod] || 'Compare';
 
   if (state.chartInstance) {
     state.chartInstance.data.labels = fmtLabels;
     state.chartInstance.data.datasets[0].data = values;
     state.chartInstance.data.datasets[0].pointRadius = fmtLabels.length > 60 ? 0 : 3;
+    // Manage comparison dataset
+    if (compareValues && compareValues.length) {
+      if (state.chartInstance.data.datasets.length > 1) {
+        state.chartInstance.data.datasets[1].data = compareValues;
+        state.chartInstance.data.datasets[1].label = comparePeriodLabel;
+        state.chartInstance.data.datasets[1].pointRadius = fmtLabels.length > 60 ? 0 : 2;
+      } else {
+        state.chartInstance.data.datasets.push({
+          label: comparePeriodLabel, data: compareValues,
+          borderColor: 'rgba(251, 191, 36, 0.4)', backgroundColor: 'transparent',
+          fill: false, tension: 0.3, borderDash: [6, 3],
+          pointRadius: fmtLabels.length > 60 ? 0 : 2,
+          pointHoverRadius: 4, borderWidth: 1.5
+        });
+      }
+      state.chartInstance.options.plugins.legend.display = true;
+    } else {
+      if (state.chartInstance.data.datasets.length > 1) {
+        state.chartInstance.data.datasets.splice(1);
+      }
+      state.chartInstance.options.plugins.legend.display = false;
+    }
     state.chartInstance.update('none');
     return;
   }
 
+  var datasets = [{
+    label: 'Conv %', data: values,
+    borderColor: '#FBBF24', backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    fill: true, tension: 0.3,
+    pointRadius: fmtLabels.length > 60 ? 0 : 3,
+    pointHoverRadius: 5, borderWidth: 2
+  }];
+  if (compareValues && compareValues.length) {
+    datasets.push({
+      label: comparePeriodLabel, data: compareValues,
+      borderColor: 'rgba(251, 191, 36, 0.4)', backgroundColor: 'transparent',
+      fill: false, tension: 0.3, borderDash: [6, 3],
+      pointRadius: fmtLabels.length > 60 ? 0 : 2,
+      pointHoverRadius: 4, borderWidth: 1.5
+    });
+  }
+
   state.chartInstance = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    data: {
-      labels: fmtLabels,
-      datasets: [{
-        label: 'Conv %', data: values,
-        borderColor: '#FBBF24', backgroundColor: 'rgba(251, 191, 36, 0.12)',
-        fill: true, tension: 0.3,
-        pointRadius: fmtLabels.length > 60 ? 0 : 3,
-        pointHoverRadius: 5, borderWidth: 2
-      }]
-    },
+    data: { labels: fmtLabels, datasets: datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       animation: isMobile ? false : { duration: 300 },
       plugins: {
-        legend: { display: false },
+        legend: { display: !!(compareValues && compareValues.length), labels: { color: '#888', font: { size: 10 }, boxWidth: 12 } },
         tooltip: {
           callbacks: {
-            label: (tip) => tip.parsed.y + '%'
+            label: function(tip) {
+              var prefix = tip.datasetIndex === 1 ? (comparePeriodLabel + ': ') : '';
+              return prefix + tip.parsed.y + '%';
+            }
           }
         }
       },
@@ -3653,7 +3800,7 @@ function trendRenderConv(inboundItems, bookedItems, from, to, hourly) {
           beginAtZero: true,
           ticks: {
             color: '#888', font: { size: 10 },
-            callback: (v) => v + '%'
+            callback: function(v) { return v + '%'; }
           },
           grid: { color: 'rgba(255,255,255,0.08)' }
         }
@@ -3673,6 +3820,72 @@ function trendLeadToItem(l) {
   };
 }
 
+// Build comparison values array aligned to primary labels (daily/weekly/hourly buckets)
+async function trendBuildCompareValues(section, from, to, cFrom, cTo, valueField, hourly) {
+  var compItems;
+  if (section === 'inbound') {
+    var src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
+    compItems = src.map(trendLeadToItem).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+  } else if (section === 'run') {
+    var pool = scRunData.ytd || [];
+    compItems = pool.filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+  } else {
+    compItems = await trendFetchItems(section, cFrom, cTo);
+  }
+
+  if (hourly) {
+    return trendAggregateHourly(compItems, valueField, 'datetime');
+  }
+
+  // Build daily buckets aligned to primary date sequence length
+  var primaryDates = trendDateSeq(from, to);
+  var compDates = trendDateSeq(cFrom, cTo);
+  var compDaily = trendAggregate(compItems, compDates, valueField);
+  var useWeekly = primaryDates.length >= 60;
+
+  if (useWeekly) {
+    return trendToWeekly(compDates, compDaily).values;
+  }
+  // If lengths don't match (month-length difference), pad/trim to primary length
+  if (compDaily.length > primaryDates.length) {
+    return compDaily.slice(0, primaryDates.length);
+  }
+  while (compDaily.length < primaryDates.length) compDaily.push(0);
+  return compDaily;
+}
+
+// Build Conv % comparison values
+async function trendBuildCompareConv(from, to, cFrom, cTo, hourly) {
+  var src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
+  var cInbound = src.map(trendLeadToItem).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+  var cBooked = await trendFetchItems('booked', cFrom, cTo);
+
+  if (hourly) {
+    var inbH = trendAggregateHourly(cInbound, null, 'datetime');
+    var bkH = trendAggregateHourly(cBooked, null, 'datetime');
+    return inbH.map(function(inb, i) { return inb > 0 ? Math.round(bkH[i] / inb * 100) : 0; });
+  }
+
+  var primaryDates = trendDateSeq(from, to);
+  var compDates = trendDateSeq(cFrom, cTo);
+  var inbD = trendAggregate(cInbound, compDates, null);
+  var bkD = trendAggregate(cBooked, compDates, null);
+  var useWeekly = primaryDates.length >= 60;
+
+  var convValues;
+  if (useWeekly) {
+    var wInb = trendToWeekly(compDates, inbD);
+    var wBk = trendToWeekly(compDates, bkD);
+    convValues = wInb.values.map(function(inb, i) { return inb > 0 ? Math.round(wBk.values[i] / inb * 100) : 0; });
+  } else {
+    convValues = inbD.map(function(inb, i) { return inb > 0 ? Math.round(bkD[i] / inb * 100) : 0; });
+  }
+  // Align to primary length
+  if (convValues.length > primaryDates.length) return convValues.slice(0, primaryDates.length);
+  while (convValues.length < primaryDates.length) convValues.push(0);
+  return convValues;
+}
+
 // Main trend update
 async function trendUpdate(section) {
   const state = trendState[section];
@@ -3690,26 +3903,41 @@ async function trendUpdate(section) {
 
   const hourly = trendIsHourly(state.range);
 
+  // Compute comparison values if compare mode is on
+  var compareValues = null;
+  if (trendCompareOn) {
+    try {
+      var comp = trendCompareRange(from, to);
+      if (section === 'conv') {
+        compareValues = await trendBuildCompareConv(from, to, comp.from, comp.to, hourly);
+      } else {
+        var vf = section === 'sales' ? (function(item) { return item.totalValue || 0; }) : null;
+        compareValues = await trendBuildCompareValues(section, from, to, comp.from, comp.to, vf, hourly);
+      }
+    } catch (err) {
+      console.error('Compare data error (' + section + '):', err);
+      compareValues = null;
+    }
+  }
+
   try {
     if (section === 'conv') {
-      // Conv % = (booked / inbound) × 100 per bucket
       const src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
       const inboundItems = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
       const bookedItems = await trendFetchItems('booked', from, to);
-      trendRenderConv(inboundItems, bookedItems, from, to, hourly);
+      trendRenderConv(inboundItems, bookedItems, from, to, hourly, compareValues);
     } else if (section === 'inbound') {
       const src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
       const items = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
-      trendRender('inbound', items, from, to, null, hourly);
+      trendRender('inbound', items, from, to, null, hourly, compareValues);
     } else if (section === 'run') {
-      // Leads Run uses cached data (PestPac API has no CORS — can't call from browser)
       const pool = scRunData.ytd || [];
       const items = pool.filter(i => i && i.date >= from && i.date <= to);
-      trendRender('run', items, from, to, null, hourly);
+      trendRender('run', items, from, to, null, hourly, compareValues);
     } else {
       const items = await trendFetchItems(section, from, to);
       const vf = section === 'sales' ? (item => item.totalValue || 0) : null;
-      trendRender(section, items, from, to, vf, hourly);
+      trendRender(section, items, from, to, vf, hourly, compareValues);
     }
   } catch (err) {
     console.error('Trend update error (' + section + '):', err);
