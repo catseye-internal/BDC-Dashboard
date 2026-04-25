@@ -2418,7 +2418,18 @@ function buildBranchGrid(gridId, leads, period) {
   if (!isWallboard) branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
 
   // Calculate conversion %: booked leads / inbound leads
-  const bookedItems = scBookedData[period] || scBookedData['mtd'] || [];
+  let bookedItems;
+  if (period === 'custom') {
+    const cf = masterCustomFrom, ct = masterCustomTo;
+    bookedItems = (scBookedData.ytd || []).filter(d => {
+      if (!d.date) return true;
+      if (cf && d.date < cf) return false;
+      if (ct && d.date > ct) return false;
+      return true;
+    });
+  } else {
+    bookedItems = scBookedData[period] || scBookedData['mtd'] || [];
+  }
   const totalBooked = bookedItems.length;
   const totalInbound = leads.length;
   const convPct = totalInbound > 0 ? Math.round((totalBooked / totalInbound) * 100) : 0;
