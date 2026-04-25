@@ -229,13 +229,6 @@
   }
   .compare-btn:hover { border-color: var(--accent); color: var(--accent); }
   .compare-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .compare-select {
-    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
-    padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
-    background: var(--bg-card); color: var(--text); cursor: pointer;
-    display: none;
-  }
-  .compare-select.visible { display: inline-block; }
   body.wallboard .compare-group { display: none; }
 
   /* ── Trend Line Charts ── */
@@ -1475,12 +1468,6 @@
       <span class="iu-divider"></span>
       <span class="compare-group" id="compareGroup">
         <button class="compare-btn" id="compareToggle">Compare</button>
-        <select class="compare-select" id="compareSelect">
-          <option value="prev_day">Previous Day</option>
-          <option value="prev_week">Previous Week</option>
-          <option value="prev_month" selected>Previous Month</option>
-          <option value="prev_year">Previous Year</option>
-        </select>
       </span>
     </div>
   </div>
@@ -3079,15 +3066,8 @@ document.querySelectorAll('#trendsUniqueToggle .iu-btn').forEach(btn => {
 document.getElementById('compareToggle').addEventListener('click', function() {
   trendCompareOn = !trendCompareOn;
   this.classList.toggle('active', trendCompareOn);
-  document.getElementById('compareSelect').classList.toggle('visible', trendCompareOn);
   if (trendChartsReady) {
     trendInitAll().catch(function(e) { console.error('Compare toggle refresh error:', e); });
-  }
-});
-document.getElementById('compareSelect').addEventListener('change', function() {
-  trendComparePeriod = this.value;
-  if (trendCompareOn && trendChartsReady) {
-    trendInitAll().catch(function(e) { console.error('Compare period change error:', e); });
   }
 });
 
@@ -3482,48 +3462,61 @@ const trendState = {
 
 // ── Compare state (NOT persisted — always off on fresh open) ──
 var trendCompareOn = false;
-var trendComparePeriod = 'prev_month';
 
-// Compute comparison date range based on primary range + selected comparison period
+// Auto-derive comparison period from the active date filter
+function trendComparePeriodFromRange() {
+  switch (masterTrendRange) {
+    case 'yesterday': return 'prev_day';
+    case 'today':     return 'prev_day';
+    case 'wk':        return 'prev_week';
+    case 'mtd':       return 'prev_month';
+    case 'ytd':       return 'prev_year';
+    case 'custom':    return 'prev_span';
+    default:          return 'prev_month';
+  }
+}
+
+// Compute comparison date range based on primary range + active date filter
 function trendCompareRange(primaryFrom, primaryTo) {
   var pf = new Date(primaryFrom + 'T12:00:00');
   var pt = new Date(primaryTo + 'T12:00:00');
-  var spanDays = Math.round((pt - pf) / 86400000); // days in primary range
   var pad = function(v) { return String(v).padStart(2, '0'); };
   var fmt = function(d) { return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
+  var period = trendComparePeriodFromRange();
 
-  switch (trendComparePeriod) {
+  switch (period) {
     case 'prev_day': {
-      // Shift entire range back by 1 day
       var cf = new Date(pf); cf.setDate(cf.getDate() - 1);
       var ct = new Date(pt); ct.setDate(ct.getDate() - 1);
-      return { from: fmt(cf), to: fmt(ct) };
+      return { from: fmt(cf), to: fmt(ct), label: 'Prev Day' };
     }
     case 'prev_week': {
-      // Shift entire range back by 7 days
       var cf = new Date(pf); cf.setDate(cf.getDate() - 7);
       var ct = new Date(pt); ct.setDate(ct.getDate() - 7);
-      return { from: fmt(cf), to: fmt(ct) };
+      return { from: fmt(cf), to: fmt(ct), label: 'Prev Week' };
     }
     case 'prev_month': {
-      // Same day-of-month range but one calendar month earlier
       var cf = new Date(pf); cf.setMonth(cf.getMonth() - 1);
       var ct = new Date(pt); ct.setMonth(ct.getMonth() - 1);
-      // Clamp to end of previous month if day overflows (e.g., Mar 31 → Feb 28)
       if (cf.getDate() !== pf.getDate()) cf.setDate(0);
       if (ct.getDate() !== pt.getDate()) ct.setDate(0);
-      return { from: fmt(cf), to: fmt(ct) };
+      return { from: fmt(cf), to: fmt(ct), label: 'Prev Month' };
     }
     case 'prev_year': {
-      // Same month/day range but one calendar year earlier
       var cf = new Date(pf); cf.setFullYear(cf.getFullYear() - 1);
       var ct = new Date(pt); ct.setFullYear(ct.getFullYear() - 1);
-      // Handle Feb 29 → Feb 28 in non-leap years
       if (cf.getDate() !== pf.getDate()) cf.setDate(0);
       if (ct.getDate() !== pt.getDate()) ct.setDate(0);
-      return { from: fmt(cf), to: fmt(ct) };
+      return { from: fmt(cf), to: fmt(ct), label: 'Prev Year' };
     }
-    default: return { from: primaryFrom, to: primaryTo };
+    case 'prev_span': {
+      // Custom range: shift back by the exact span length
+      var spanMs = pt - pf + 86400000; // include both endpoints
+      var cf = new Date(pf.getTime() - spanMs);
+      var ct = new Date(pt.getTime() - spanMs);
+      return { from: fmt(cf), to: fmt(ct), label: 'Prev Period' };
+    }
+    default: return { from: primaryFrom, to: primaryTo, label: 'Compare' };
   }
 }
 
@@ -3605,7 +3598,7 @@ async function trendFetchItems(section, from, to) {
 }
 
 // Render / update a trend line chart (with optional comparison dataset)
-function trendRender(section, items, from, to, valueField, hourly, compareValues) {
+function trendRender(section, items, from, to, valueField, hourly, compareValues, compareLabel) {
   let fmtLabels, values;
 
   if (hourly) {
@@ -3625,7 +3618,7 @@ function trendRender(section, items, from, to, valueField, hourly, compareValues
   const canvas = document.getElementById(canvasId);
   const color = section === 'sales' ? '#22c55e' : section === 'run' ? '#60a5fa' : '#f97316';
   const label = section === 'booked' ? 'Leads Booked' : section === 'run' ? 'Leads Run' : section === 'sales' ? 'Revenue ($)' : 'Inbound Leads';
-  var comparePeriodLabel = { prev_day: 'Prev Day', prev_week: 'Prev Week', prev_month: 'Prev Month', prev_year: 'Prev Year' }[trendComparePeriod] || 'Compare';
+  var comparePeriodLabel = compareLabel || 'Compare';
 
   // Update existing chart
   if (state.chartInstance) {
@@ -3714,7 +3707,7 @@ function trendRender(section, items, from, to, valueField, hourly, compareValues
 }
 
 // Render Conv % trend (derived: booked / inbound per bucket, with optional comparison)
-function trendRenderConv(inboundItems, bookedItems, from, to, hourly, compareValues) {
+function trendRenderConv(inboundItems, bookedItems, from, to, hourly, compareValues, compareLabel) {
   let fmtLabels, values;
 
   if (hourly) {
@@ -3741,7 +3734,7 @@ function trendRenderConv(inboundItems, bookedItems, from, to, hourly, compareVal
 
   const state = trendState.conv;
   const canvas = document.getElementById('trendChartConv');
-  var comparePeriodLabel = { prev_day: 'Prev Day', prev_week: 'Prev Week', prev_month: 'Prev Month', prev_year: 'Prev Year' }[trendComparePeriod] || 'Compare';
+  var comparePeriodLabel = compareLabel || 'Compare';
 
   if (state.chartInstance) {
     state.chartInstance.data.labels = fmtLabels;
@@ -3945,9 +3938,11 @@ async function trendUpdate(section) {
 
   // Compute comparison values if compare mode is on
   var compareValues = null;
+  var compareLabel = null;
   if (trendCompareOn) {
     try {
       var comp = trendCompareRange(from, to);
+      compareLabel = comp.label;
       if (section === 'conv') {
         compareValues = await trendBuildCompareConv(from, to, comp.from, comp.to, hourly);
       } else {
@@ -3965,19 +3960,19 @@ async function trendUpdate(section) {
       const src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
       const inboundItems = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
       const bookedItems = await trendFetchItems('booked', from, to);
-      trendRenderConv(inboundItems, bookedItems, from, to, hourly, compareValues);
+      trendRenderConv(inboundItems, bookedItems, from, to, hourly, compareValues, compareLabel);
     } else if (section === 'inbound') {
       const src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
       const items = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
-      trendRender('inbound', items, from, to, null, hourly, compareValues);
+      trendRender('inbound', items, from, to, null, hourly, compareValues, compareLabel);
     } else if (section === 'run') {
       const pool = scRunData.ytd || [];
       const items = pool.filter(i => i && i.date >= from && i.date <= to);
-      trendRender('run', items, from, to, null, hourly, compareValues);
+      trendRender('run', items, from, to, null, hourly, compareValues, compareLabel);
     } else {
       const items = await trendFetchItems(section, from, to);
       const vf = section === 'sales' ? (item => item.totalValue || 0) : null;
-      trendRender(section, items, from, to, vf, hourly, compareValues);
+      trendRender(section, items, from, to, vf, hourly, compareValues, compareLabel);
     }
   } catch (err) {
     console.error('Trend update error (' + section + '):', err);
