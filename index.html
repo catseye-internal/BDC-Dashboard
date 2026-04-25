@@ -1479,6 +1479,7 @@
           <option value="prev_day">Previous Day</option>
           <option value="prev_week">Previous Week</option>
           <option value="prev_month" selected>Previous Month</option>
+          <option value="prev_year">Previous Year</option>
         </select>
       </span>
     </div>
@@ -1533,11 +1534,17 @@ const API_TOKEN = 'catseye-bdc-2026';
 // CacheRefresh.gs pushes cache.json to this repo via GitHub API.
 // Same origin = loads in <500ms instead of 13s from Google Sheets CSV.
 const CACHE_JSON_URL = './cache.json';
+const CACHE_2025_URL = './cache-2025.json';
 // Fallback: Google Sheet cache (in case GitHub write fails)
 const CACHE_SHEET_ID = '1LoJHJ8aryr-W6O-6H4J0WL19QuBDBfEVbw-aZI1B0tg';
 const CACHE_SHEET_CSV = `https://docs.google.com/spreadsheets/d/${CACHE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Cache`;
 
 let allLeads = [];
+
+// ── 2025 Historical Data (loaded lazily from cache-2025.json) ──
+var _data2025 = null;       // { booked: [], sales: [], leadsRun: [], leads: [] }
+var _data2025Loading = false;
+var _data2025Loaded = false;
 var inboundUnique = false; // All vs Unique toggle — false = show all, true = deduplicate
 var leadsViewUnique = false; // All vs Unique toggle for the Leads tab table
 var trendsInboundUnique = false; // All vs Unique toggle for Trends tab (independent of Dashboard)
@@ -3507,6 +3514,15 @@ function trendCompareRange(primaryFrom, primaryTo) {
       if (ct.getDate() !== pt.getDate()) ct.setDate(0);
       return { from: fmt(cf), to: fmt(ct) };
     }
+    case 'prev_year': {
+      // Same month/day range but one calendar year earlier
+      var cf = new Date(pf); cf.setFullYear(cf.getFullYear() - 1);
+      var ct = new Date(pt); ct.setFullYear(ct.getFullYear() - 1);
+      // Handle Feb 29 → Feb 28 in non-leap years
+      if (cf.getDate() !== pf.getDate()) cf.setDate(0);
+      if (ct.getDate() !== pt.getDate()) ct.setDate(0);
+      return { from: fmt(cf), to: fmt(ct) };
+    }
     default: return { from: primaryFrom, to: primaryTo };
   }
 }
@@ -3609,7 +3625,7 @@ function trendRender(section, items, from, to, valueField, hourly, compareValues
   const canvas = document.getElementById(canvasId);
   const color = section === 'sales' ? '#22c55e' : section === 'run' ? '#60a5fa' : '#f97316';
   const label = section === 'booked' ? 'Leads Booked' : section === 'run' ? 'Leads Run' : section === 'sales' ? 'Revenue ($)' : 'Inbound Leads';
-  var comparePeriodLabel = { prev_day: 'Prev Day', prev_week: 'Prev Week', prev_month: 'Prev Month' }[trendComparePeriod] || 'Compare';
+  var comparePeriodLabel = { prev_day: 'Prev Day', prev_week: 'Prev Week', prev_month: 'Prev Month', prev_year: 'Prev Year' }[trendComparePeriod] || 'Compare';
 
   // Update existing chart
   if (state.chartInstance) {
@@ -3725,7 +3741,7 @@ function trendRenderConv(inboundItems, bookedItems, from, to, hourly, compareVal
 
   const state = trendState.conv;
   const canvas = document.getElementById('trendChartConv');
-  var comparePeriodLabel = { prev_day: 'Prev Day', prev_week: 'Prev Week', prev_month: 'Prev Month' }[trendComparePeriod] || 'Compare';
+  var comparePeriodLabel = { prev_day: 'Prev Day', prev_week: 'Prev Week', prev_month: 'Prev Month', prev_year: 'Prev Year' }[trendComparePeriod] || 'Compare';
 
   if (state.chartInstance) {
     state.chartInstance.data.labels = fmtLabels;
@@ -3821,17 +3837,42 @@ function trendLeadToItem(l) {
 }
 
 // Build comparison values array aligned to primary labels (daily/weekly/hourly buckets)
-async function trendBuildCompareValues(section, from, to, cFrom, cTo, valueField, hourly) {
-  var compItems;
+// Helper: check if a date range falls in 2025
+function _isCompRange2025(cFrom, cTo) {
+  return cFrom.startsWith('2025') || cTo.startsWith('2025');
+}
+
+// Helper: fetch comparison items for a section, using 2025 cache when applicable
+async function _fetchCompItems(section, cFrom, cTo) {
+  if (_isCompRange2025(cFrom, cTo)) {
+    var d = await load2025Data();
+    if (section === 'inbound') {
+      var src = trendsInboundUnique ? deduplicateLeads(d.leads || []) : (d.leads || []);
+      return src.map(trendLeadToItem).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+    } else if (section === 'run') {
+      return (d.leadsRun || []).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+    } else if (section === 'booked') {
+      return (d.booked || []).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+    } else if (section === 'sales') {
+      return (d.sales || []).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+    }
+    return [];
+  }
+
+  // Current year — use existing data pools
   if (section === 'inbound') {
     var src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
-    compItems = src.map(trendLeadToItem).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+    return src.map(trendLeadToItem).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
   } else if (section === 'run') {
     var pool = scRunData.ytd || [];
-    compItems = pool.filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
+    return pool.filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
   } else {
-    compItems = await trendFetchItems(section, cFrom, cTo);
+    return await trendFetchItems(section, cFrom, cTo);
   }
+}
+
+async function trendBuildCompareValues(section, from, to, cFrom, cTo, valueField, hourly) {
+  var compItems = await _fetchCompItems(section, cFrom, cTo);
 
   if (hourly) {
     return trendAggregateHourly(compItems, valueField, 'datetime');
@@ -3856,9 +3897,8 @@ async function trendBuildCompareValues(section, from, to, cFrom, cTo, valueField
 
 // Build Conv % comparison values
 async function trendBuildCompareConv(from, to, cFrom, cTo, hourly) {
-  var src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
-  var cInbound = src.map(trendLeadToItem).filter(function(i) { return i && i.date >= cFrom && i.date <= cTo; });
-  var cBooked = await trendFetchItems('booked', cFrom, cTo);
+  var cInbound = await _fetchCompItems('inbound', cFrom, cTo);
+  var cBooked = await _fetchCompItems('booked', cFrom, cTo);
 
   if (hourly) {
     var inbH = trendAggregateHourly(cInbound, null, 'datetime');
@@ -4049,6 +4089,69 @@ function cacheGetAsync(key) {
       setTimeout(() => resolve(null), 500);
     } catch(e) { resolve(null); }
   });
+}
+
+// ── 2025 Historical Data Loader ──
+// Fetches cache-2025.json once, caches in IndexedDB for instant future loads.
+// Called lazily when "Previous Year" comparison is selected.
+async function load2025Data() {
+  if (_data2025Loaded) return _data2025;
+  if (_data2025Loading) {
+    // Wait for in-flight load to finish
+    while (_data2025Loading) await new Promise(function(r) { setTimeout(r, 100); });
+    return _data2025;
+  }
+  _data2025Loading = true;
+
+  try {
+    // Try IndexedDB first (instant)
+    var cached = await cacheGetAsync('bdc_2025');
+    if (cached && cached.data) {
+      _data2025 = cached.data;
+      _data2025Loaded = true;
+      _data2025Loading = false;
+      console.log('⚡ Loaded 2025 data from IndexedDB (' +
+        (_data2025.booked || []).length + ' booked, ' +
+        (_data2025.sales || []).length + ' sales, ' +
+        (_data2025.leadsRun || []).length + ' run, ' +
+        (_data2025.leads || []).length + ' leads)');
+      return _data2025;
+    }
+
+    // Fetch from GitHub Pages
+    console.log('🌐 Fetching cache-2025.json...');
+    var resp = await fetch(CACHE_2025_URL + '?v=1');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    if (!data || !data.year) throw new Error('Invalid cache-2025 data');
+
+    _data2025 = {
+      booked: data.booked || [],
+      sales: data.sales || [],
+      leadsRun: data.leadsRun || [],
+      leads: data.leads || []
+    };
+
+    // Process 2025 leads into same format as current leads (they come raw from the sheet)
+    // Process 2025 booked/sales items — they use same processOpp format from CacheRefresh
+
+    // Cache in IndexedDB for future loads
+    cacheSet('bdc_2025', _data2025);
+    _data2025Loaded = true;
+    console.log('🌐 Loaded 2025 data from server (' +
+      _data2025.booked.length + ' booked, ' +
+      _data2025.sales.length + ' sales, ' +
+      _data2025.leadsRun.length + ' run, ' +
+      _data2025.leads.length + ' leads)');
+    return _data2025;
+  } catch (err) {
+    console.warn('⚠️ Could not load 2025 data:', err.message);
+    _data2025 = { booked: [], sales: [], leadsRun: [], leads: [] };
+    _data2025Loaded = true; // Don't retry on failure
+    return _data2025;
+  } finally {
+    _data2025Loading = false;
+  }
 }
 
 // ── Server-Side Cache Reader ──
