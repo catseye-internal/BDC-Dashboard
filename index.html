@@ -3092,25 +3092,23 @@ function _scGetCustomFiltered(dataObj) {
 }
 
 // Build KPI card HTML for a group
-function _buildKpiCard(salesItems, runItems, branches) {
-  const allSales = branches ? salesItems.filter(s => branches.includes(s.branch)) : salesItems;
-  const run = branches ? runItems.filter(r => branches.includes(r.branch)) : runItems;
-
-  // Exclude deals explicitly marked "No" for Count as Lead Run
-  const sales = allSales.filter(s => s.countAsLeadRun !== 'No');
-
-  // Closing % uses qualified (excl. No) won count vs run count
-  const wonCount = sales.length;
-  const runCount = run.length;
-  const closingPct = runCount > 0 ? Math.round((wonCount / runCount) * 100) : 0;
-
-  return `<div class="kpi-cards">
+function _buildKpiCards(salesItems, runItems, groups) {
+  let cards = '';
+  for (const g of groups) {
+    const allSales = g.branches ? salesItems.filter(s => g.branches.includes(s.branch)) : salesItems;
+    const run = g.branches ? runItems.filter(r => g.branches.includes(r.branch)) : runItems;
+    const sales = allSales.filter(s => s.countAsLeadRun !== 'No');
+    const wonCount = sales.length;
+    const runCount = run.length;
+    const closingPct = runCount > 0 ? Math.round((wonCount / runCount) * 100) : 0;
+    cards += `
     <div class="kpi-card">
       <div class="kpi-val closing">${closingPct}%</div>
-      <div class="kpi-label">Closing %</div>
+      <div class="kpi-label">${g.label}</div>
       <div class="kpi-sub">${wonCount} won / ${runCount} run</div>
-    </div>
-
+    </div>`;
+  }
+  return `<div class="kpi-cards">${cards}
   </div>`;
 }
 
@@ -3125,9 +3123,25 @@ function scRenderKPIs(salesItems, runItems) {
     return;
   }
 
-  catEl.innerHTML = _buildKpiCard(salesItems, runItems, SC_CATSEYE_BRANCHES);
-  usxEl.innerHTML = _buildKpiCard(salesItems, runItems, SC_USX_BRANCHES);
-  comEl.innerHTML = _buildKpiCard(salesItems, runItems, null);
+  // Catseye block: one card per Catseye branch
+  catEl.innerHTML = _buildKpiCards(salesItems, runItems, [
+    { label: 'E. Mass', branches: ['Eastern Mass'] },
+    { label: 'CT', branches: ['Connecticut'] },
+    { label: 'RI', branches: ['Rhode Island'] },
+  ]);
+
+  // USX block: one card per USX branch
+  usxEl.innerHTML = _buildKpiCards(salesItems, runItems, [
+    { label: 'W. Mass', branches: ['USX - Western Mass'] },
+    { label: 'Upstate NY', branches: ['USX - Upstate New York'] },
+  ]);
+
+  // Combined block: Catseye total, USX total, Combined total
+  comEl.innerHTML = _buildKpiCards(salesItems, runItems, [
+    { label: 'Catseye', branches: SC_CATSEYE_BRANCHES },
+    { label: 'USX', branches: SC_USX_BRANCHES },
+    { label: 'Combined', branches: null },
+  ]);
 }
 
 function scRenderKPISection(period) {
