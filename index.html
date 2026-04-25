@@ -3099,8 +3099,12 @@ function _scGetCustomFiltered(dataObj) {
 
 // Build KPI card HTML for a group
 function _buildKpiCard(salesItems, runItems, branches) {
-  const sales = branches ? salesItems.filter(s => branches.includes(s.branch)) : salesItems;
+  const allSales = branches ? salesItems.filter(s => branches.includes(s.branch)) : salesItems;
   const run = branches ? runItems.filter(r => branches.includes(r.branch)) : runItems;
+
+  // KPIs only count inspector-owned deals (owners mapped in TECH_OWNER_MAP)
+  const techOwnerNames = new Set(Object.values(TECH_OWNER_MAP));
+  const sales = allSales.filter(s => techOwnerNames.has(s.owner));
 
   const wonCount = sales.length;
   const runCount = run.length;
@@ -3198,7 +3202,7 @@ function scRenderByOwner(salesItems, runItems) {
     const runCount = _ownerRunCount(name, runItems);
     const hasRun = runCount !== null;
     const closePct = hasRun && runCount > 0 ? Math.round((d.won / runCount) * 100) + '%' : '—';
-    const progPct = d.won > 0 ? Math.round((d.programs / d.won) * 100) : 0;
+    const progPct = hasRun ? (d.won > 0 ? Math.round((d.programs / d.won) * 100) + '%' : '0%') : '—';
     const dpl = hasRun && runCount > 0 ? scFmt.format(Math.round(d.initial / runCount)) : '—';
 
     tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total; tPrograms += d.programs;
@@ -3212,16 +3216,25 @@ function scRenderByOwner(salesItems, runItems) {
       <td class="owner-col-money owner-val-annual">${scFmt.format(d.annual)}</td>
       <td class="owner-col-money owner-val-total">${scFmt.format(d.total)}</td>
       <td class="owner-col-pct owner-val-closing">${closePct}</td>
-      <td class="owner-col-pct owner-val-programs">${progPct}%</td>
+      <td class="owner-col-pct owner-val-programs">${progPct}</td>
       <td class="owner-col-money owner-val-dpl">${dpl}</td>
     </tr>`;
   });
   tbody.innerHTML = html;
 
-  // Footer totals
-  const totalClosePct = totalRunAll > 0 ? Math.round((tWon / totalRunAll) * 100) + '%' : '—';
-  const totalProgPct = tWon > 0 ? Math.round((tPrograms / tWon) * 100) : 0;
-  const totalDpl = totalRunAll > 0 ? scFmt.format(Math.round(tInitial / totalRunAll)) : '—';
+  // Footer totals — KPI rates use only inspector-owned deals
+  let tInspWon = 0, tInspInitial = 0, tInspPrograms = 0;
+  sorted.forEach(([name, d]) => {
+    const rc = _ownerRunCount(name, runItems);
+    if (rc !== null) {
+      tInspWon += d.won;
+      tInspInitial += d.initial;
+      tInspPrograms += d.programs;
+    }
+  });
+  const totalClosePct = totalRunAll > 0 ? Math.round((tInspWon / totalRunAll) * 100) + '%' : '—';
+  const totalProgPct = tInspWon > 0 ? Math.round((tInspPrograms / tInspWon) * 100) + '%' : '—';
+  const totalDpl = totalRunAll > 0 ? scFmt.format(Math.round(tInspInitial / totalRunAll)) : '—';
   tfoot.innerHTML = `<tr>
     <td>Total</td>
     <td class="owner-col-num">${totalRunAll}</td>
@@ -3230,7 +3243,7 @@ function scRenderByOwner(salesItems, runItems) {
     <td class="owner-col-money owner-val-annual">${scFmt.format(tAnnual)}</td>
     <td class="owner-col-money owner-val-total">${scFmt.format(tTotal)}</td>
     <td class="owner-col-pct owner-val-closing">${totalClosePct}</td>
-    <td class="owner-col-pct owner-val-programs">${totalProgPct}%</td>
+    <td class="owner-col-pct owner-val-programs">${totalProgPct}</td>
     <td class="owner-col-money owner-val-dpl">${totalDpl}</td>
   </tr>`;
 }
