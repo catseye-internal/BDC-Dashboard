@@ -1866,7 +1866,7 @@ function getFilteredLeads() {
   const search = document.getElementById('filterSearch').value.toLowerCase();
   const now = new Date();
 
-  return allLeads.filter(lead => {
+  const filtered = allLeads.filter(lead => {
     if (dateFilter !== 'all') {
       const leadDate = parseLeadDate(lead);
       if (!leadDate) return false;
