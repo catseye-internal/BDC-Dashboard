@@ -2460,7 +2460,12 @@ function formatDateDisplay(raw) {
   // Already short format? Return as-is
   const parts = raw.split('/');
   if (parts.length === 3 && parts[0].length <= 2) return raw;
-  // Full date string — convert to M/d/yyyy
+  // YYYY-MM-DD — split directly to avoid timezone shift from new Date()
+  const ymd = raw.split('-');
+  if (ymd.length === 3 && ymd[0].length === 4) {
+    return parseInt(ymd[1]) + '/' + parseInt(ymd[2]) + '/' + ymd[0];
+  }
+  // Fallback for other formats
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
   return (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
