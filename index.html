@@ -511,8 +511,6 @@
   }
   .kpi-val { font-size: 22px; font-weight: 700; line-height: 1.2; }
   .kpi-val.closing { color: var(--green); }
-  .kpi-val.programs { color: #60A5FA; }
-  .kpi-val.dpl { color: var(--orange); }
   .kpi-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.5px; }
   .kpi-sub { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
 
@@ -546,8 +544,6 @@
   .owner-val-annual { color: var(--orange); }
   .owner-val-total { color: var(--yellow); font-weight: 600; }
   .owner-val-closing { color: var(--green); }
-  .owner-val-programs { color: #60A5FA; }
-  .owner-val-dpl { color: var(--orange); }
 
   /* ── Sales Center Responsive — removed, consolidated into global responsive block below ── */
 
@@ -1315,13 +1311,10 @@
             <th class="owner-col-name">Owner</th>
             <th class="owner-col-num">Run</th>
             <th class="owner-col-num">Won</th>
-            <th class="owner-col-num">Pgm</th>
             <th class="owner-col-money">Initial</th>
             <th class="owner-col-money">Annual</th>
             <th class="owner-col-money">Total</th>
             <th class="owner-col-pct">Close %</th>
-            <th class="owner-col-pct">Prog %</th>
-            <th class="owner-col-money">$/Lead</th>
           </tr>
         </thead>
         <tbody id="ownerTableBody"></tbody>
@@ -3110,13 +3103,6 @@ function _buildKpiCard(salesItems, runItems, branches) {
   const wonCount = sales.length;
   const runCount = run.length;
   const closingPct = runCount > 0 ? Math.round((wonCount / runCount) * 100) : 0;
-  // $/Lead uses ALL closed/won initial dollars divided by leads run
-  const totalInitial = allSales.reduce((sum, s) => sum + (s.initialValue || 0), 0);
-  const dpl = runCount > 0 ? Math.round(totalInitial / runCount) : 0;
-
-  // Programs % = programs sold (won with annual value) / leads run
-  const programCount = sales.filter(s => (s.annualValue || 0) > 0).length;
-  const programsPct = runCount > 0 ? Math.round((programCount / runCount) * 100) : 0;
 
   return `<div class="kpi-cards">
     <div class="kpi-card">
@@ -3124,16 +3110,7 @@ function _buildKpiCard(salesItems, runItems, branches) {
       <div class="kpi-label">Closing %</div>
       <div class="kpi-sub">${wonCount} won / ${runCount} run</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-val programs">${programsPct}%</div>
-      <div class="kpi-label">Programs %</div>
-      <div class="kpi-sub">${programCount} pgm / ${runCount} run</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-val dpl">${scFmt.format(dpl)}</div>
-      <div class="kpi-label">$/Lead</div>
-      <div class="kpi-sub">${scFmt.format(totalInitial)} / ${runCount} run</div>
-    </div>
+
   </div>`;
 }
 
@@ -3176,7 +3153,7 @@ function scRenderByOwner(salesItems, runItems) {
   if (!tbody) return;
 
   if (salesItems.length === 0 && !_scDataReady) {
-    tbody.innerHTML = '<tr><td colspan="9" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
     tfoot.innerHTML = '';
     return;
   }
@@ -3185,17 +3162,13 @@ function scRenderByOwner(salesItems, runItems) {
   const owners = {};
   salesItems.forEach(s => {
     const o = s.owner || 'Unknown';
-    if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, programs: 0, qWon: 0, qInitial: 0, qPrograms: 0 };
+    if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, qWon: 0 };
     owners[o].won += 1;
     owners[o].initial += (s.initialValue || 0);
     owners[o].annual += (s.annualValue || 0);
     owners[o].total += (s.totalValue || 0);
-    if ((s.annualValue || 0) > 0) owners[o].programs += 1;
-    // Qualified = not explicitly marked "No"
     if (s.countAsLeadRun !== 'No') {
       owners[o].qWon += 1;
-      owners[o].qInitial += (s.initialValue || 0);
-      if ((s.annualValue || 0) > 0) owners[o].qPrograms += 1;
     }
   });
 
@@ -3203,7 +3176,7 @@ function scRenderByOwner(salesItems, runItems) {
   const sorted = Object.entries(owners).sort((a, b) => b[1].total - a[1].total);
 
   // Totals
-  let tWon = 0, tInitial = 0, tAnnual = 0, tTotal = 0, tPrograms = 0, tRun = 0;
+  let tWon = 0, tInitial = 0, tAnnual = 0, tTotal = 0, tRun = 0;
   const totalRunAll = runItems.length;
   const hasTechMap = Object.keys(TECH_OWNER_MAP).length > 0;
 
@@ -3212,48 +3185,36 @@ function scRenderByOwner(salesItems, runItems) {
     const runCount = _ownerRunCount(name, runItems);
     const hasRun = runCount !== null;
     const closePct = hasRun && runCount > 0 ? Math.round((d.qWon / runCount) * 100) + '%' : '—';
-    const progPct = hasRun && runCount > 0 ? Math.round((d.qPrograms / runCount) * 100) + '%' : '—';
-    const dpl = hasRun && runCount > 0 ? scFmt.format(Math.round(d.initial / runCount)) : '—';
 
-    tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total; tPrograms += d.programs;
+    tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total;
     if (hasRun) tRun += runCount;
 
     html += `<tr>
       <td>${name}</td>
       <td class="owner-col-num">${hasRun ? runCount : '—'}</td>
       <td class="owner-col-num">${d.won}</td>
-      <td class="owner-col-num">${d.programs}</td>
       <td class="owner-col-money owner-val-initial">${scFmt.format(d.initial)}</td>
       <td class="owner-col-money owner-val-annual">${scFmt.format(d.annual)}</td>
       <td class="owner-col-money owner-val-total">${scFmt.format(d.total)}</td>
       <td class="owner-col-pct owner-val-closing">${closePct}</td>
-      <td class="owner-col-pct owner-val-programs">${progPct}</td>
-      <td class="owner-col-money owner-val-dpl">${dpl}</td>
     </tr>`;
   });
   tbody.innerHTML = html;
 
-  // Footer totals — KPI rates exclude countAsLeadRun=No deals
-  let tqWon = 0, tqInitial = 0, tqPrograms = 0;
+  // Footer totals — Close % excludes countAsLeadRun=No deals
+  let tqWon = 0;
   sorted.forEach(([name, d]) => {
     tqWon += d.qWon;
-    tqInitial += d.qInitial;
-    tqPrograms += d.qPrograms;
   });
   const totalClosePct = totalRunAll > 0 ? Math.round((tqWon / totalRunAll) * 100) + '%' : '—';
-  const totalProgPct = totalRunAll > 0 ? Math.round((tqPrograms / totalRunAll) * 100) + '%' : '—';
-  const totalDpl = totalRunAll > 0 ? scFmt.format(Math.round(tInitial / totalRunAll)) : '—';
   tfoot.innerHTML = `<tr>
     <td>Total</td>
     <td class="owner-col-num">${totalRunAll}</td>
     <td class="owner-col-num">${tWon}</td>
-    <td class="owner-col-num">${tPrograms}</td>
     <td class="owner-col-money owner-val-initial">${scFmt.format(tInitial)}</td>
     <td class="owner-col-money owner-val-annual">${scFmt.format(tAnnual)}</td>
     <td class="owner-col-money owner-val-total">${scFmt.format(tTotal)}</td>
     <td class="owner-col-pct owner-val-closing">${totalClosePct}</td>
-    <td class="owner-col-pct owner-val-programs">${totalProgPct}</td>
-    <td class="owner-col-money owner-val-dpl">${totalDpl}</td>
   </tr>`;
 }
 
