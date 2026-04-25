@@ -1447,6 +1447,11 @@
           <button class="sc-date-apply master-trend-apply">Apply</button>
         </div>
       </div>
+      <span class="iu-divider"></span>
+      <span class="inbound-unique-toggle" id="trendsUniqueToggle">
+        <button class="sc-period-btn iu-btn active" data-tiu="all">All</button>
+        <button class="sc-period-btn iu-btn" data-tiu="unique">Unique</button>
+      </span>
     </div>
   </div>
 
@@ -1506,6 +1511,7 @@ const CACHE_SHEET_CSV = `https://docs.google.com/spreadsheets/d/${CACHE_SHEET_ID
 let allLeads = [];
 var inboundUnique = false; // All vs Unique toggle — false = show all, true = deduplicate
 var leadsViewUnique = false; // All vs Unique toggle for the Leads tab table
+var trendsInboundUnique = false; // All vs Unique toggle for Trends tab (independent of Dashboard)
 // chart instances managed inside renderTypeChart / renderSourceChart
 let refreshTimer = null;
 let isRefreshing = false; // guard against overlapping refreshes
@@ -3015,8 +3021,17 @@ document.querySelectorAll('#inboundUniqueToggle .iu-btn').forEach(btn => {
     inboundUnique = (mode === 'unique');
     document.querySelectorAll('#inboundUniqueToggle .iu-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    // Re-render inbound sections + refresh inbound trend if tab is active
     render();
+  });
+});
+
+// ── All / Unique toggle (Trends view — independent of Dashboard) ──
+document.querySelectorAll('#trendsUniqueToggle .iu-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.tiu;
+    trendsInboundUnique = (mode === 'unique');
+    document.querySelectorAll('#trendsUniqueToggle .iu-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
     if (trendChartsReady) {
       trendUpdate('inbound').catch(e => console.error('Inbound trend refresh error:', e));
       trendUpdate('conv').catch(e => console.error('Conv trend refresh error:', e));
@@ -3678,12 +3693,12 @@ async function trendUpdate(section) {
   try {
     if (section === 'conv') {
       // Conv % = (booked / inbound) × 100 per bucket
-      const src = inboundUnique ? deduplicateLeads(allLeads) : allLeads;
+      const src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
       const inboundItems = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
       const bookedItems = await trendFetchItems('booked', from, to);
       trendRenderConv(inboundItems, bookedItems, from, to, hourly);
     } else if (section === 'inbound') {
-      const src = inboundUnique ? deduplicateLeads(allLeads) : allLeads;
+      const src = trendsInboundUnique ? deduplicateLeads(allLeads) : allLeads;
       const items = src.map(trendLeadToItem).filter(i => i && i.date >= from && i.date <= to);
       trendRender('inbound', items, from, to, null, hourly);
     } else if (section === 'run') {
