@@ -2825,6 +2825,7 @@ let inboundPeriod = masterPeriod;
 
 // Formatters
 const scFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const scFmtCents = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const SC_BRANCH_NAMES = {
   'Eastern Mass': 'E. Mass',
@@ -3105,12 +3106,13 @@ function _buildKpiCard(salesItems, runItems, branches) {
   // Exclude deals explicitly marked "No" for Count as Lead Run
   const sales = allSales.filter(s => s.countAsLeadRun !== 'No');
 
-  // Closing % and $/Lead use qualified (excl. No) deals vs run count
+  // Closing % uses qualified (excl. No) won count vs run count
   const wonCount = sales.length;
   const runCount = run.length;
   const closingPct = runCount > 0 ? Math.round((wonCount / runCount) * 100) : 0;
-  const totalInitial = sales.reduce((sum, s) => sum + (s.initialValue || 0), 0);
-  const dpl = runCount > 0 ? Math.round(totalInitial / runCount) : 0;
+  // $/Lead uses ALL closed/won initial dollars divided by leads run
+  const totalInitial = allSales.reduce((sum, s) => sum + (s.initialValue || 0), 0);
+  const dpl = runCount > 0 ? totalInitial / runCount : 0;
 
   // Programs % = programs sold (won with annual value) / leads run
   const programCount = sales.filter(s => (s.annualValue || 0) > 0).length;
@@ -3128,7 +3130,7 @@ function _buildKpiCard(salesItems, runItems, branches) {
       <div class="kpi-sub">${programCount} pgm / ${runCount} run</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-val dpl">${scFmt.format(dpl)}</div>
+      <div class="kpi-val dpl">${scFmtCents.format(dpl)}</div>
       <div class="kpi-label">$/Lead</div>
       <div class="kpi-sub">${scFmt.format(totalInitial)} / ${runCount} run</div>
     </div>
@@ -3211,7 +3213,7 @@ function scRenderByOwner(salesItems, runItems) {
     const hasRun = runCount !== null;
     const closePct = hasRun && runCount > 0 ? Math.round((d.qWon / runCount) * 100) + '%' : '—';
     const progPct = hasRun && runCount > 0 ? Math.round((d.qPrograms / runCount) * 100) + '%' : '—';
-    const dpl = hasRun && runCount > 0 ? scFmt.format(Math.round(d.qInitial / runCount)) : '—';
+    const dpl = hasRun && runCount > 0 ? scFmtCents.format(d.initial / runCount) : '—';
 
     tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total; tPrograms += d.programs;
     if (hasRun) tRun += runCount;
@@ -3239,7 +3241,7 @@ function scRenderByOwner(salesItems, runItems) {
   });
   const totalClosePct = totalRunAll > 0 ? Math.round((tqWon / totalRunAll) * 100) + '%' : '—';
   const totalProgPct = totalRunAll > 0 ? Math.round((tqPrograms / totalRunAll) * 100) + '%' : '—';
-  const totalDpl = totalRunAll > 0 ? scFmt.format(Math.round(tqInitial / totalRunAll)) : '—';
+  const totalDpl = totalRunAll > 0 ? scFmtCents.format(tInitial / totalRunAll) : '—';
   tfoot.innerHTML = `<tr>
     <td>Total</td>
     <td class="owner-col-num">${totalRunAll}</td>
