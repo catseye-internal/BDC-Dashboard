@@ -502,6 +502,53 @@
     grid-template-columns: 1fr 1fr 1fr;
   }
 
+  /* ── Sales KPI Cards ── */
+  .kpi-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+  .kpi-card {
+    flex: 1; min-width: 100px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; text-align: center;
+  }
+  .kpi-val { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .kpi-val.closing { color: var(--green); }
+  .kpi-val.programs { color: #60A5FA; }
+  .kpi-val.dpl { color: var(--orange); }
+  .kpi-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.5px; }
+  .kpi-sub { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+
+  /* ── Owner Table ── */
+  .owner-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .owner-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    background: var(--bg-card); border-radius: 8px; overflow: hidden;
+  }
+  .owner-table th {
+    text-align: left; padding: 10px 12px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--border);
+    white-space: nowrap; font-weight: 600;
+  }
+  .owner-table td {
+    padding: 8px 12px; border-bottom: 1px solid rgba(58,54,50,0.3);
+    white-space: nowrap;
+  }
+  .owner-table tbody tr:hover { background: rgba(244,123,32,0.06); }
+  .owner-table tfoot td {
+    padding: 10px 12px; font-weight: 700; border-top: 2px solid var(--orange);
+    border-bottom: none; color: var(--text);
+  }
+  .owner-col-num { text-align: right; }
+  .owner-col-money { text-align: right; }
+  .owner-col-pct { text-align: right; }
+  .owner-table th.owner-col-num,
+  .owner-table th.owner-col-money,
+  .owner-table th.owner-col-pct { text-align: right; }
+  .owner-val-initial { color: var(--green); }
+  .owner-val-annual { color: var(--orange); }
+  .owner-val-total { color: var(--yellow); font-weight: 600; }
+  .owner-val-closing { color: var(--green); }
+  .owner-val-programs { color: #60A5FA; }
+  .owner-val-dpl { color: var(--orange); }
+
   /* ── Sales Center Responsive — removed, consolidated into global responsive block below ── */
 
   /* ── Filters ── */
@@ -905,6 +952,16 @@
     table { min-width: 600px; font-size: 12px; }
     thead th { padding: 8px 10px; font-size: 10px; }
     td { padding: 8px 10px; max-width: 150px; }
+
+    /* Sales KPIs + Owner table mobile */
+    .kpi-cards { gap: 6px; }
+    .kpi-card { padding: 8px 10px; min-width: 80px; }
+    .kpi-val { font-size: 18px; }
+    .kpi-label { font-size: 9px; }
+    .kpi-sub { font-size: 9px; }
+    .owner-table { font-size: 11px; min-width: 700px; }
+    .owner-table th { padding: 8px 8px; font-size: 9px; }
+    .owner-table td { padding: 6px 8px; }
   }
 
   /* ── Small phone (≤480px) ── */
@@ -1222,6 +1279,53 @@
         <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
         <div id="salesCombined" class="sc-loading">Loading...</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ══ ROW 5: Sales KPIs ══ -->
+  <div class="sc-section" id="scSalesKPIs">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Sales</span> KPIs</div>
+    </div>
+    <div class="sc-blocks sc-blocks-kpi">
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot catseye"></div><div class="sc-block-label">Catseye</div></div>
+        <div id="kpiCatseye" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot usx"></div><div class="sc-block-label">USX Pest</div></div>
+        <div id="kpiUSX" class="sc-loading">Loading...</div>
+      </div>
+      <div class="sc-block">
+        <div class="sc-block-header"><div class="sc-dot combined"></div><div class="sc-block-label">Combined</div></div>
+        <div id="kpiCombined" class="sc-loading">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ROW 6: Closed/Won by Owner ══ -->
+  <div class="sc-section" id="scByOwner">
+    <div class="sc-section-header">
+      <div class="sc-section-title"><span>Closed/Won</span> by Owner</div>
+    </div>
+    <div class="owner-table-wrap">
+      <table class="owner-table" id="ownerTable">
+        <thead>
+          <tr>
+            <th class="owner-col-name">Owner</th>
+            <th class="owner-col-num">Run</th>
+            <th class="owner-col-num">Won</th>
+            <th class="owner-col-money">Initial</th>
+            <th class="owner-col-money">Annual</th>
+            <th class="owner-col-money">Total</th>
+            <th class="owner-col-pct">Close %</th>
+            <th class="owner-col-pct">Prog %</th>
+            <th class="owner-col-money">$/Lead</th>
+          </tr>
+        </thead>
+        <tbody id="ownerTableBody"></tbody>
+        <tfoot id="ownerTableFoot"></tfoot>
+      </table>
     </div>
   </div>
 
@@ -2954,6 +3058,183 @@ function scRenderSalesSection(period) {
 }
 
 // ═══════════════════════════════════════════
+// SALES KPIs + CLOSED/WON BY OWNER
+// ═══════════════════════════════════════════
+
+// Map PestPac tech codes → WorkWave owner names (update as needed)
+const TECH_OWNER_MAP = {
+  // Example: 'JSM': 'John Smith', 'ABC': 'Alice Chen'
+  // Joe: populate this with your tech codes → owner names
+};
+
+function _scGetPeriodItems(dataObj, period) {
+  if (period === 'wk') {
+    _scBuildDates();
+    const pool = dataObj.ytd || dataObj.mtd || [];
+    return pool.filter(i => i.date >= _scWkStart);
+  }
+  return dataObj[period] || [];
+}
+
+function _scGetCustomFiltered(dataObj) {
+  const from = masterCustomFrom, to = masterCustomTo;
+  let items = dataObj.ytd || [];
+  if (from || to) {
+    items = items.filter(d => {
+      if (!d.date) return true;
+      if (from && d.date < from) return false;
+      if (to && d.date > to) return false;
+      return true;
+    });
+  }
+  return items;
+}
+
+// Build KPI card HTML for a group
+function _buildKpiCard(salesItems, runItems, branches) {
+  const sales = branches ? salesItems.filter(s => branches.includes(s.branch)) : salesItems;
+  const run = branches ? runItems.filter(r => branches.includes(r.branch)) : runItems;
+
+  const wonCount = sales.length;
+  const runCount = run.length;
+  const closingPct = runCount > 0 ? Math.round((wonCount / runCount) * 100) : 0;
+  const programCount = sales.filter(s => (s.annualValue || 0) > 0).length;
+  const programsPct = wonCount > 0 ? Math.round((programCount / wonCount) * 100) : 0;
+  const totalInitial = sales.reduce((sum, s) => sum + (s.initialValue || 0), 0);
+  const dpl = runCount > 0 ? Math.round(totalInitial / runCount) : 0;
+
+  return `<div class="kpi-cards">
+    <div class="kpi-card">
+      <div class="kpi-val closing">${closingPct}%</div>
+      <div class="kpi-label">Closing %</div>
+      <div class="kpi-sub">${wonCount} won / ${runCount} run</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val programs">${programsPct}%</div>
+      <div class="kpi-label">Programs %</div>
+      <div class="kpi-sub">${programCount} of ${wonCount} deals</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val dpl">${scFmt.format(dpl)}</div>
+      <div class="kpi-label">$/Lead</div>
+      <div class="kpi-sub">${scFmt.format(totalInitial)} / ${runCount} run</div>
+    </div>
+  </div>`;
+}
+
+function scRenderKPIs(salesItems, runItems) {
+  const catEl = document.getElementById('kpiCatseye');
+  const usxEl = document.getElementById('kpiUSX');
+  const comEl = document.getElementById('kpiCombined');
+  if (!catEl) return;
+
+  if (salesItems.length === 0 && runItems.length === 0 && !_scDataReady) {
+    [catEl, usxEl, comEl].forEach(el => { el.innerHTML = '<div class="sc-no-data sc-loading-pulse">Loading...</div>'; });
+    return;
+  }
+
+  catEl.innerHTML = _buildKpiCard(salesItems, runItems, SC_CATSEYE_BRANCHES);
+  usxEl.innerHTML = _buildKpiCard(salesItems, runItems, SC_USX_BRANCHES);
+  comEl.innerHTML = _buildKpiCard(salesItems, runItems, null);
+}
+
+function scRenderKPISection(period) {
+  const salesItems = _scGetPeriodItems(scSalesData, period);
+  const runItems = _scGetPeriodItems(scRunData, period);
+  scRenderKPIs(salesItems, runItems);
+}
+
+// ── Closed/Won by Owner table ──
+function _ownerRunCount(owner, runItems) {
+  // Try to match run items by tech code using TECH_OWNER_MAP
+  const techCodes = [];
+  for (const [code, name] of Object.entries(TECH_OWNER_MAP)) {
+    if (name === owner) techCodes.push(code.toUpperCase());
+  }
+  if (techCodes.length === 0) return null; // no mapping available
+  return runItems.filter(r => techCodes.includes((r.tech || '').toUpperCase())).length;
+}
+
+function scRenderByOwner(salesItems, runItems) {
+  const tbody = document.getElementById('ownerTableBody');
+  const tfoot = document.getElementById('ownerTableFoot');
+  if (!tbody) return;
+
+  if (salesItems.length === 0 && !_scDataReady) {
+    tbody.innerHTML = '<tr><td colspan="9" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
+    tfoot.innerHTML = '';
+    return;
+  }
+
+  // Group by owner
+  const owners = {};
+  salesItems.forEach(s => {
+    const o = s.owner || 'Unknown';
+    if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, programs: 0 };
+    owners[o].won += 1;
+    owners[o].initial += (s.initialValue || 0);
+    owners[o].annual += (s.annualValue || 0);
+    owners[o].total += (s.totalValue || 0);
+    if ((s.annualValue || 0) > 0) owners[o].programs += 1;
+  });
+
+  // Sort by total $ descending
+  const sorted = Object.entries(owners).sort((a, b) => b[1].total - a[1].total);
+
+  // Totals
+  let tWon = 0, tInitial = 0, tAnnual = 0, tTotal = 0, tPrograms = 0, tRun = 0;
+  const totalRunAll = runItems.length;
+  const hasTechMap = Object.keys(TECH_OWNER_MAP).length > 0;
+
+  let html = '';
+  sorted.forEach(([name, d]) => {
+    const runCount = _ownerRunCount(name, runItems);
+    const hasRun = runCount !== null;
+    const closePct = hasRun && runCount > 0 ? Math.round((d.won / runCount) * 100) + '%' : '—';
+    const progPct = d.won > 0 ? Math.round((d.programs / d.won) * 100) : 0;
+    const dpl = hasRun && runCount > 0 ? scFmt.format(Math.round(d.initial / runCount)) : '—';
+
+    tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total; tPrograms += d.programs;
+    if (hasRun) tRun += runCount;
+
+    html += `<tr>
+      <td>${name}</td>
+      <td class="owner-col-num">${hasRun ? runCount : '—'}</td>
+      <td class="owner-col-num">${d.won}</td>
+      <td class="owner-col-money owner-val-initial">${scFmt.format(d.initial)}</td>
+      <td class="owner-col-money owner-val-annual">${scFmt.format(d.annual)}</td>
+      <td class="owner-col-money owner-val-total">${scFmt.format(d.total)}</td>
+      <td class="owner-col-pct owner-val-closing">${closePct}</td>
+      <td class="owner-col-pct owner-val-programs">${progPct}%</td>
+      <td class="owner-col-money owner-val-dpl">${dpl}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+
+  // Footer totals
+  const totalClosePct = totalRunAll > 0 ? Math.round((tWon / totalRunAll) * 100) + '%' : '—';
+  const totalProgPct = tWon > 0 ? Math.round((tPrograms / tWon) * 100) : 0;
+  const totalDpl = totalRunAll > 0 ? scFmt.format(Math.round(tInitial / totalRunAll)) : '—';
+  tfoot.innerHTML = `<tr>
+    <td>Total</td>
+    <td class="owner-col-num">${totalRunAll}</td>
+    <td class="owner-col-num">${tWon}</td>
+    <td class="owner-col-money owner-val-initial">${scFmt.format(tInitial)}</td>
+    <td class="owner-col-money owner-val-annual">${scFmt.format(tAnnual)}</td>
+    <td class="owner-col-money owner-val-total">${scFmt.format(tTotal)}</td>
+    <td class="owner-col-pct owner-val-closing">${totalClosePct}</td>
+    <td class="owner-col-pct owner-val-programs">${totalProgPct}%</td>
+    <td class="owner-col-money owner-val-dpl">${totalDpl}</td>
+  </tr>`;
+}
+
+function scRenderByOwnerSection(period) {
+  const salesItems = _scGetPeriodItems(scSalesData, period);
+  const runItems = _scGetPeriodItems(scRunData, period);
+  scRenderByOwner(salesItems, runItems);
+}
+
+// ═══════════════════════════════════════════
 // MASTER DASHBOARD FILTER (top 3 sections)
 // ═══════════════════════════════════════════
 
@@ -3008,6 +3289,10 @@ function scApplyMasterCustomFilter() {
   scRenderSalesBlock('salesCatseye', salesOpps, SC_CATSEYE_BRANCHES);
   scRenderSalesBlock('salesUSX', salesOpps, SC_USX_BRANCHES);
   scRenderSalesCombined('salesCombined', salesOpps);
+
+  // KPIs + By Owner (use the already-filtered items)
+  scRenderKPIs(salesOpps, runItems);
+  scRenderByOwner(salesOpps, runItems);
 }
 
 // Master dashboard filter toggle
@@ -3404,6 +3689,8 @@ function renderSalesCenter() {
     scRenderBookedSection(masterPeriod);
     scRenderRunSection(masterPeriod);
     scRenderSalesSection(masterPeriod);
+    scRenderKPISection(masterPeriod);
+    scRenderByOwnerSection(masterPeriod);
   }
 }
 

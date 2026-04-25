@@ -273,7 +273,7 @@ function fetchLeadsRun(startDate, endDate) {
   }).map(function(o) {
     var fullWd = o.WorkDate || '';
     var wd = fullWd.split('T')[0];
-    return { branch: o.Branch || '', date: wd, datetime: fullWd };
+    return { branch: o.Branch || '', date: wd, datetime: fullWd, tech: o.Tech1 || '' };
   }).filter(function(o) { return o.branch && o.date; });
 }
 
@@ -577,5 +577,204 @@ function inspectSalesFields() {
     Logger.log('opportunityName: ' + JSON.stringify(opp.opportunityName));
     Logger.log('branch: ' + JSON.stringify(opp.branch));
     Logger.log('salesFunnelStage: ' + JSON.stringify(opp.salesFunnelStage));
+  }
+}
+
+// ════════════════════════════════════════════
+// BACKFILL: One-time 2025 historical data pull
+// ════════════════════════════════════════════
+// Run this manually ONCE from Apps Script:
+//   1. Open script editor → select backfill2025 → Run
+//   2. Check Execution log for progress
+//   3. Verify cache-2025.json appears on GitHub Pages
+//   4. Done — never needs to run again (2025 data is frozen)
+
+function writeToGitHubFile(jsonStr, filePath) {
+  var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  if (!token) {
+    Logger.log('  ⚠️ GITHUB_TOKEN not set — skipping GitHub write');
+    return false;
+  }
+
+  var apiBase = 'https://api.github.com/repos/' + GITHUB_OWNER + '/' + GITHUB_REPO;
+  var headers = {
+    'Authorization': 'token ' + token,
+    'Accept': 'application/vnd.github.v3+json'
+  };
+
+  try {
+    // Step 1: Create blob
+    var blobResp = UrlFetchApp.fetch(apiBase + '/git/blobs', {
+      method: 'post',
+      headers: headers,
+      contentType: 'application/json',
+      payload: JSON.stringify({
+        content: Utilities.base64Encode(jsonStr, Utilities.Charset.UTF_8),
+        encoding: 'base64'
+      }),
+      muteHttpExceptions: true
+    });
+    if (blobResp.getResponseCode() !== 201) {
+      Logger.log('  ⚠️ GitHub blob create failed: HTTP ' + blobResp.getResponseCode());
+      return false;
+    }
+    var blobSha = JSON.parse(blobResp.getContentText()).sha;
+
+    // Step 2: Get current commit SHA
+    var refResp = UrlFetchApp.fetch(apiBase + '/git/ref/heads/' + GITHUB_BRANCH, {
+      headers: headers,
+      muteHttpExceptions: true
+    });
+    var currentCommitSha = JSON.parse(refResp.getContentText()).object.sha;
+
+    // Step 3: Get tree SHA
+    var commitResp = UrlFetchApp.fetch(apiBase + '/git/commits/' + currentCommitSha, {
+      headers: headers,
+      muteHttpExceptions: true
+    });
+    var currentTreeSha = JSON.parse(commitResp.getContentText()).tree.sha;
+
+    // Step 4: Create tree with new file
+    var treeResp = UrlFetchApp.fetch(apiBase + '/git/trees', {
+      method: 'post',
+      headers: headers,
+      contentType: 'application/json',
+      payload: JSON.stringify({
+        base_tree: currentTreeSha,
+        tree: [{
+          path: filePath,
+          mode: '100644',
+          type: 'blob',
+          sha: blobSha
+        }]
+      }),
+      muteHttpExceptions: true
+    });
+    var newTreeSha = JSON.parse(treeResp.getContentText()).sha;
+
+    // Step 5: Create commit
+    var newCommitResp = UrlFetchApp.fetch(apiBase + '/git/commits', {
+      method: 'post',
+      headers: headers,
+      contentType: 'application/json',
+      payload: JSON.stringify({
+        message: 'Add ' + filePath + ' (2025 historical backfill)',
+        tree: newTreeSha,
+        parents: [currentCommitSha]
+      }),
+      muteHttpExceptions: true
+    });
+    var newCommitSha = JSON.parse(newCommitResp.getContentText()).sha;
+
+    // Step 6: Update branch ref
+    var updateResp = UrlFetchApp.fetch(apiBase + '/git/refs/heads/' + GITHUB_BRANCH, {
+      method: 'patch',
+      headers: headers,
+      contentType: 'application/json',
+      payload: JSON.stringify({ sha: newCommitSha }),
+      muteHttpExceptions: true
+    });
+
+    if (updateResp.getResponseCode() === 200) {
+      Logger.log('  ✅ GitHub ' + filePath + ' written (commit: ' + newCommitSha.substring(0, 7) + ')');
+      return true;
+    } else {
+      Logger.log('  ⚠️ GitHub ref update failed: HTTP ' + updateResp.getResponseCode());
+      return false;
+    }
+  } catch (err) {
+    Logger.log('  ⚠️ GitHub write error: ' + err.message);
+    return false;
+  }
+}
+
+function backfill2025() {
+  var t0 = new Date();
+  Logger.log('🔄 2025 backfill started at ' + t0.toISOString());
+
+  var START_2025 = '2025-01-01';
+  var END_2025   = '2025-12-31';
+
+  try {
+    // ── 1. WorkWave Sales Center: Leads Booked (all of 2025) ──
+    Logger.log('  Fetching 2025 booked (createdDate)...');
+    var rawBooked = fetchAllOpps({
+      fromCreatedTime: START_2025 + 'T00:00:00Z',
+      toCreatedTime:   END_2025   + 'T23:59:59Z'
+    });
+    var booked2025 = rawBooked.map(function(o) { return processOpp(o, true); }).filter(Boolean);
+    Logger.log('  → 2025 booked: ' + booked2025.length + ' records');
+
+    // ── 2. WorkWave Sales Center: Sales Closed (all of 2025, all stages) ──
+    Logger.log('  Fetching 2025 sales (closedDate)...');
+    var rawSales = fetchAllOpps({
+      fromDateClosed: START_2025 + 'T00:00:00Z',
+      toDateClosed:   END_2025   + 'T23:59:59Z'
+    });
+    var sales2025 = rawSales.map(function(o) { return processOpp(o, false); }).filter(Boolean);
+    Logger.log('  → 2025 sales: ' + sales2025.length + ' records');
+
+    // ── 3. PestPac: Leads Run (ESTIMATE work orders, all of 2025) ──
+    // PestPac API has date range limits — chunk into 31-day segments
+    Logger.log('  Fetching 2025 Leads Run (PestPac estimates)...');
+    var run2025 = [];
+    var chunkStart = new Date(2025, 0, 1); // Jan 1 2025
+    var yearEnd = new Date(2025, 11, 31);  // Dec 31 2025
+    while (chunkStart <= yearEnd) {
+      var chunkEnd = new Date(chunkStart);
+      chunkEnd.setDate(chunkEnd.getDate() + 30); // 31-day window
+      if (chunkEnd > yearEnd) chunkEnd = yearEnd;
+      Logger.log('    PestPac chunk: ' + fmtDate(chunkStart) + ' → ' + fmtDate(chunkEnd));
+      var chunk = fetchLeadsRun(fmtDate(chunkStart), fmtDate(chunkEnd));
+      for (var ci = 0; ci < chunk.length; ci++) run2025.push(chunk[ci]);
+      chunkStart = new Date(chunkEnd);
+      chunkStart.setDate(chunkStart.getDate() + 1);
+    }
+    Logger.log('  → 2025 leads run: ' + run2025.length + ' records');
+
+    // ── 4. Google Sheet: Inbound Leads with 2025 dates ──
+    Logger.log('  Fetching leads from Google Sheet (filtering to 2025)...');
+    var allLeads = fetchLeadsFromSheet();
+    var leads2025 = allLeads.filter(function(row) {
+      // Column header is DATE_RECEIVED (M/d/yyyy format)
+      var dateStr = row['DATE_RECEIVED'] || row['DATE'] || row['Date'] || row['date'] || '';
+      if (!dateStr) return false;
+      // Try M/d/yyyy format
+      var parts = dateStr.split('/');
+      if (parts.length === 3) {
+        var yr = parseInt(parts[2]);
+        return yr === 2025;
+      }
+      // Try yyyy-MM-dd format
+      if (dateStr.indexOf('2025') === 0) return true;
+      return false;
+    });
+    Logger.log('  → 2025 inbound leads: ' + leads2025.length + ' rows (out of ' + allLeads.length + ' total)');
+
+    // ── 5. Build cache-2025.json ──
+    var cache2025 = {
+      year: 2025,
+      created: new Date().toISOString(),
+      booked: booked2025,
+      sales: sales2025,
+      leadsRun: run2025,
+      leads: leads2025
+    };
+
+    var jsonStr = JSON.stringify(cache2025);
+    Logger.log('  Cache-2025 payload: ' + jsonStr.length + ' chars (' + Math.round(jsonStr.length / 1024) + ' KB)');
+
+    // ── 6. Push to GitHub as cache-2025.json ──
+    Logger.log('  Writing cache-2025.json to GitHub...');
+    var ok = writeToGitHubFile(jsonStr, 'cache-2025.json');
+
+    var elapsed = ((new Date() - t0) / 1000).toFixed(1);
+    Logger.log('✅ 2025 backfill complete in ' + elapsed + 's (GitHub: ' + (ok ? 'OK' : 'FAILED') + ')');
+    Logger.log('   Booked: ' + booked2025.length + ' | Sales: ' + sales2025.length +
+               ' | Run: ' + run2025.length + ' | Inbound: ' + leads2025.length);
+
+  } catch (err) {
+    Logger.log('❌ 2025 backfill error: ' + err.message);
+    Logger.log(err.stack);
   }
 }
