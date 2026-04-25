@@ -3063,8 +3063,15 @@ function scRenderSalesSection(period) {
 
 // Map PestPac tech codes → WorkWave owner names (update as needed)
 const TECH_OWNER_MAP = {
-  // Example: 'JSM': 'John Smith', 'ABC': 'Alice Chen'
-  // Joe: populate this with your tech codes → owner names
+  'AXK': 'Alexander Klash',
+  'BAG': 'Brian Greska',
+  'BCP': 'Billy Piper',
+  'BES': 'Brian Santiago',
+  'JJD': 'Joe Dingwall',
+  'JMP': 'Jeffrey Paige',
+  'JVB': 'Jacob Burgess',
+  'RXP': 'Richard Pacheco',
+  'VXR': 'Vincent Romano'
 };
 
 function _scGetPeriodItems(dataObj, period) {
@@ -3092,9 +3099,11 @@ function _scGetCustomFiltered(dataObj) {
 
 // Build KPI card HTML for a group
 function _buildKpiCard(salesItems, runItems, branches) {
-  const sales = branches ? salesItems.filter(s => branches.includes(s.branch)) : salesItems;
+  const allSales = branches ? salesItems.filter(s => branches.includes(s.branch)) : salesItems;
   const run = branches ? runItems.filter(r => branches.includes(r.branch)) : runItems;
 
+  // Only count sales marked "Yes" for Count as Lead Run?
+  const sales = allSales.filter(s => (s.countAsLeadRun || '').toLowerCase() === 'yes');
   const wonCount = sales.length;
   const runCount = run.length;
   const closingPct = runCount > 0 ? Math.round((wonCount / runCount) * 100) : 0;
@@ -3166,9 +3175,12 @@ function scRenderByOwner(salesItems, runItems) {
     return;
   }
 
+  // Only count sales marked "Yes" for Count as Lead Run?
+  const qualifiedSales = salesItems.filter(s => (s.countAsLeadRun || '').toLowerCase() === 'yes');
+
   // Group by owner
   const owners = {};
-  salesItems.forEach(s => {
+  qualifiedSales.forEach(s => {
     const o = s.owner || 'Unknown';
     if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, programs: 0 };
     owners[o].won += 1;
