@@ -764,6 +764,8 @@
   body.wallboard .chart-dual-half .chart-sub-title { display: none; }
   body.wallboard .inbound-branch-card { display: flex; flex-direction: column; }
   body.wallboard .sc-conv-kpi { display: none; }
+  body.wallboard #scSalesKPIs { display: none; }
+  body.wallboard #scByOwner { display: none; }
 
   /* Wallboard: Conv summary row above the branch grid */
   .wallboard-conv-summary { display: none; }
@@ -1411,7 +1413,7 @@
   <!-- ══ ROW 6: Closed/Won by Owner ══ -->
   <div class="sc-section" id="scByOwner">
     <div class="sc-section-header">
-      <div class="sc-section-title"><span>Closed/Won</span> by Owner</div>
+      <div class="sc-section-title"><span>Leads</span> by Owner</div>
     </div>
     <div class="owner-table-wrap">
       <table class="owner-table" id="ownerTable">
@@ -5294,21 +5296,73 @@ function renderSalesTable(rows) {
                   <th style="text-align:center">Annual Occ.</th>
                   <th style="text-align:right">Est. Annual</th>
                 </tr></thead>
-                <tbody>${s.serviceDetails.map(svc => {
-                  const effInit = effectiveInitial(svc);
-                  const effRec = effectiveRecurring(svc);
-                  const estAnnual = effRec * (svc.annualOccurrences || 0);
-                  const hasInitDisc = (svc.initialDiscountAmount || 0) > 0;
-                  const hasRecDisc = (svc.recurringDiscountAmount || 0) > 0;
-                  return `<tr>
-                    <td style="font-weight:600;white-space:nowrap">${svc.name || '—'}</td>
-                    <td style="font-size:11px;max-width:220px;white-space:normal">${svc.description || '—'}</td>
-                    <td style="text-align:right;font-family:monospace${hasInitDisc ? ';color:var(--orange,#e67e22)' : ''}" title="${hasInitDisc ? 'Pre-discount: ' + formatMoney(svc.initialPrice) : ''}">${formatMoney(effInit)}</td>
-                    <td style="text-align:right;font-family:monospace${hasRecDisc ? ';color:var(--orange,#e67e22)' : ''}" title="${hasRecDisc ? 'Pre-discount: ' + formatMoney(svc.recurringPrice) : ''}">${formatMoney(effRec)}</td>
-                    <td style="text-align:center">${svc.annualOccurrences || 0}</td>
-                    <td style="text-align:right;font-family:monospace;font-weight:600">${formatMoney(estAnnual)}</td>
-                  </tr>`;
-                }).join('')}</tbody>
+                <tbody>${(() => {
+                  // ── Free Plat reallocation: detect free Total Plat + Cat-Guard combo ──
+                  const svcs = s.serviceDetails;
+                  let freePlatAnnualPool = 0;
+                  const freePlatIdxs = new Set();
+                  let hasCatGuard = false;
+
+                  svcs.forEach((svc, si) => {
+                    const upper = (svc.name || '').trim().toUpperCase();
+                    const cat = summaryGetCategory(svc.name);
+                    if (FREE_PLAT_SERVICES.has(upper) || FREE_PLAT_SERVICES.has('_' + upper.replace(/^_/, ''))) {
+                      if (isFullyDiscountedRecurring(svc)) {
+                        const trueAnnual = (svc.recurringPrice || 0) * (svc.annualOccurrences || 12);
+                        freePlatAnnualPool += trueAnnual;
+                        freePlatIdxs.add(si);
+                      }
+                    }
+                    if (cat === 'Cat-Guard') hasCatGuard = true;
+                  });
+
+                  let remainingPool = freePlatAnnualPool;
+
+                  return svcs.map((svc, si) => {
+                    let effInit = effectiveInitial(svc);
+                    const effRec = effectiveRecurring(svc);
+                    let displayRecurring = effRec;
+                    let displayAnnual;
+                    const hasInitDisc = (svc.initialDiscountAmount || 0) > 0;
+                    const hasRecDisc = (svc.recurringDiscountAmount || 0) > 0;
+                    let initColor = hasInitDisc ? ';color:var(--orange,#e67e22)' : '';
+                    let recColor = hasRecDisc ? ';color:var(--orange,#e67e22)' : '';
+                    let initTitle = hasInitDisc ? 'Pre-discount: ' + formatMoney(svc.initialPrice) : '';
+                    let recTitle = hasRecDisc ? 'Pre-discount: ' + formatMoney(svc.recurringPrice) : '';
+
+                    // Free Plat service: show restored annual (pre-discount recurring)
+                    if (freePlatIdxs.has(si)) {
+                      const trueAnnual = (svc.recurringPrice || 0) * (svc.annualOccurrences || 12);
+                      displayRecurring = svc.recurringPrice || 0;
+                      displayAnnual = trueAnnual;
+                      recColor = ';color:#2ecc71';
+                      recTitle = 'Free Plat: annual value restored from Cat-Guard initial';
+                    } else {
+                      displayAnnual = effRec * (svc.annualOccurrences || 0);
+                    }
+
+                    // Cat-Guard: deduct free plat annual from initial
+                    const cat = summaryGetCategory(svc.name);
+                    if (cat === 'Cat-Guard' && hasCatGuard && remainingPool > 0) {
+                      const origInit = effInit;
+                      effInit = Math.max(0, effInit - remainingPool);
+                      remainingPool = 0;
+                      if (effInit !== origInit) {
+                        initColor = ';color:#2ecc71';
+                        initTitle = 'Free Plat adjusted: ' + formatMoney(origInit) + ' → ' + formatMoney(effInit) + ' (Plat annual moved)';
+                      }
+                    }
+
+                    return `<tr>
+                      <td style="font-weight:600;white-space:nowrap">${svc.name || '—'}</td>
+                      <td style="font-size:11px;max-width:220px;white-space:normal">${svc.description || '—'}</td>
+                      <td style="text-align:right;font-family:monospace${initColor}" title="${initTitle}">${formatMoney(effInit)}</td>
+                      <td style="text-align:right;font-family:monospace${recColor}" title="${recTitle}">${formatMoney(displayRecurring)}</td>
+                      <td style="text-align:center">${svc.annualOccurrences || 0}</td>
+                      <td style="text-align:right;font-family:monospace;font-weight:600">${formatMoney(displayAnnual)}</td>
+                    </tr>`;
+                  }).join('');
+                })()}</tbody>
               </table>
             </div>
           </td>
