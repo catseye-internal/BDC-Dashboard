@@ -1130,10 +1130,11 @@
     border-radius: 10px;
     padding: 10px 14px;
     margin-bottom: 10px;
+    overflow: visible;
   }
   .summary-section .sc-section-title { font-size: 14px; }
   .summary-section .sc-section-header { margin-bottom: 4px !important; }
-  .summary-body { display: flex; gap: 10px; flex-wrap: nowrap; }
+  .summary-body { display: flex; gap: 8px; flex-wrap: nowrap; }
   .summary-cat-table-wrap {
     flex: 1 1 0;
     min-width: 0;
@@ -1144,11 +1145,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
-    table-layout: fixed;
   }
-  /* Column widths: Category narrower so Total column isn't clipped */
-  .summary-cat-table colgroup .col-cat { width: 22%; }
-  .summary-cat-table colgroup .col-num { width: 19.5%; }
   .summary-cat-table th {
     text-align: left;
     font-size: 9px;
@@ -1157,20 +1154,21 @@
     color: var(--text-dim);
     padding: 3px 4px;
     border-bottom: 1px solid var(--border);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    white-space: nowrap;
   }
   .summary-cat-table th:not(:first-child) { text-align: right; }
   .summary-cat-table td {
     padding: 2px 4px;
     border-bottom: 1px solid rgba(255,255,255,.04);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    white-space: nowrap;
+    font-size: 11px;
   }
   .summary-cat-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
   .summary-cat-table .cat-dot {
     display: inline-block;
-    width: 8px; height: 8px;
+    width: 7px; height: 7px;
     border-radius: 50%;
-    margin-right: 4px;
+    margin-right: 3px;
     vertical-align: middle;
   }
   .summary-cat-table tr.cat-total td {
@@ -1179,27 +1177,29 @@
     padding-top: 4px;
   }
   .summary-kpi-panel {
-    flex: 0 0 220px;
+    flex: 0 0 auto;
+    width: 188px;
+    min-width: 188px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4px;
+    gap: 3px;
     align-content: start;
   }
   .summary-kpi {
     background: rgba(255,255,255,.03);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 3px 4px;
+    border-radius: 5px;
+    padding: 2px 3px;
     text-align: center;
   }
   .summary-kpi-val {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text);
     line-height: 1.1;
   }
   .summary-kpi-label {
-    font-size: 8px;
+    font-size: 7px;
     text-transform: uppercase;
     letter-spacing: .3px;
     color: var(--text-dim);
@@ -1211,17 +1211,24 @@
     background: rgba(255,255,255,.02);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 8px 10px;
     margin-bottom: 6px;
   }
   .summary-branch-section .sc-section-title { font-size: 13px; }
   .summary-branch-section .sc-section-header { margin-bottom: 2px !important; }
-  .summary-branch-section .summary-kpi-panel { flex: 0 0 210px; }
-  .summary-branch-section .summary-kpi-val { font-size: 13px; }
-  @media (max-width: 768px) {
+  .summary-branch-section .summary-kpi-panel { width: 178px; min-width: 178px; }
+  .summary-branch-section .summary-kpi-val { font-size: 11px; }
+  .summary-branch-section .summary-cat-table td { font-size: 10px; }
+  @media (max-width: 900px) {
     .summary-body { flex-direction: column; }
-    .summary-kpi-panel { grid-template-columns: 1fr 1fr; flex: 1 1 auto; }
+    .summary-kpi-panel { grid-template-columns: repeat(4, 1fr); width: auto !important; min-width: 0 !important; }
     .summary-cat-table { font-size: 11px; }
+    .summary-cat-table td { font-size: 11px; }
+  }
+  @media (max-width: 480px) {
+    .summary-kpi-panel { grid-template-columns: 1fr 1fr; }
+    .summary-cat-table { font-size: 10px; }
+    .summary-cat-table td { font-size: 10px; }
   }
 </style>
 </head>
@@ -3352,8 +3359,8 @@ function summaryComputeKPIs(salesItems, runItems, branchFilter) {
     });
   });
 
-  // Leads Won/Run: exclude countAsLeadRun='No' from counts (not dollars)
-  // Matches Dashboard view KPI logic — "No" deals still contribute $ but not to run/won counts
+  // Leads Won/Run: exclude countAsLeadRun='No' from won count (not dollars)
+  // Same logic as Dashboard/Trends/Wallboard views
   const qualifiedSales = filteredSales.filter(s => s.countAsLeadRun !== 'No');
   const leadsRun = filteredRuns.length;
   const leadsWon = qualifiedSales.length;
@@ -3393,7 +3400,6 @@ function summaryRenderSection(containerId, salesItems, runItems, branchFilter) {
 
   // Build category table
   let tableHTML = '<div class="summary-cat-table-wrap"><table class="summary-cat-table">';
-  tableHTML += '<colgroup><col class="col-cat"><col class="col-num"><col class="col-num"><col class="col-num"><col class="col-num"></colgroup>';
   tableHTML += '<thead><tr><th>Category</th><th>Count</th><th>Initial</th><th>Annual</th><th>Total</th></tr></thead><tbody>';
 
   let totalCount = 0, totalInit = 0, totalAnn = 0;
