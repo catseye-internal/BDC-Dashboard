@@ -3197,6 +3197,46 @@ function scRenderByOwnerSection(period) {
 }
 
 // ═══════════════════════════════════════════
+// SHARED: Effective pricing after discounts
+// Used by Summary, Sales expansion, and any
+// view that needs post-discount service prices.
+// API percentage values are decimals: 1 = 100%, 0.05 = 5%
+// ═══════════════════════════════════════════
+
+function effectiveInitial(svc) {
+  let price = svc.initialPrice || 0;
+  const discAmt = svc.initialDiscountAmount || 0;
+  const discType = (svc.initialDiscountType || 'dollar').toLowerCase();
+  if (discAmt > 0) {
+    if (discType === 'percentage' || discType === 'percent') {
+      price = price * (1 - discAmt);
+    } else {
+      price = price - discAmt;
+    }
+  }
+  return Math.max(0, price);
+}
+
+function effectiveRecurring(svc) {
+  let price = svc.recurringPrice || 0;
+  const discAmt = svc.recurringDiscountAmount || 0;
+  const discType = (svc.recurringDiscountType || 'dollar').toLowerCase();
+  if (discAmt > 0) {
+    if (discType === 'percentage' || discType === 'percent') {
+      price = price * (1 - discAmt);
+    } else {
+      price = price - discAmt;
+    }
+  }
+  return Math.max(0, price);
+}
+
+// Check if a service has its recurring price fully discounted (effective = 0)
+function isFullyDiscountedRecurring(svc) {
+  return effectiveRecurring(svc) === 0 && (svc.recurringPrice || 0) > 0;
+}
+
+// ═══════════════════════════════════════════
 // SUMMARY VIEW — Category Breakdown + KPIs
 // ═══════════════════════════════════════════
 
@@ -3207,34 +3247,6 @@ function summaryGetCategory(name) {
     if (upper === key.toUpperCase()) return cat;
   }
   return null;
-}
-
-function summaryEffectiveInitial(svc) {
-  let price = svc.initialPrice || 0;
-  const discAmt = svc.initialDiscountAmount || 0;
-  const discType = (svc.initialDiscountType || 'dollar').toLowerCase();
-  if (discAmt > 0) {
-    if (discType === 'percentage' || discType === 'percent') {
-      price = price * (1 - discAmt / 100);
-    } else {
-      price = price - discAmt;
-    }
-  }
-  return Math.max(0, price);
-}
-
-function summaryEffectiveRecurring(svc) {
-  let price = svc.recurringPrice || 0;
-  const discAmt = svc.recurringDiscountAmount || 0;
-  const discType = (svc.recurringDiscountType || 'dollar').toLowerCase();
-  if (discAmt > 0) {
-    if (discType === 'percentage' || discType === 'percent') {
-      price = price * (1 - discAmt / 100);
-    } else {
-      price = price - discAmt;
-    }
-  }
-  return Math.max(0, price);
 }
 
 function summaryAnalyzeDeal(sale) {
@@ -3252,10 +3264,8 @@ function summaryAnalyzeDeal(sale) {
     const name = (svc.name || '').trim().toUpperCase();
     const cat = summaryGetCategory(svc.name);
     if (FREE_PLAT_SERVICES.has(name) || FREE_PLAT_SERVICES.has('_' + name.replace(/^_/, ''))) {
-      // Check if this is a "free" plat (100% recurring discount)
-      const discAmt = svc.recurringDiscountAmount || 0;
-      const discType = (svc.recurringDiscountType || 'dollar').toLowerCase();
-      const isFreePlat = (discType === 'percentage' || discType === 'percent') && discAmt >= 100;
+      // Check if this is a "free" plat (recurring fully discounted to $0)
+      const isFreePlat = isFullyDiscountedRecurring(svc);
       if (isFreePlat) {
         const trueAnnual = (svc.recurringPrice || 0) * (svc.annualOccurrences || 12);
         freePlatAnnualValue += trueAnnual;
@@ -3284,8 +3294,8 @@ function summaryAnalyzeDeal(sale) {
   otherSvcs.forEach(svc => {
     const cat = summaryGetCategory(svc.name);
     if (!cat) return;
-    let initial = summaryEffectiveInitial(svc);
-    const effRecurring = summaryEffectiveRecurring(svc);
+    let initial = effectiveInitial(svc);
+    const effRecurring = effectiveRecurring(svc);
     const annual = effRecurring * (svc.annualOccurrences || 1);
 
     // If Cat-Guard and we found free plat, deduct plat annual from CG initial
@@ -5285,12 +5295,16 @@ function renderSalesTable(rows) {
                   <th style="text-align:right">Est. Annual</th>
                 </tr></thead>
                 <tbody>${s.serviceDetails.map(svc => {
-                  const estAnnual = (svc.recurringPrice || 0) * (svc.annualOccurrences || 0);
+                  const effInit = effectiveInitial(svc);
+                  const effRec = effectiveRecurring(svc);
+                  const estAnnual = effRec * (svc.annualOccurrences || 0);
+                  const hasInitDisc = (svc.initialDiscountAmount || 0) > 0;
+                  const hasRecDisc = (svc.recurringDiscountAmount || 0) > 0;
                   return `<tr>
                     <td style="font-weight:600;white-space:nowrap">${svc.name || '—'}</td>
                     <td style="font-size:11px;max-width:220px;white-space:normal">${svc.description || '—'}</td>
-                    <td style="text-align:right;font-family:monospace">${formatMoney(svc.initialPrice)}</td>
-                    <td style="text-align:right;font-family:monospace">${formatMoney(svc.recurringPrice)}</td>
+                    <td style="text-align:right;font-family:monospace${hasInitDisc ? ';color:var(--orange,#e67e22)' : ''}" title="${hasInitDisc ? 'Pre-discount: ' + formatMoney(svc.initialPrice) : ''}">${formatMoney(effInit)}</td>
+                    <td style="text-align:right;font-family:monospace${hasRecDisc ? ';color:var(--orange,#e67e22)' : ''}" title="${hasRecDisc ? 'Pre-discount: ' + formatMoney(svc.recurringPrice) : ''}">${formatMoney(effRec)}</td>
                     <td style="text-align:center">${svc.annualOccurrences || 0}</td>
                     <td style="text-align:right;font-family:monospace;font-weight:600">${formatMoney(estAnnual)}</td>
                   </tr>`;

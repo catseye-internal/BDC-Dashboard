@@ -131,13 +131,14 @@ function processOpp(opp, isBooked) {
     if (!closedDate) return null;
 
     // Extract custom fields for Sales view
-    var techSoldName = '', countAsLeadRun = '', bdcSold = '';
+    var techSoldName = '', countAsLeadRun = '', countAsLeadWon = '', bdcSold = '';
     if (Array.isArray(opp.customFields)) {
       opp.customFields.forEach(function(cf) {
         var cfName = (cf.name || cf.label || cf.key || '');
         var cfVal  = String(cf.value || cf.answer || '');
         if (cfName === 'Technician SOLD Name') techSoldName = cfVal;
         else if (cfName === 'Count as Lead Run?') countAsLeadRun = cfVal;
+        else if (cfName === 'Count as Lead Won?') countAsLeadWon = cfVal;
         else if (cfName === 'BDC SOLD?') bdcSold = cfVal;
       });
     }
@@ -160,7 +161,11 @@ function processOpp(opp, isBooked) {
               initialPrice: s.initialPrice || 0,
               recurringPrice: s.recurringPrice || 0,
               annualOccurrences: s.annualOccurrences || 0,
-              quantity: s.quantity || 1
+              quantity: s.quantity || 1,
+              initialDiscountAmount: s.initialDiscountAmount || 0,
+              initialDiscountType: s.initialDiscountType || '',
+              recurringDiscountAmount: s.recurringDiscountAmount || 0,
+              recurringDiscountType: s.recurringDiscountType || ''
             };
           });
         }
@@ -188,6 +193,7 @@ function processOpp(opp, isBooked) {
       createdBy: opp.opportunityCreatedBy || '',
       techSoldName: techSoldName,
       countAsLeadRun: countAsLeadRun,
+      countAsLeadWon: countAsLeadWon,
       bdcSold: bdcSold
     };
   }
