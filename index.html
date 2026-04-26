@@ -1122,6 +1122,86 @@
     #viewSales table th { padding: 6px 6px; font-size: 8px; }
     #viewSales table td { padding: 6px 6px; max-width: 80px; }
   }
+
+  /* ── Summary View ── */
+  .summary-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .summary-body { display: flex; gap: 20px; flex-wrap: wrap; }
+  .summary-cat-table-wrap {
+    flex: 1 1 420px;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  .summary-cat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .summary-cat-table th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-dim);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-cat-table th:not(:first-child) { text-align: right; }
+  .summary-cat-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .summary-cat-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  .summary-cat-table .cat-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .summary-cat-table tr.cat-total td {
+    font-weight: 700;
+    border-top: 2px solid var(--orange);
+    padding-top: 8px;
+  }
+  .summary-kpi-panel {
+    flex: 1 1 320px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-content: start;
+  }
+  .summary-kpi {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .summary-kpi-val {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .summary-kpi-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .summary-kpi.wide { grid-column: span 2; }
+  @media (max-width: 768px) {
+    .summary-body { flex-direction: column; }
+    .summary-kpi-panel { grid-template-columns: 1fr 1fr; }
+    .summary-cat-table { font-size: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -1141,6 +1221,7 @@
       <button class="view-tab" data-view="leads">Leads</button>
       <button class="view-tab" data-view="sales">Sales</button>
       <button class="view-tab" data-view="trends">Trends</button>
+      <button class="view-tab" data-view="summary">Summary</button>
       <button class="view-tab" data-view="wallboard">Wallboard</button>
     </div>
   </div>
@@ -1611,6 +1692,34 @@
   </div>
 
   </div><!-- /viewTrends -->
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- VIEW 6: SUMMARY (sales category KPIs) -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="view-container" id="viewSummary">
+
+    <div class="summary-section" id="summaryCombined">
+      <div class="sc-section-header" style="margin-bottom:8px">
+        <span class="sc-section-title">Combined Summary</span>
+      </div>
+      <div class="summary-body"></div>
+    </div>
+
+    <div class="summary-section" id="summaryCatseye">
+      <div class="sc-section-header" style="margin-bottom:8px">
+        <span class="sc-section-title">Catseye</span>
+      </div>
+      <div class="summary-body"></div>
+    </div>
+
+    <div class="summary-section" id="summaryUSX">
+      <div class="sc-section-header" style="margin-bottom:8px">
+        <span class="sc-section-title">USX Pest</span>
+      </div>
+      <div class="summary-body"></div>
+    </div>
+
+  </div><!-- /viewSummary -->
 
 </div><!-- /main -->
 
@@ -3041,6 +3150,262 @@ function scRenderByOwnerSection(period) {
 }
 
 // ═══════════════════════════════════════════
+// SUMMARY VIEW — Category Breakdown + KPIs
+// ═══════════════════════════════════════════
+
+function summaryGetCategory(name) {
+  if (!name) return null;
+  const upper = name.trim().toUpperCase();
+  for (const [key, cat] of Object.entries(SERVICE_CATEGORY_MAP)) {
+    if (upper === key.toUpperCase()) return cat;
+  }
+  return null;
+}
+
+function summaryEffectiveInitial(svc) {
+  let price = svc.initialPrice || 0;
+  const discAmt = svc.initialDiscountAmount || 0;
+  const discType = (svc.initialDiscountType || 'dollar').toLowerCase();
+  if (discAmt > 0) {
+    if (discType === 'percentage' || discType === 'percent') {
+      price = price * (1 - discAmt / 100);
+    } else {
+      price = price - discAmt;
+    }
+  }
+  return Math.max(0, price);
+}
+
+function summaryEffectiveRecurring(svc) {
+  let price = svc.recurringPrice || 0;
+  const discAmt = svc.recurringDiscountAmount || 0;
+  const discType = (svc.recurringDiscountType || 'dollar').toLowerCase();
+  if (discAmt > 0) {
+    if (discType === 'percentage' || discType === 'percent') {
+      price = price * (1 - discAmt / 100);
+    } else {
+      price = price - discAmt;
+    }
+  }
+  return Math.max(0, price);
+}
+
+function summaryAnalyzeDeal(sale) {
+  const results = [];
+  const svcs = sale.serviceDetails || [];
+  if (!svcs.length) return results;
+
+  // Detect Free Total Plat + Cat-Guard combo
+  let freePlatAnnualValue = 0;
+  let hasCatGuard = false;
+  const freePlatSvcs = [];
+  const otherSvcs = [];
+
+  svcs.forEach(svc => {
+    const name = (svc.serviceName || '').trim().toUpperCase();
+    const cat = summaryGetCategory(svc.serviceName);
+    if (FREE_PLAT_SERVICES.has(name) || FREE_PLAT_SERVICES.has('_' + name.replace(/^_/, ''))) {
+      // Check if this is a "free" plat (100% recurring discount)
+      const discAmt = svc.recurringDiscountAmount || 0;
+      const discType = (svc.recurringDiscountType || 'dollar').toLowerCase();
+      const isFreePlat = (discType === 'percentage' || discType === 'percent') && discAmt >= 100;
+      if (isFreePlat) {
+        const trueAnnual = (svc.recurringPrice || 0) * (svc.annualOccurrences || 12);
+        freePlatAnnualValue += trueAnnual;
+        freePlatSvcs.push({ svc, cat: 'Platinum Recurring', trueAnnual });
+      } else {
+        otherSvcs.push(svc);
+      }
+    } else {
+      if (cat === 'Cat-Guard') hasCatGuard = true;
+      otherSvcs.push(svc);
+    }
+  });
+
+  // Process free plat services
+  freePlatSvcs.forEach(fp => {
+    results.push({
+      category: fp.cat,
+      initial: 0,
+      annual: fp.trueAnnual,
+      isProgram: true,
+      isFreePlat: true
+    });
+  });
+
+  // Process other services
+  otherSvcs.forEach(svc => {
+    const cat = summaryGetCategory(svc.serviceName);
+    if (!cat) return;
+    let initial = summaryEffectiveInitial(svc);
+    const effRecurring = summaryEffectiveRecurring(svc);
+    const annual = effRecurring * (svc.annualOccurrences || 1);
+
+    // If Cat-Guard and we found free plat, deduct plat annual from CG initial
+    if (cat === 'Cat-Guard' && hasCatGuard && freePlatAnnualValue > 0) {
+      initial = Math.max(0, initial - freePlatAnnualValue);
+      freePlatAnnualValue = 0; // Only deduct once
+    }
+
+    results.push({
+      category: cat,
+      initial,
+      annual,
+      isProgram: PROGRAM_CATEGORIES.has(cat),
+      isFreePlat: false
+    });
+  });
+
+  return results;
+}
+
+function summaryComputeKPIs(salesItems, runItems, branchFilter) {
+  const filteredSales = branchFilter
+    ? salesItems.filter(s => (s.company || '').toLowerCase().includes(branchFilter))
+    : salesItems;
+  const filteredRuns = branchFilter
+    ? runItems.filter(r => (r.company || '').toLowerCase().includes(branchFilter))
+    : runItems;
+
+  // Category buckets
+  const cats = {};
+  SUMMARY_CATEGORIES.forEach(c => { cats[c.key] = { count: 0, initial: 0, annual: 0 }; });
+
+  let totalPrograms = 0;
+  let totalInitial = 0;
+  let totalAnnual = 0;
+  let platRecurringSum = 0;
+  let platRecurringCount = 0;
+  let commRecurringSum = 0;
+  let commRecurringCount = 0;
+  let cgValueSum = 0;
+  let cgCount = 0;
+
+  filteredSales.forEach(sale => {
+    const analyzed = summaryAnalyzeDeal(sale);
+    analyzed.forEach(a => {
+      if (cats[a.category]) {
+        cats[a.category].count++;
+        cats[a.category].initial += a.initial;
+        cats[a.category].annual += a.annual;
+      }
+      totalInitial += a.initial;
+      totalAnnual += a.annual;
+      if (a.isProgram) totalPrograms++;
+
+      if (a.category === 'Platinum Recurring' && a.annual > 0) {
+        platRecurringSum += a.annual;
+        platRecurringCount++;
+      }
+      if (a.category === 'Commercial Recurring' && a.annual > 0) {
+        commRecurringSum += a.annual;
+        commRecurringCount++;
+      }
+      if (a.category === 'Cat-Guard') {
+        cgValueSum += a.initial;
+        cgCount++;
+      }
+    });
+  });
+
+  const leadsRun = filteredRuns.length;
+  const leadsWon = filteredSales.length;
+  const closingPct = leadsRun > 0 ? (leadsWon / leadsRun * 100) : 0;
+  const programPct = leadsRun > 0 ? (totalPrograms / leadsRun * 100) : 0;
+  const dollarPerLead = leadsRun > 0 ? (totalInitial / leadsRun) : 0;
+  const avgInitial = leadsWon > 0 ? (totalInitial / leadsWon) : 0;
+  const avgPlatRecurring = platRecurringCount > 0 ? (platRecurringSum / platRecurringCount) : 0;
+  const avgCommRecurring = commRecurringCount > 0 ? (commRecurringSum / commRecurringCount) : 0;
+  const avgCGValue = cgCount > 0 ? (cgValueSum / cgCount) : 0;
+  const totalSales = totalInitial + totalAnnual;
+  const avgContractValue = leadsWon > 0 ? (totalSales / leadsWon) : 0;
+
+  return {
+    cats, leadsRun, leadsWon, closingPct, totalPrograms, programPct,
+    totalInitial, totalAnnual, totalSales, dollarPerLead, avgInitial,
+    avgPlatRecurring, avgCommRecurring, avgCGValue, avgContractValue
+  };
+}
+
+const _summaryFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+function summaryFmt(val) { return _summaryFmt.format(val); }
+
+function summaryRenderSection(containerId, salesItems, runItems, branchFilter) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const body = container.querySelector('.summary-body');
+  if (!body) return;
+
+  const kpi = summaryComputeKPIs(salesItems, runItems, branchFilter);
+
+  // Build category table
+  let tableHTML = '<div class="summary-cat-table-wrap"><table class="summary-cat-table">';
+  tableHTML += '<thead><tr><th>Category</th><th>Count</th><th>Initial</th><th>Annual</th><th>Total</th></tr></thead><tbody>';
+
+  let totalCount = 0, totalInit = 0, totalAnn = 0;
+  SUMMARY_CATEGORIES.forEach(cat => {
+    const d = kpi.cats[cat.key];
+    totalCount += d.count;
+    totalInit += d.initial;
+    totalAnn += d.annual;
+    tableHTML += '<tr>'
+      + '<td><span class="cat-dot" style="background:' + cat.color + '"></span>' + cat.label + '</td>'
+      + '<td>' + d.count + '</td>'
+      + '<td>' + summaryFmt(d.initial) + '</td>'
+      + '<td>' + summaryFmt(d.annual) + '</td>'
+      + '<td>' + summaryFmt(d.initial + d.annual) + '</td>'
+      + '</tr>';
+  });
+  tableHTML += '<tr class="cat-total"><td>Total</td><td>' + totalCount + '</td><td>' + summaryFmt(totalInit) + '</td><td>' + summaryFmt(totalAnn) + '</td><td>' + summaryFmt(totalInit + totalAnn) + '</td></tr>';
+  tableHTML += '</tbody></table></div>';
+
+  // Build KPI panel
+  let kpiHTML = '<div class="summary-kpi-panel">';
+  const kpis = [
+    { label: 'Leads Run', val: kpi.leadsRun, fmt: 'num' },
+    { label: 'Leads Won', val: kpi.leadsWon, fmt: 'num' },
+    { label: 'Closing %', val: kpi.closingPct, fmt: 'pct' },
+    { label: '# Programs', val: kpi.totalPrograms, fmt: 'num' },
+    { label: '% Programs', val: kpi.programPct, fmt: 'pct' },
+    { label: 'Total Initial', val: kpi.totalInitial, fmt: 'dollar' },
+    { label: 'Total Annual', val: kpi.totalAnnual, fmt: 'dollar' },
+    { label: 'Total Sales', val: kpi.totalSales, fmt: 'dollar', wide: true },
+    { label: '$/Lead Initial', val: kpi.dollarPerLead, fmt: 'dollar' },
+    { label: 'Avg Initial Sale', val: kpi.avgInitial, fmt: 'dollar' },
+    { label: 'Avg Plat Recurring', val: kpi.avgPlatRecurring, fmt: 'dollar' },
+    { label: 'Avg Comm Recurring', val: kpi.avgCommRecurring, fmt: 'dollar' },
+    { label: 'Avg Cat-Guard', val: kpi.avgCGValue, fmt: 'dollar' },
+    { label: 'Avg Contract Value', val: kpi.avgContractValue, fmt: 'dollar' },
+  ];
+  kpis.forEach(k => {
+    let display;
+    if (k.fmt === 'dollar') display = summaryFmt(k.val);
+    else if (k.fmt === 'pct') display = k.val.toFixed(1) + '%';
+    else display = k.val;
+    kpiHTML += '<div class="summary-kpi' + (k.wide ? ' wide' : '') + '"><div class="summary-kpi-val">' + display + '</div><div class="summary-kpi-label">' + k.label + '</div></div>';
+  });
+  kpiHTML += '</div>';
+
+  body.innerHTML = tableHTML + kpiHTML;
+}
+
+function renderSummaryView() {
+  let salesItems, runItems;
+  if (masterPeriod === 'custom') {
+    const from = masterCustomFrom, to = masterCustomTo;
+    if (!from || !to) return;
+    salesItems = _scGetAllItems(scSalesData).filter(s => s.date >= from && s.date <= to);
+    runItems = _scGetAllItems(scRunData).filter(r => r.date >= from && r.date <= to);
+  } else {
+    salesItems = _scGetPeriodItems(scSalesData, masterPeriod);
+    runItems = _scGetPeriodItems(scRunData, masterPeriod);
+  }
+  summaryRenderSection('summaryCombined', salesItems, runItems, null);
+  summaryRenderSection('summaryCatseye', salesItems, runItems, 'catseye');
+  summaryRenderSection('summaryUSX', salesItems, runItems, 'usx');
+}
+
+// ═══════════════════════════════════════════
 // MASTER DASHBOARD FILTER (top 3 sections)
 // ═══════════════════════════════════════════
 
@@ -3324,7 +3689,11 @@ function _scProcessOpp(opp, isBooked) {
               initialPrice: s.initialPrice || 0,
               recurringPrice: s.recurringPrice || 0,
               annualOccurrences: s.annualOccurrences || 0,
-              quantity: s.quantity || 1
+              quantity: s.quantity || 1,
+              initialDiscountAmount: s.initialDiscountAmount || 0,
+              initialDiscountType: s.initialDiscountType || 'dollar',
+              recurringDiscountAmount: s.recurringDiscountAmount || 0,
+              recurringDiscountType: s.recurringDiscountType || 'dollar'
             }));
           }
         }
@@ -3490,6 +3859,10 @@ function renderSalesCenter() {
     scRenderSalesSection(masterPeriod);
     scRenderKPISection(masterPeriod);
     scRenderByOwnerSection(masterPeriod);
+  }
+  // Re-render Summary if it's the active view
+  if (document.getElementById('viewSummary') && document.getElementById('viewSummary').classList.contains('active')) {
+    renderSummaryView();
   }
 }
 
@@ -5031,6 +5404,9 @@ function switchView(viewName) {
     // Init trend charts when Trends tab is first opened
     if (viewName === 'trends') {
       trendInitAll().catch(e => console.error('Trend tab init error:', e));
+    }
+    if (viewName === 'summary') {
+      renderSummaryView();
     }
   }
 }

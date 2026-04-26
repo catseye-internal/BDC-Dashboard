@@ -221,3 +221,73 @@ const AREA_CODE_MAP = {
   '518': 'USX - Upstate New York', '845': 'USX - Upstate New York', '914': 'USX - Upstate New York',
   '315': 'USX - Upstate New York', '585': 'USX - Upstate New York', '607': 'USX - Upstate New York',
 };
+
+// ═══════════════════════════════════════════════════════════════
+// Summary View — Service Categorization & KPI Configuration
+// ═══════════════════════════════════════════════════════════════
+
+const SERVICE_CATEGORY_MAP = {
+  // ── Platinum Recurring ──
+  '_PLAT BED BUG': 'Platinum Recurring', '_PLAT CARPET': 'Platinum Recurring',
+  '_PLAT CLOTHMOTH': 'Platinum Recurring', '_PLAT EXCLUSION': 'Platinum Recurring',
+  '_PLAT TERMITE': 'Platinum Recurring', '_PLATINUM': 'Platinum Recurring',
+  '_TOTAL NO CGW': 'Platinum Recurring', '_TOTAL PLAT': 'Platinum Recurring',
+  '_USX TOTAL PLAT': 'Platinum Recurring', '_USX TOTALNOWAR': 'Platinum Recurring',
+  // ── Commercial Recurring ──
+  '_COMM EXT': 'Commercial Recurring', '_COMMERC BB': 'Commercial Recurring',
+  '_COMMERC FOOD': 'Commercial Recurring', '_COMMERC MULTI': 'Commercial Recurring',
+  '_COMMERC PRO BB': 'Commercial Recurring', '_COMMERC PRO BP': 'Commercial Recurring',
+  '_COMMERC PRO PE': 'Commercial Recurring', '_COMMERC SCHOOL': 'Commercial Recurring',
+  '_COMMERCIAL': 'Commercial Recurring',
+  // ── Tick & Mosquito ──
+  '_L O SERVICE': 'Tick & Mosquito', '_MOSQUITO': 'Tick & Mosquito',
+  '_TICK': 'Tick & Mosquito', '_TICK MOSQUITO': 'Tick & Mosquito',
+  '_USX TICK 1-15': 'Tick & Mosquito', '_USX TICK 16-31': 'Tick & Mosquito',
+  // ── Cat-Guard Warranty (CGW) ──
+  '_CG WARRANTY': 'CGW', '_CGW REINSTATE': 'CGW',
+  '_EXCL MAINT': 'CGW', '_USX EXCL WARR': 'CGW',
+  // ── Pest Initial ──
+  '_BED BUG': 'Pest', '_BEE ANNUAL': 'Pest', '_BEE TREAT 1X': 'Pest',
+  '_BURROW TREAT': 'Pest', '_CARP ANNUAL': 'Pest', '_CARPENTER ANT': 'Pest',
+  '_CLEANOUT PEST': 'Pest', '_CLOTHING MOTH': 'Pest', '_DRYWOOD FUME': 'Pest',
+  '_EQUIPMENT': 'Pest', '_EXTERIOR': 'Pest', '_FLEAS': 'Pest',
+  '_GENERAL': 'Pest', '_MOLE AND VOLE': 'Pest', '_MOUSE_ROACH_BB': 'Pest',
+  '_ROACH': 'Pest', '_SMALL FLIES': 'Pest', '_TERMITE': 'Pest',
+  '_TERMITE TREAT': 'Pest', '_WDO': 'Pest', '_WOOD TREAT': 'Pest',
+  // ── Nuisance Wildlife (NWL) ──
+  '_BAT EVICTION': 'NWL', '_BIRD CONTROL': 'NWL', '_BIRD DISINFECT': 'NWL',
+  '_BIRD EQUIPMENT': 'NWL', '_BIRD EXCLUSION': 'NWL', '_BIRD MAINT': 'NWL',
+  '_BIRD TRAP': 'NWL', '_CGW TRAP': 'NWL', '_EMERGENCY REMO': 'NWL',
+  '_NWL EVICTION': 'NWL', '_NWL REMOVAL': 'NWL', '_WOODPECKER': 'NWL',
+  // ── Cat-Guard (exclusion systems) ──
+  '_ABATEMENT': 'Cat-Guard', '_BASEMENT': 'Cat-Guard', '_CGW RESEAL': 'Cat-Guard',
+  '_CHANGE ORDER': 'Cat-Guard', '_CLEAN RESTORE': 'Cat-Guard', '_DUMPSTER RENT': 'Cat-Guard',
+  '_EXCLUSION': 'Cat-Guard', '_EXCLUSIONFULL': 'Cat-Guard', '_EXCLUSIONLOWER': 'Cat-Guard',
+  '_EXCLUSIONUPPER': 'Cat-Guard', '_FULL CG': 'Cat-Guard', '_GENERAL REPAIR': 'Cat-Guard',
+  '_LIFT': 'Cat-Guard', '_LOWER CG': 'Cat-Guard', '_RIDGE GUARD': 'Cat-Guard',
+  '_SOLAR GUARD': 'Cat-Guard', '_TRENCH GUARD': 'Cat-Guard', '_UPPER CG': 'Cat-Guard',
+  '_USX FULL EXCLU': 'Cat-Guard', '_USX LOWER EXCL': 'Cat-Guard', '_USX RESEAL': 'Cat-Guard',
+  '_USX TRENCH': 'Cat-Guard', '_USX UPPER EXCL': 'Cat-Guard',
+  // ── Rodent ──
+  '_ RP 8 VISIT': 'Rodent', '_RMS': 'Rodent', '_RODENT REMOVAL': 'Rodent',
+  '_RP 10-VISIT': 'Rodent', '_RP 15-VISIT': 'Rodent', '_RP 3-VISIT': 'Rodent',
+  '_RP 4-VISIT': 'Rodent', '_RP 6-VISIT': 'Rodent', '_RP 8-VISIT': 'Rodent',
+  // ── Termite Recurring ──
+  '_TMS ACTIVE': 'Termite Recurring', '_TMS INACTIVE': 'Termite Recurring',
+};
+
+const FREE_PLAT_SERVICES = new Set([
+  '_TOTAL PLAT', '_TOTAL NO CGW', '_USX TOTAL PLAT', '_USX TOTALNOWAR',
+]);
+const PROGRAM_CATEGORIES = new Set(['Platinum Recurring', 'Commercial Recurring']);
+const SUMMARY_CATEGORIES = [
+  { key: 'Platinum Recurring',  label: 'Platinum',        color: '#F47B20' },
+  { key: 'Commercial Recurring', label: 'Commercial',     color: '#60A5FA' },
+  { key: 'Tick & Mosquito',     label: 'Tick & Mosquito', color: '#34D399' },
+  { key: 'CGW',                 label: 'Cat-Guard Warranty', color: '#9CA3AF' },
+  { key: 'Pest',                label: 'Pest',            color: '#FBBF24' },
+  { key: 'NWL',                 label: 'NWL',             color: '#A78BFA' },
+  { key: 'Cat-Guard',           label: 'Cat-Guard',       color: '#EC4899' },
+  { key: 'Rodent',              label: 'Rodent',          color: '#6B645A' },
+  { key: 'Termite Recurring',   label: 'Termite (TMS)',   color: '#78716C' },
+];
