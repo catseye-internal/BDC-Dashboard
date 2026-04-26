@@ -1133,31 +1133,36 @@
   }
   .summary-section .sc-section-title { font-size: 14px; }
   .summary-section .sc-section-header { margin-bottom: 4px !important; }
-  .summary-body { display: flex; gap: 12px; flex-wrap: nowrap; }
+  .summary-body { display: flex; gap: 10px; flex-wrap: nowrap; }
   .summary-cat-table-wrap {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
-    overflow-x: visible;
+    overflow: hidden;
   }
   .summary-cat-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
-    white-space: nowrap;
+    table-layout: fixed;
   }
+  /* Column widths: Category gets less, numbers get equal share */
+  .summary-cat-table colgroup .col-cat { width: 26%; }
+  .summary-cat-table colgroup .col-num { width: 18.5%; }
   .summary-cat-table th {
     text-align: left;
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: .5px;
     color: var(--text-dim);
-    padding: 3px 6px;
+    padding: 3px 4px;
     border-bottom: 1px solid var(--border);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .summary-cat-table th:not(:first-child) { text-align: right; }
   .summary-cat-table td {
-    padding: 2px 6px;
+    padding: 2px 4px;
     border-bottom: 1px solid rgba(255,255,255,.04);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .summary-cat-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
   .summary-cat-table .cat-dot {
@@ -1173,7 +1178,7 @@
     padding-top: 4px;
   }
   .summary-kpi-panel {
-    flex: 0 0 320px;
+    flex: 0 0 290px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4px;
@@ -3383,6 +3388,7 @@ function summaryRenderSection(containerId, salesItems, runItems, branchFilter) {
 
   // Build category table
   let tableHTML = '<div class="summary-cat-table-wrap"><table class="summary-cat-table">';
+  tableHTML += '<colgroup><col class="col-cat"><col class="col-num"><col class="col-num"><col class="col-num"><col class="col-num"></colgroup>';
   tableHTML += '<thead><tr><th>Category</th><th>Count</th><th>Initial</th><th>Annual</th><th>Total</th></tr></thead><tbody>';
 
   let totalCount = 0, totalInit = 0, totalAnn = 0;
