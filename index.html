@@ -2812,11 +2812,6 @@ function _ensureSalesData() {
 let masterPeriod = localStorage.getItem('bdc_masterPeriod') || 'today';
 let masterCustomFrom = localStorage.getItem('bdc_masterCustomFrom') || '';
 let masterCustomTo = localStorage.getItem('bdc_masterCustomTo') || '';
-// Legacy aliases for backward compat
-let scBookedPeriod = masterPeriod;
-let scSalesPeriod = masterPeriod;
-let inboundPeriod = masterPeriod;
-
 // Formatters
 const scFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -3335,10 +3330,6 @@ document.querySelectorAll('.master-dash-btn').forEach(btn => {
     }
 
     masterPeriod = period;
-    // Keep legacy aliases in sync
-    scBookedPeriod = period;
-    scSalesPeriod = period;
-    inboundPeriod = period;
 
     // Persist
     localStorage.setItem('bdc_masterPeriod', period);
@@ -3408,9 +3399,6 @@ document.querySelector('.master-dash-apply').addEventListener('click', async () 
   document.getElementById('dateRangeMasterDash').classList.remove('visible');
 
   masterPeriod = 'custom';
-  scBookedPeriod = 'custom';
-  scSalesPeriod = 'custom';
-  inboundPeriod = 'custom';
 
   // Persist
   localStorage.setItem('bdc_masterPeriod', 'custom');
@@ -5208,16 +5196,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initSalesScrollShadow();
 });
 
-// Also re-check after data loads
-if (typeof window._salesMobileInited === 'undefined') {
-  window._salesMobileInited = true;
-  const _origRenderSalesView = typeof renderSalesView === 'function' ? renderSalesView : null;
-  if (_origRenderSalesView) {
-    // Patch renderSalesView to update mobile helpers after render
-    // (already called from main render(), just hook the filter count update)
-  }
-}
-
 // Hook filter changes to update badge
 ['salesFilterDate','salesFilterStage','salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun','salesFilterSearch'].forEach(id => {
   const el = document.getElementById(id);
@@ -5262,22 +5240,6 @@ function switchView(viewName) {
       trendInitAll().catch(e => console.error('Trend tab init error:', e));
     }
   }
-}
-
-function startCycle() {
-  if (cycleTimer) clearInterval(cycleTimer);
-  cycleTimer = setInterval(() => {
-    // Toggle between Dashboard and Leads content while staying in wallboard mode
-    if (wallboardCycleView === 'dashboard') {
-      wallboardCycleView = 'leads';
-      viewContainers.forEach(c => c.classList.remove('active'));
-      document.getElementById('viewLeads').classList.add('active');
-    } else {
-      wallboardCycleView = 'dashboard';
-      viewContainers.forEach(c => c.classList.remove('active'));
-      document.getElementById('viewDashboard').classList.add('active');
-    }
-  }, CYCLE_INTERVAL);
 }
 
 function stopCycle() {
