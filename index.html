@@ -3218,8 +3218,8 @@ function summaryAnalyzeDeal(sale) {
   const otherSvcs = [];
 
   svcs.forEach(svc => {
-    const name = (svc.serviceName || '').trim().toUpperCase();
-    const cat = summaryGetCategory(svc.serviceName);
+    const name = (svc.name || '').trim().toUpperCase();
+    const cat = summaryGetCategory(svc.name);
     if (FREE_PLAT_SERVICES.has(name) || FREE_PLAT_SERVICES.has('_' + name.replace(/^_/, ''))) {
       // Check if this is a "free" plat (100% recurring discount)
       const discAmt = svc.recurringDiscountAmount || 0;
@@ -3251,7 +3251,7 @@ function summaryAnalyzeDeal(sale) {
 
   // Process other services
   otherSvcs.forEach(svc => {
-    const cat = summaryGetCategory(svc.serviceName);
+    const cat = summaryGetCategory(svc.name);
     if (!cat) return;
     let initial = summaryEffectiveInitial(svc);
     const effRecurring = summaryEffectiveRecurring(svc);
