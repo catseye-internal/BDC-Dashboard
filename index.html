@@ -1139,7 +1139,6 @@
     flex: 1 1 0;
     min-width: 0;
     overflow-x: auto;
-    overflow-y: hidden;
   }
   .summary-cat-table {
     width: 100%;
@@ -1221,6 +1220,7 @@
   .summary-branch-section .summary-cat-table td { font-size: 10px; }
   @media (max-width: 900px) {
     .summary-body { flex-direction: column; }
+    .summary-cat-table-wrap { flex: 0 0 auto; }
     .summary-kpi-panel { grid-template-columns: repeat(4, 1fr); width: auto !important; min-width: 0 !important; }
     .summary-cat-table { font-size: 11px; }
     .summary-cat-table td { font-size: 11px; }
