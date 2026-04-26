@@ -3324,6 +3324,7 @@ function summaryComputeKPIs(salesItems, runItems, branchFilter) {
   let cgValueSum = 0;
   let cgCount = 0;
 
+  // ALL sales contribute to dollar totals and category buckets
   filteredSales.forEach(sale => {
     const analyzed = summaryAnalyzeDeal(sale);
     analyzed.forEach(a => {
@@ -3351,8 +3352,11 @@ function summaryComputeKPIs(salesItems, runItems, branchFilter) {
     });
   });
 
+  // Leads Won/Run: exclude countAsLeadRun='No' from counts (not dollars)
+  // Matches Dashboard view KPI logic — "No" deals still contribute $ but not to run/won counts
+  const qualifiedSales = filteredSales.filter(s => s.countAsLeadRun !== 'No');
   const leadsRun = filteredRuns.length;
-  const leadsWon = filteredSales.length;
+  const leadsWon = qualifiedSales.length;
   const closingPct = leadsRun > 0 ? (leadsWon / leadsRun * 100) : 0;
   const programPct = leadsRun > 0 ? (totalPrograms / leadsRun * 100) : 0;
   const dollarPerLead = leadsRun > 0 ? (totalInitial / leadsRun) : 0;
