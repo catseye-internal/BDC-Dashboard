@@ -3471,8 +3471,8 @@ function renderSummaryView() {
   if (summaryPeriod === 'custom') {
     const from = summaryCustomFrom, to = summaryCustomTo;
     if (!from || !to) return;
-    salesItems = _scGetAllItems(scSalesData).filter(s => s.date >= from && s.date <= to);
-    runItems = _scGetAllItems(scRunData).filter(r => r.date >= from && r.date <= to);
+    salesItems = (scSalesData.ytd || scSalesData.mtd || []).filter(s => s.date >= from && s.date <= to);
+    runItems = (scRunData.ytd || scRunData.mtd || []).filter(r => r.date >= from && r.date <= to);
   } else {
     salesItems = _scGetPeriodItems(scSalesData, summaryPeriod);
     runItems = _scGetPeriodItems(scRunData, summaryPeriod);
@@ -3503,8 +3503,8 @@ function summaryExportCSV() {
   if (summaryPeriod === 'custom') {
     const from = summaryCustomFrom, to = summaryCustomTo;
     if (!from || !to) return;
-    salesItems = _scGetAllItems(scSalesData).filter(s => s.date >= from && s.date <= to);
-    runItems = _scGetAllItems(scRunData).filter(r => r.date >= from && r.date <= to);
+    salesItems = (scSalesData.ytd || scSalesData.mtd || []).filter(s => s.date >= from && s.date <= to);
+    runItems = (scRunData.ytd || scRunData.mtd || []).filter(r => r.date >= from && r.date <= to);
   } else {
     salesItems = _scGetPeriodItems(scSalesData, summaryPeriod);
     runItems = _scGetPeriodItems(scRunData, summaryPeriod);
