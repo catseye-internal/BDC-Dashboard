@@ -1734,6 +1734,7 @@
         <button class="sc-period-btn summary-period-btn active" data-period="mtd">MTD</button>
         <button class="sc-period-btn summary-period-btn" data-period="ytd">YTD</button>
         <button class="sc-period-btn summary-period-btn" data-period="custom">Custom</button>
+        <button class="sc-period-btn summary-export-btn" id="summaryExportBtn" title="Export CSV" style="margin-left:auto;font-size:12px;padding:4px 10px;">&#x2913; CSV</button>
         <div class="sc-date-range" id="dateRangeSummary">
           <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromSummary"></div>
           <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToSummary"></div>
@@ -3484,6 +3485,78 @@ function renderSummaryView() {
   }
 }
 
+// ── Summary CSV Export ──
+function summaryExportCSV() {
+  let salesItems, runItems;
+  if (summaryPeriod === 'custom') {
+    const from = summaryCustomFrom, to = summaryCustomTo;
+    if (!from || !to) return;
+    salesItems = _scGetAllItems(scSalesData).filter(s => s.date >= from && s.date <= to);
+    runItems = _scGetAllItems(scRunData).filter(r => r.date >= from && r.date <= to);
+  } else {
+    salesItems = _scGetPeriodItems(scSalesData, summaryPeriod);
+    runItems = _scGetPeriodItems(scRunData, summaryPeriod);
+  }
+
+  // Build rows: one section per group
+  const sections = [
+    { label: 'Combined', filter: null },
+    { label: 'Catseye', filter: 'catseye' },
+    { label: 'USX Pest', filter: 'usx' }
+  ];
+  SC_ALL_BRANCHES.forEach(b => sections.push({ label: b, filter: b }));
+
+  const rows = [];
+  rows.push(['Section','Category','Count','Initial','Annual','Total',
+             'Leads Run','Leads Won','Closing %','# Programs','% Programs',
+             'Total Initial','Total Annual','Total Sales','$/Lead Initial',
+             'Avg Initial Sale','Avg Plat Recurring','Avg Comm Recurring',
+             'Avg Cat-Guard','Avg Contract Value']);
+
+  sections.forEach(sec => {
+    const kpi = summaryComputeKPIs(salesItems, runItems, sec.filter);
+    // Skip empty branch sections
+    if (sec.filter && !['catseye','usx'].includes(sec.filter) && kpi.leadsRun === 0 && kpi.leadsWon === 0) return;
+
+    let first = true;
+    SUMMARY_CATEGORIES.forEach(cat => {
+      const d = kpi.cats[cat.key];
+      const row = [sec.label, cat.label, d.count, d.initial.toFixed(2), d.annual.toFixed(2), (d.initial + d.annual).toFixed(2)];
+      if (first) {
+        row.push(kpi.leadsRun, kpi.leadsWon, kpi.closingPct.toFixed(1) + '%',
+                 kpi.totalPrograms, kpi.programPct.toFixed(1) + '%',
+                 kpi.totalInitial.toFixed(2), kpi.totalAnnual.toFixed(2), kpi.totalSales.toFixed(2),
+                 kpi.dollarPerLead.toFixed(2), kpi.avgInitial.toFixed(2),
+                 kpi.avgPlatRecurring.toFixed(2), kpi.avgCommRecurring.toFixed(2),
+                 kpi.avgCGValue.toFixed(2), kpi.avgContractValue.toFixed(2));
+        first = false;
+      }
+      rows.push(row);
+    });
+    // Total row for this section
+    let totalCount = 0, totalInit = 0, totalAnn = 0;
+    SUMMARY_CATEGORIES.forEach(cat => { const d = kpi.cats[cat.key]; totalCount += d.count; totalInit += d.initial; totalAnn += d.annual; });
+    rows.push([sec.label, 'Total', totalCount, totalInit.toFixed(2), totalAnn.toFixed(2), (totalInit + totalAnn).toFixed(2)]);
+    rows.push([]); // blank row between sections
+  });
+
+  // Build CSV string
+  const csvContent = rows.map(r => r.map(v => {
+    const s = String(v == null ? '' : v);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(',')).join('\n');
+
+  // Download
+  const periodLabel = summaryPeriod === 'custom' ? summaryCustomFrom + '_to_' + summaryCustomTo : summaryPeriod.toUpperCase();
+  const filename = 'BDC_Summary_' + periodLabel + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 // ═══════════════════════════════════════════
 // MASTER DASHBOARD FILTER (top 3 sections)
 // ═══════════════════════════════════════════
@@ -3695,6 +3768,10 @@ if (summaryApplyBtn) {
     renderSummaryView();
   });
 }
+
+// Summary Export CSV button
+const summaryExportBtn = document.getElementById('summaryExportBtn');
+if (summaryExportBtn) summaryExportBtn.addEventListener('click', summaryExportCSV);
 
 // Close date dropdown when clicking outside
 document.addEventListener('click', (e) => {
