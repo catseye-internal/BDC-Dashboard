@@ -3043,7 +3043,7 @@ function _buildKpiCards(salesItems, runItems, groups) {
   for (const g of groups) {
     const allSales = g.branches ? salesItems.filter(s => g.branches.includes(s.branch)) : salesItems;
     const run = g.branches ? runItems.filter(r => g.branches.includes(r.branch)) : runItems;
-    const sales = allSales.filter(s => s.countAsLeadRun !== 'No');
+    const sales = allSales.filter(s => s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(s.owner || ''));
     const wonCount = sales.length;
     const runCount = run.length;
     const closingPct = runCount > 0 ? Math.round((wonCount / runCount) * 100) : 0;
@@ -3127,7 +3127,7 @@ function scRenderByOwner(salesItems, runItems) {
     owners[o].initial += (s.initialValue || 0);
     owners[o].annual += (s.annualValue || 0);
     owners[o].total += (s.totalValue || 0);
-    if (s.countAsLeadRun !== 'No') {
+    if (s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(o)) {
       owners[o].qWon += 1;
     }
   });
@@ -3374,7 +3374,7 @@ function summaryComputeKPIs(salesItems, runItems, branchFilter) {
 
   // Leads Won/Run: exclude countAsLeadRun='No' from won count (not dollars)
   // Same logic as Dashboard/Trends/Wallboard views
-  const qualifiedSales = filteredSales.filter(s => s.countAsLeadRun !== 'No');
+  const qualifiedSales = filteredSales.filter(s => s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(s.owner || ''));
   const leadsRun = filteredRuns.length;
   const leadsWon = qualifiedSales.length;
   const closingPct = leadsRun > 0 ? (leadsWon / leadsRun * 100) : 0;

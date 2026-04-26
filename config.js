@@ -35,6 +35,15 @@ const TECH_OWNER_MAP = {
   'VXR': 'Vincent Romano'
 };
 
+// ── Excluded Owners for Leads Won count (non-sales closers — still show in $ totals) ──
+const EXCLUDED_WON_OWNERS = new Set([
+  'Amanda Groves',
+  'Kevin Aucoin',
+  'Lisa Mextorf',
+  'Senghor Morgan',
+  'Reid O\'Brien'
+]);
+
 // ── Excluded Mediums (internal lines, direct dials, billing — not real leads) ──
 const EXCLUDED_MEDIUMS = new Set([
   'bdc sales line',
