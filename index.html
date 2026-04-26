@@ -1145,9 +1145,9 @@
     font-size: 12px;
     table-layout: fixed;
   }
-  /* Column widths: Category gets less, numbers get equal share */
-  .summary-cat-table colgroup .col-cat { width: 26%; }
-  .summary-cat-table colgroup .col-num { width: 18.5%; }
+  /* Column widths: Category narrower so Total column isn't clipped */
+  .summary-cat-table colgroup .col-cat { width: 22%; }
+  .summary-cat-table colgroup .col-num { width: 19.5%; }
   .summary-cat-table th {
     text-align: left;
     font-size: 9px;
@@ -1178,7 +1178,7 @@
     padding-top: 4px;
   }
   .summary-kpi-panel {
-    flex: 0 0 290px;
+    flex: 0 0 270px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4px;
@@ -1215,7 +1215,7 @@
   }
   .summary-branch-section .sc-section-title { font-size: 13px; }
   .summary-branch-section .sc-section-header { margin-bottom: 2px !important; }
-  .summary-branch-section .summary-kpi-panel { flex: 0 0 280px; }
+  .summary-branch-section .summary-kpi-panel { flex: 0 0 260px; }
   .summary-branch-section .summary-kpi-val { font-size: 13px; }
   @media (max-width: 768px) {
     .summary-body { flex-direction: column; }
