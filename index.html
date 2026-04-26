@@ -2840,6 +2840,7 @@ function scRenderBookedBlock(containerId, items, branches) {
 function scAggregate(opportunities, branches) {
   const result = {};
   branches.forEach(b => { result[b] = { initial: 0, annual: 0, total: 0, count: 0 }; });
+  var rawTotal = 0;
 
   opportunities.forEach(opp => {
     const branch = opp.branch || '';
@@ -2847,7 +2848,11 @@ function scAggregate(opportunities, branches) {
     result[branch].initial += (opp.initialValue || 0);
     result[branch].annual  += (opp.annualValue || 0);
     result[branch].total   += (opp.totalValue || 0);
-    result[branch].count   += 1;
+    rawTotal += 1;
+    // Badge count: only count qualified leads won (excl. countAsLeadRun='No' + EXCLUDED_WON_OWNERS)
+    if (opp.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(opp.owner || '')) {
+      result[branch].count += 1;
+    }
   });
 
   const totals = { initial: 0, annual: 0, total: 0, count: 0 };
@@ -2858,7 +2863,7 @@ function scAggregate(opportunities, branches) {
     totals.count   += v.count;
   });
 
-  return { branches: result, totals };
+  return { branches: result, totals, rawTotal };
 }
 
 // ── Build a single sales card HTML ──
@@ -2889,7 +2894,7 @@ function scRenderSalesBlock(containerId, opportunities, branches) {
   const el = document.getElementById(containerId);
   const agg = scAggregate(opportunities, branches);
 
-  if (agg.totals.count === 0 && !_scDataReady) {
+  if (agg.rawTotal === 0 && !_scDataReady) {
     el.innerHTML = '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
     return;
   }
@@ -2979,7 +2984,7 @@ function scRenderSalesCombined(containerId, opportunities) {
   const aggCatseye = scAggregate(opportunities, SC_CATSEYE_BRANCHES);
   const aggUSX = scAggregate(opportunities, SC_USX_BRANCHES);
 
-  if (aggAll.totals.count === 0 && !_scDataReady) {
+  if (aggAll.rawTotal === 0 && !_scDataReady) {
     el.innerHTML = '<div class="sc-no-data sc-loading-pulse">Loading...</div>';
     return;
   }
