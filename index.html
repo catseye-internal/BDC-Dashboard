@@ -1698,6 +1698,22 @@
   <!-- ═══════════════════════════════════════ -->
   <div class="view-container" id="viewSummary">
 
+    <div class="sc-section-header" style="margin-bottom:12px">
+      <div class="sc-period-toggle">
+        <button class="sc-period-btn summary-period-btn" data-period="yesterday">Yesterday</button>
+        <button class="sc-period-btn summary-period-btn" data-period="today">Today</button>
+        <button class="sc-period-btn summary-period-btn" data-period="wk">WK</button>
+        <button class="sc-period-btn summary-period-btn active" data-period="mtd">MTD</button>
+        <button class="sc-period-btn summary-period-btn" data-period="ytd">YTD</button>
+        <button class="sc-period-btn summary-period-btn" data-period="custom">Custom</button>
+        <div class="sc-date-range" id="dateRangeSummary">
+          <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="dateFromSummary"></div>
+          <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="dateToSummary"></div>
+          <button class="sc-date-apply" id="summaryDateApply">Apply</button>
+        </div>
+      </div>
+    </div>
+
     <div class="summary-section" id="summaryCombined">
       <div class="sc-section-header" style="margin-bottom:8px">
         <span class="sc-section-title">Combined Summary</span>
@@ -3389,16 +3405,20 @@ function summaryRenderSection(containerId, salesItems, runItems, branchFilter) {
   body.innerHTML = tableHTML + kpiHTML;
 }
 
+// Summary view has its own independent period state
+let summaryPeriod = 'mtd';
+let summaryCustomFrom = '', summaryCustomTo = '';
+
 function renderSummaryView() {
   let salesItems, runItems;
-  if (masterPeriod === 'custom') {
-    const from = masterCustomFrom, to = masterCustomTo;
+  if (summaryPeriod === 'custom') {
+    const from = summaryCustomFrom, to = summaryCustomTo;
     if (!from || !to) return;
     salesItems = _scGetAllItems(scSalesData).filter(s => s.date >= from && s.date <= to);
     runItems = _scGetAllItems(scRunData).filter(r => r.date >= from && r.date <= to);
   } else {
-    salesItems = _scGetPeriodItems(scSalesData, masterPeriod);
-    runItems = _scGetPeriodItems(scRunData, masterPeriod);
+    salesItems = _scGetPeriodItems(scSalesData, summaryPeriod);
+    runItems = _scGetPeriodItems(scRunData, summaryPeriod);
   }
   summaryRenderSection('summaryCombined', salesItems, runItems, null);
   summaryRenderSection('summaryCatseye', salesItems, runItems, 'catseye');
@@ -3567,6 +3587,55 @@ document.querySelector('.master-dash-apply').addEventListener('click', async () 
   renderSalesCenter();
   render();
 });
+
+// ── Summary view independent filter ──
+document.querySelectorAll('.summary-period-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const period = btn.dataset.period;
+
+    // Update active button (Summary only)
+    document.querySelectorAll('.summary-period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Close Summary date dropdown
+    const dr = document.getElementById('dateRangeSummary');
+    if (dr) dr.classList.remove('visible');
+
+    if (period === 'custom') {
+      if (dr) {
+        dr.classList.add('visible');
+        if (summaryCustomFrom) document.getElementById('dateFromSummary').value = summaryCustomFrom;
+        if (summaryCustomTo) document.getElementById('dateToSummary').value = summaryCustomTo;
+      }
+      summaryPeriod = 'custom';
+      return;
+    }
+
+    summaryPeriod = period;
+
+    // Lazy-load YTD data when needed
+    if (period === 'ytd') await fetchSalesCenterYTD();
+    if (period === 'wk') {
+      _scBuildDates();
+      if (_scWkStart < _scMtdStart) await fetchSalesCenterYTD();
+    }
+
+    renderSummaryView();
+  });
+});
+
+// Summary custom date Apply
+const summaryApplyBtn = document.getElementById('summaryDateApply');
+if (summaryApplyBtn) {
+  summaryApplyBtn.addEventListener('click', async () => {
+    summaryCustomFrom = document.getElementById('dateFromSummary').value;
+    summaryCustomTo = document.getElementById('dateToSummary').value;
+    document.getElementById('dateRangeSummary').classList.remove('visible');
+    summaryPeriod = 'custom';
+    await fetchSalesCenterYTD();
+    renderSummaryView();
+  });
+}
 
 // Close date dropdown when clicking outside
 document.addEventListener('click', (e) => {
@@ -3859,10 +3928,6 @@ function renderSalesCenter() {
     scRenderSalesSection(masterPeriod);
     scRenderKPISection(masterPeriod);
     scRenderByOwnerSection(masterPeriod);
-  }
-  // Re-render Summary if it's the active view
-  if (document.getElementById('viewSummary') && document.getElementById('viewSummary').classList.contains('active')) {
-    renderSummaryView();
   }
 }
 
