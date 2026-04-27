@@ -1154,15 +1154,13 @@
   .summary-section .sc-section-header { margin-bottom: 8px !important; }
   .summary-body { display: flex; gap: 12px; flex-wrap: nowrap; }
   .summary-cat-table-wrap {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     min-width: 0;
-    overflow: visible;
   }
   .summary-cat-table {
-    width: 100%;
+    width: auto;
     border-collapse: collapse;
     font-size: 14px;
-    table-layout: fixed;
   }
   .summary-cat-table th {
     text-align: left;
@@ -1175,8 +1173,6 @@
     white-space: nowrap;
   }
   .summary-cat-table th:not(:first-child) { text-align: right; }
-  .summary-cat-table td:first-child,
-  .summary-cat-table th:first-child { overflow: hidden; text-overflow: ellipsis; }
   .summary-cat-table td {
     padding: 4px 6px;
     border-bottom: 1px solid rgba(255,255,255,.04);
@@ -1198,8 +1194,8 @@
   }
   .summary-kpi-panel {
     flex: 0 0 auto;
-    width: 230px;
-    min-width: 230px;
+    width: 200px;
+    min-width: 200px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 5px;
@@ -1236,7 +1232,7 @@
   }
   .summary-branch-section .sc-section-title { font-size: 15px; }
   .summary-branch-section .sc-section-header { margin-bottom: 4px !important; }
-  .summary-branch-section .summary-kpi-panel { width: 210px; min-width: 210px; }
+  .summary-branch-section .summary-kpi-panel { width: 180px; min-width: 180px; }
   .summary-branch-section .summary-kpi-val { font-size: 13px; }
   .summary-branch-section .summary-cat-table td { font-size: 12px; }
   @media (max-width: 900px) {
@@ -3479,7 +3475,6 @@ function summaryRenderSection(containerId, salesItems, runItems, branchFilter) {
 
   // Build category table
   let tableHTML = '<div class="summary-cat-table-wrap"><table class="summary-cat-table">';
-  tableHTML += '<colgroup><col style="width:auto"><col style="width:52px"><col style="width:80px"><col style="width:80px"><col style="width:80px"></colgroup>';
   tableHTML += '<thead><tr><th>Category</th><th>Count</th><th>Initial</th><th>Annual</th><th>Total</th></tr></thead><tbody>';
 
   let totalCount = 0, totalInit = 0, totalAnn = 0;
@@ -5841,7 +5836,8 @@ document.getElementById('trendExportPdf').addEventListener('click', function() {
         const availH = ph - startY - my - 0.25; // space for charts + footer
         const chartGap = 0.25;
         const numCharts = chartIndices.length;
-        const chartH = numCharts === 1 ? availH : (availH - chartGap) / 2;
+        const twoChartH = (availH - chartGap) / 2;
+        const chartH = numCharts === 1 ? twoChartH : twoChartH;
         const chartW = cw;
         const labelH = 0.22;
 
