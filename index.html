@@ -1430,6 +1430,12 @@
       </select>
     </div>
     <div class="filter-group">
+      <span class="filter-label">Created By</span>
+      <select id="bookedFilterCreatedBy">
+        <option value="all">All</option>
+      </select>
+    </div>
+    <div class="filter-group">
       <span class="filter-label">Search</span>
       <input type="text" id="bookedFilterSearch" placeholder="Name, service...">
     </div>
@@ -4978,7 +4984,14 @@ async function refresh(isInitial) {
         console.log(`⚡ Loaded ${scRunData.mtd.length} cached run items`);
       }
       _scDataReady = true;
+      // Build allBookedRows from localStorage buckets for Booked list view
+      if (scBookedData.ytd && scBookedData.ytd.length > 0) {
+        allBookedRows = scBookedData.ytd;
+      } else if (scBookedData.mtd && scBookedData.mtd.length > 0) {
+        allBookedRows = scBookedData.mtd;
+      }
       try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
+      try { renderBookedView(); } catch(e) {}
       hasLocalData = true;
       updateTimestamp(cachedBooked.ts);
       // If local cache is very fresh, skip live API entirely
@@ -5013,6 +5026,7 @@ async function refresh(isInitial) {
           if (processed) {
             _scDataReady = true;
             try { renderSalesCenter(); } catch(e) { console.error('❌ renderSalesCenter error after processing:', e, e.stack); }
+            try { renderBookedView(); } catch(e) {}
           } else {
             console.error('❌ _processRawCache returned false on initial load');
             _scDataReady = true;
@@ -5056,6 +5070,7 @@ async function refresh(isInitial) {
           _processRawCache('auto-refresh');
           _scDataReady = true;
           try { renderSalesCenter(); } catch(e) { console.error('❌ Auto-refresh render error:', e); }
+          try { renderBookedView(); } catch(e) {}
         }
         updateTimestamp(new Date(serverCache.updated).getTime());
         console.log(`🔄 Auto-refresh from server cache (${Math.round(cacheAge)}m old)`);
@@ -5098,6 +5113,7 @@ async function refresh(isInitial) {
           cacheSet('bdc_booked', scBookedData);
           cacheSet('bdc_sales', scSalesData);
           try { renderSalesCenter(); } catch(e) { console.error('renderSalesCenter() error:', e); }
+          try { renderBookedView(); } catch(e) {}
           _scYtdBackgroundRefresh();
         });
 
@@ -5118,6 +5134,7 @@ async function refresh(isInitial) {
   if (allLeads.length > 0 || scBookedData.mtd.length > 0) {
     try { render(); } catch(e) { console.error('Safety render() error:', e); }
     try { renderSalesCenter(); } catch(e) { console.error('Safety renderSalesCenter() error:', e); }
+    try { renderBookedView(); } catch(e) {}
   }
 
   // ── Init trend charts only if Trends tab is currently active ──
@@ -5688,6 +5705,7 @@ function getFilteredBookedRows() {
   const dateVal = document.getElementById('bookedFilterDate').value;
   const branchVal = document.getElementById('bookedFilterBranch').value;
   const ownerVal = document.getElementById('bookedFilterOwner').value;
+  const createdByVal = document.getElementById('bookedFilterCreatedBy').value;
   const searchVal = (document.getElementById('bookedFilterSearch').value || '').toLowerCase().trim();
 
   // Date filter
@@ -5716,6 +5734,7 @@ function getFilteredBookedRows() {
 
   if (branchVal !== 'all') rows = rows.filter(r => r.branch === branchVal);
   if (ownerVal !== 'all') rows = rows.filter(r => r.owner === ownerVal);
+  if (createdByVal !== 'all') rows = rows.filter(r => r.createdBy === createdByVal);
   if (searchVal) rows = rows.filter(r => {
     return (r.contactName || '').toLowerCase().includes(searchVal) ||
            (r.services || '').toLowerCase().includes(searchVal) ||
@@ -5792,6 +5811,14 @@ function populateBookedFilters() {
   ownerSel.innerHTML = '<option value="all">All Owners</option>';
   owners.forEach(o => { ownerSel.innerHTML += '<option value="' + o + '">' + o + '</option>'; });
   ownerSel.value = curOwner || 'all';
+
+  // Created By
+  const creators = [...new Set(allBookedRows.map(r => r.createdBy).filter(Boolean))].sort();
+  const cbSel = document.getElementById('bookedFilterCreatedBy');
+  const curCb = cbSel.value;
+  cbSel.innerHTML = '<option value="all">All</option>';
+  creators.forEach(c => { cbSel.innerHTML += '<option value="' + c + '">' + c + '</option>'; });
+  cbSel.value = curCb || 'all';
 }
 
 function renderBookedView() {
@@ -5878,7 +5905,7 @@ function applyBookedSortRules() {
 }
 
 // Booked filter event listeners
-['bookedFilterDate','bookedFilterBranch','bookedFilterOwner'].forEach(function(id) {
+['bookedFilterDate','bookedFilterBranch','bookedFilterOwner','bookedFilterCreatedBy'].forEach(function(id) {
   document.getElementById(id).addEventListener('change', function() {
     if (id === 'bookedFilterDate') {
       var panel = document.getElementById('bookedCustomDateRange');
@@ -5918,6 +5945,9 @@ function switchView(viewName) {
   }
   if (viewName === 'summary') {
     renderSummaryView();
+  }
+  if (viewName === 'booked') {
+    renderBookedView();
   }
 }
 
