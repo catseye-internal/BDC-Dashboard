@@ -6,6 +6,7 @@
 <title>BDC Dashboard | Catseye & USX Pest</title>
 <link rel="preload" href="./cache.json" as="fetch" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -230,6 +231,18 @@
   .compare-btn:hover { border-color: var(--accent); color: var(--accent); }
   .compare-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   body.wallboard .compare-group { display: none; }
+
+  /* ── Trend Export Button ── */
+  .trend-export-btn {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 5px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    transition: all 0.15s ease; white-space: nowrap;
+  }
+  .trend-export-btn:hover { border-color: var(--green); color: var(--green); }
+  .trend-export-btn:active { background: var(--green); color: #fff; border-color: var(--green); }
+  body.wallboard .trend-export-btn { display: none; }
 
   /* ── Trend Line Charts ── */
   .trend-block {
@@ -1132,13 +1145,13 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 10px 14px;
-    margin-bottom: 10px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
     overflow: visible;
   }
-  .summary-section .sc-section-title { font-size: 14px; }
-  .summary-section .sc-section-header { margin-bottom: 4px !important; }
-  .summary-body { display: flex; gap: 8px; flex-wrap: nowrap; }
+  .summary-section .sc-section-title { font-size: 17px; }
+  .summary-section .sc-section-header { margin-bottom: 8px !important; }
+  .summary-body { display: flex; gap: 12px; flex-wrap: nowrap; }
   .summary-cat-table-wrap {
     flex: 1 1 0;
     min-width: 0;
@@ -1147,66 +1160,66 @@
   .summary-cat-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 14px;
   }
   .summary-cat-table th {
     text-align: left;
-    font-size: 9px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: .5px;
     color: var(--text-dim);
-    padding: 3px 4px;
+    padding: 5px 6px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
   .summary-cat-table th:not(:first-child) { text-align: right; }
   .summary-cat-table td {
-    padding: 2px 4px;
+    padding: 4px 6px;
     border-bottom: 1px solid rgba(255,255,255,.04);
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 13px;
   }
   .summary-cat-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
   .summary-cat-table .cat-dot {
     display: inline-block;
-    width: 7px; height: 7px;
+    width: 8px; height: 8px;
     border-radius: 50%;
-    margin-right: 3px;
+    margin-right: 4px;
     vertical-align: middle;
   }
   .summary-cat-table tr.cat-total td {
     font-weight: 700;
     border-top: 2px solid var(--orange);
-    padding-top: 4px;
+    padding-top: 6px;
   }
   .summary-kpi-panel {
     flex: 0 0 auto;
-    width: 188px;
-    min-width: 188px;
+    width: 230px;
+    min-width: 230px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 3px;
+    gap: 5px;
     align-content: start;
   }
   .summary-kpi {
     background: rgba(255,255,255,.03);
     border: 1px solid var(--border);
-    border-radius: 5px;
-    padding: 2px 3px;
+    border-radius: 6px;
+    padding: 5px 6px;
     text-align: center;
   }
   .summary-kpi-val {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--text);
-    line-height: 1.1;
+    line-height: 1.15;
   }
   .summary-kpi-label {
-    font-size: 7px;
+    font-size: 9px;
     text-transform: uppercase;
     letter-spacing: .3px;
     color: var(--text-dim);
-    margin-top: 1px;
+    margin-top: 2px;
   }
   .summary-kpi.wide { grid-column: span 2; }
   /* Branch sub-sections are more compact */
@@ -1214,25 +1227,25 @@
     background: rgba(255,255,255,.02);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 10px;
-    margin-bottom: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
   }
-  .summary-branch-section .sc-section-title { font-size: 13px; }
-  .summary-branch-section .sc-section-header { margin-bottom: 2px !important; }
-  .summary-branch-section .summary-kpi-panel { width: 178px; min-width: 178px; }
-  .summary-branch-section .summary-kpi-val { font-size: 11px; }
-  .summary-branch-section .summary-cat-table td { font-size: 10px; }
+  .summary-branch-section .sc-section-title { font-size: 15px; }
+  .summary-branch-section .sc-section-header { margin-bottom: 4px !important; }
+  .summary-branch-section .summary-kpi-panel { width: 210px; min-width: 210px; }
+  .summary-branch-section .summary-kpi-val { font-size: 13px; }
+  .summary-branch-section .summary-cat-table td { font-size: 12px; }
   @media (max-width: 900px) {
     .summary-body { flex-direction: column; }
     .summary-cat-table-wrap { flex: 0 0 auto; }
     .summary-kpi-panel { grid-template-columns: repeat(4, 1fr); width: auto !important; min-width: 0 !important; }
-    .summary-cat-table { font-size: 11px; }
-    .summary-cat-table td { font-size: 11px; }
+    .summary-cat-table { font-size: 13px; }
+    .summary-cat-table td { font-size: 13px; }
   }
   @media (max-width: 480px) {
     .summary-kpi-panel { grid-template-columns: 1fr 1fr; }
-    .summary-cat-table { font-size: 10px; }
-    .summary-cat-table td { font-size: 10px; }
+    .summary-cat-table { font-size: 12px; }
+    .summary-cat-table td { font-size: 12px; }
   }
 </style>
 </head>
@@ -1691,6 +1704,7 @@
         <button class="compare-btn active" id="compareToggle">Compare</button>
       </span>
     </div>
+    <button class="trend-export-btn" id="trendExportPdf" title="Export trends as PDF">&#128196; Export PDF</button>
   </div>
 
   <!-- ── 5 Trend Charts ── -->
@@ -5765,6 +5779,112 @@ function updateTimestamp(sourceTs) {
 }
 // Refresh age display every 60s
 setInterval(() => { if (_lastDataTs) updateTimestamp(); }, 60000);
+
+// ── Trends PDF Export ──
+document.getElementById('trendExportPdf').addEventListener('click', function() {
+  const btn = this;
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    try {
+      const { jsPDF } = window.jspdf;
+      // Landscape letter: 11 x 8.5 inches
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter' });
+      const pw = 11, ph = 8.5;
+      const mx = 0.4, my = 0.35; // margins
+      const cw = pw - 2 * mx; // content width
+
+      // Dark background
+      pdf.setFillColor(28, 26, 24); // --bg #1C1A18
+      pdf.rect(0, 0, pw, ph, 'F');
+
+      // Header
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(16);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text('BDC Dashboard — Trend Report', mx, my + 0.18);
+
+      // Date + filter info
+      const activeBtn = document.querySelector('.master-trend-btn.active');
+      const rangeLabel = activeBtn ? activeBtn.textContent : 'MTD';
+      const uniqueBtn = document.querySelector('#trendsUniqueToggle .iu-btn.active');
+      const uniqueLabel = uniqueBtn ? uniqueBtn.textContent : 'All';
+      const now = new Date();
+      const dateStr = (now.getMonth()+1) + '/' + now.getDate() + '/' + now.getFullYear();
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(180, 180, 180);
+      pdf.text('Period: ' + rangeLabel + '  |  Leads: ' + uniqueLabel + '  |  Generated: ' + dateStr, mx, my + 0.42);
+
+      // Charts
+      const chartIds = ['trendChartInbound','trendChartConv','trendChartBooked','trendChartRun','trendChartSales'];
+      const chartLabels = ['Inbound Trend','Conv % Trend','Booked Trend','Run Trend','Sales Trend'];
+
+      // Layout: 3 charts top row, 2 charts bottom row
+      const topY = my + 0.62;
+      const chartGap = 0.15;
+      const topChartW = (cw - 2 * chartGap) / 3;
+      const botChartW = (cw - chartGap) / 2;
+      const rowH = (ph - topY - my - 0.15 - chartGap) / 2; // split remaining height
+      const labelH = 0.18;
+      const chartH = rowH - labelH;
+
+      chartIds.forEach((id, i) => {
+        const canvas = document.getElementById(id);
+        if (!canvas) return;
+        const imgData = canvas.toDataURL('image/png', 1.0);
+
+        let x, y, w;
+        if (i < 3) {
+          // Top row — 3 charts
+          x = mx + i * (topChartW + chartGap);
+          y = topY;
+          w = topChartW;
+        } else {
+          // Bottom row — 2 charts centered
+          const botOffset = (cw - 2 * botChartW - chartGap) / 2;
+          x = mx + botOffset + (i - 3) * (botChartW + chartGap);
+          y = topY + rowH + chartGap;
+          w = botChartW;
+        }
+
+        // Chart label
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8);
+        pdf.setTextColor(200, 200, 200);
+        pdf.text(chartLabels[i], x, y + 0.1);
+
+        // Chart background card
+        pdf.setFillColor(38, 36, 33);
+        pdf.roundedRect(x, y + labelH, w, chartH, 0.06, 0.06, 'F');
+
+        // Chart image
+        pdf.addImage(imgData, 'PNG', x + 0.04, y + labelH + 0.04, w - 0.08, chartH - 0.08);
+      });
+
+      // Footer
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text('Catseye & USX Pest  •  BDC Dashboard  •  NOTE: Sales accuracy may vary prior to May 2026', mx, ph - 0.15);
+
+      // Generate filename
+      const m = String(now.getMonth()+1).padStart(2,'0');
+      const d = String(now.getDate()).padStart(2,'0');
+      const y = now.getFullYear();
+      pdf.save('BDC_Trends_' + m + '.' + d + '.' + y + '.pdf');
+
+    } catch (e) {
+      console.error('PDF export error:', e);
+      alert('PDF export failed: ' + e.message);
+    } finally {
+      btn.textContent = '📄 Export PDF';
+      btn.disabled = false;
+    }
+  }, 100);
+});
 
 // ── Service Worker registration (offline-first cache.json) ──
 if ('serviceWorker' in navigator) {
