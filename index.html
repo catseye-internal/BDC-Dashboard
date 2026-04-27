@@ -5825,8 +5825,14 @@ function populateBookedFilters() {
 }
 
 function renderBookedView() {
+  console.log('📋 renderBookedView called, allBookedRows.length=' + allBookedRows.length);
+  if (allBookedRows.length === 0 && scBookedData && scBookedData.ytd && scBookedData.ytd.length > 0) {
+    console.warn('📋 allBookedRows empty but scBookedData.ytd has ' + scBookedData.ytd.length + ' — reseeding');
+    allBookedRows = scBookedData.ytd;
+  }
   populateBookedFilters();
   const filtered = getFilteredBookedRows();
+  console.log('📋 filtered=' + filtered.length + ', dateFilter=' + document.getElementById('bookedFilterDate').value);
   renderBookedTable(filtered);
 }
 
