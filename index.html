@@ -231,7 +231,6 @@
   }
   .compare-btn:hover { border-color: var(--accent); color: var(--accent); }
   .compare-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  body.wallboard .compare-group { display: none; }
 
   /* ── Trend Export Button ── */
   .trend-export-btn {
@@ -243,7 +242,6 @@
   }
   .trend-export-btn:hover { border-color: var(--green); color: var(--green); }
   .trend-export-btn:active { background: var(--green); color: #fff; border-color: var(--green); }
-  body.wallboard .trend-export-btn { display: none; }
 
   /* ── Trend Line Charts ── */
   .trend-block {
@@ -716,44 +714,8 @@
   .view-container { display: none; }
   .view-container.active { display: block; }
 
-  /* ── Wallboard Mode — fills exactly one 1080p TV screen ── */
-  body.wallboard { overflow: hidden; }
-  body.wallboard .header { padding: 8px 32px; }
-  body.wallboard .header-title { font-size: 22px; }
-  body.wallboard .view-tabs { font-size: 11px; }
-  body.wallboard .main { padding: 8px 32px 6px; height: calc(100vh - 48px); overflow: hidden; }
-  body.wallboard #viewDashboard {
     display: flex; flex-direction: column; height: 100%;
   }
-  body.wallboard #viewDashboard.active { display: flex; }
-
-  /* Wallboard: Leads Booked */
-  body.wallboard .sc-section { margin-bottom: 6px; flex-shrink: 0; }
-  body.wallboard .sc-section-header { margin-bottom: 4px; }
-  body.wallboard .sc-section-title { font-size: 15px; }
-  body.wallboard .sc-blocks { gap: 8px; align-items: stretch; }
-  body.wallboard .sc-block { justify-content: center; min-height: 52px; }
-  body.wallboard .sc-booked-count { font-size: 26px; }
-  body.wallboard .sc-booked-label { font-size: 10px; }
-
-  /* Wallboard: Sales Closed/Won */
-  body.wallboard .sc-card-val { font-size: 18px; }
-  body.wallboard .sc-card-name { font-size: 10px; margin-bottom: 1px; }
-  body.wallboard .sc-card-count { font-size: 9px; min-width: 15px; height: 14px; padding: 0 4px; margin-left: 4px; }
-  body.wallboard .sc-card-label { font-size: 8px; margin-top: 1px; }
-  body.wallboard .sc-subcards .sc-card { padding: 3px 0; }
-  body.wallboard .sc-card-total-pinned { padding: 3px 0 0 0; }
-  body.wallboard .sc-card-metrics { gap: 3px; }
-
-  /* Wallboard: Filters */
-  body.wallboard .sc-period-btn { font-size: 9px; padding: 4px 10px; letter-spacing: 0.5px; }
-  body.wallboard .sc-period-btn[data-period="custom"] { display: none; }
-  body.wallboard .sc-date-range { display: none; }
-  body.wallboard .inbound-unique-toggle { display: none; }
-  body.wallboard .iu-divider { display: none; }
-  body.wallboard .sc-period-toggle { gap: 4px; }
-
-  /* Wallboard: Trends tab stays visible so user can switch back */
 
   /* ── Master Filter Bars ── */
   .master-filter {
@@ -763,129 +725,6 @@
     font-size: 12px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: var(--text-dim); white-space: nowrap;
   }
-  body.wallboard .master-filter { margin-bottom: 5px; }
-  body.wallboard .master-filter-label { font-size: 11px; }
-
-  /* Wallboard: Inbound section fills remaining space */
-  body.wallboard div[style*="border-top"] { margin: 4px 0 4px !important; }
-  body.wallboard .sc-section-header[style] { margin-bottom: 3px !important; }
-  body.wallboard .inbound-row {
-    gap: 8px; margin-bottom: 2px; flex: 1; min-height: 0; overflow: visible;
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  body.wallboard .chart-card {
-    padding: 6px 10px; overflow: hidden;
-    display: flex; flex-direction: column;
-  }
-  body.wallboard .chart-card-title { font-size: 13px; margin-bottom: 4px; }
-  body.wallboard .chart-container { height: 120px; }
-  body.wallboard .chart-dual-half .chart-sub-title { display: none; }
-  body.wallboard .inbound-branch-card { display: flex; flex-direction: column; }
-  body.wallboard .sc-conv-kpi { display: none; }
-  body.wallboard #scSalesKPIs { display: none; }
-  body.wallboard #scByOwner { display: none; }
-  body.wallboard .sales-disclaimer { display: none; }
-
-  /* Wallboard: Conv summary row above the branch grid */
-  .wallboard-conv-summary { display: none; }
-  body.wallboard .wallboard-conv-summary {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 14px;
-    background: rgba(251, 191, 36, 0.08);
-    border: 1px solid rgba(251, 191, 36, 0.25);
-    border-radius: 8px;
-    margin-bottom: 8px;
-  }
-  body.wallboard .wallboard-conv-pct {
-    font-size: 24px; font-weight: 800; color: var(--yellow); line-height: 1;
-  }
-  body.wallboard .wallboard-conv-label {
-    font-size: 11px; font-weight: 700; color: var(--yellow);
-    text-transform: uppercase; letter-spacing: 1px;
-  }
-  body.wallboard .wallboard-conv-detail {
-    font-size: 11px; color: var(--text-dim); margin-left: auto;
-  }
-
-  /* Wallboard: Branch grid — summary + 3×2 sub-grid fills remaining space */
-  body.wallboard .branch-grid {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-  body.wallboard .wallboard-branch-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: 1fr 1fr;
-    gap: 8px;
-    flex: 1;
-    min-height: 0;
-  }
-  body.wallboard .wallboard-branch-grid .branch-card {
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    min-width: 0;
-    flex: 1;
-    overflow: hidden;
-  }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-info {
-    display: flex; flex-direction: column; flex: 1; min-width: 0; overflow: hidden;
-  }
-  body.wallboard .branch-card-conversion { display: none; }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 20px; }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 9px; margin-top: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-sub { font-size: 8px; margin-top: 1px; }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 11px; font-weight: 700; }
-
-  /* Wallboard: prevent overflow in branch grid and conv summary */
-  body.wallboard .wallboard-conv-summary {
-    overflow: hidden;
-  }
-  body.wallboard .wallboard-conv-detail {
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  body.wallboard .wallboard-branch-grid .branch-card {
-    overflow: hidden; min-width: 0;
-  }
-
-  /* Wallboard on smaller screens (laptops ≤1500px CSS viewport) */
-  @media (max-width: 1500px) {
-    body.wallboard .inbound-row {
-      grid-template-columns: 0.8fr 0.8fr 1.4fr; /* branch grid gets most room */
-    }
-    body.wallboard .wallboard-conv-summary {
-      flex-wrap: wrap; gap: 4px; padding: 4px 8px;
-    }
-    body.wallboard .wallboard-conv-pct { font-size: 18px; }
-    body.wallboard .wallboard-conv-label { font-size: 9px; }
-    body.wallboard .wallboard-conv-detail { font-size: 9px; }
-    body.wallboard .wallboard-branch-grid { gap: 4px; }
-    body.wallboard .wallboard-branch-grid .branch-card { padding: 4px 6px; gap: 4px; }
-    body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 16px; }
-    body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 8px; }
-    body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 9px; }
-    body.wallboard .chart-container { height: 100px; }
-  }
-  @media (max-width: 1100px) {
-    body.wallboard .inbound-row {
-      grid-template-columns: 1fr 1fr; /* drop to 2 columns — charts stack, branch stays */
-    }
-    body.wallboard .chart-card:nth-child(1) .chart-container,
-    body.wallboard .chart-card:nth-child(2) .chart-container { height: 80px; }
-  }
-
-  /* Leads view in wallboard mode */
-  body.wallboard #viewLeads {
-    display: flex; flex-direction: column; height: 100%;
-  }
-  body.wallboard #viewLeads.active { display: flex; }
-  body.wallboard .filter-bar { flex-shrink: 0; margin-bottom: 8px; }
-  body.wallboard .table-container { flex: 1; overflow-y: auto; min-height: 0; }
 
   /* ══════════════════════════════════════════════════════
      RESPONSIVE — Unified mobile-first rules
@@ -1267,11 +1106,12 @@
     <div class="header-badge">Live</div>
     <div class="view-tabs">
       <button class="view-tab active" data-view="dashboard">Dashboard</button>
-      <button class="view-tab" data-view="leads">Leads</button>
+      <button class="view-tab" data-view="leads">Inbound</button>
+      <button class="view-tab" data-view="booked">Booked</button>
       <button class="view-tab" data-view="sales">Sales</button>
       <button class="view-tab" data-view="trends">Trends</button>
       <button class="view-tab" data-view="summary">Summary</button>
-      <button class="view-tab" data-view="wallboard">Wallboard</button>
+
     </div>
   </div>
   <div class="header-right">
@@ -1286,7 +1126,7 @@
 <div class="main">
 
   <!-- ═══════════════════════════════════════ -->
-  <!-- VIEW 1: DASHBOARD (wallboard / KPIs)   -->
+  <!-- VIEW 1: DASHBOARD (KPIs)               -->
   <!-- ═══════════════════════════════════════ -->
   <div class="view-container active" id="viewDashboard">
 
@@ -1359,11 +1199,7 @@
         <div id="bookedCombined" class="sc-loading">Loading...</div>
       </div>
     </div>
-    <!-- Conv % (wallboard only) -->
-    <div class="sc-conv-kpi" id="bookedConvKpi" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin-top:6px;text-align:center;">
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--yellow);">Conv %</span>
-      <span id="bookedConvPct" style="font-size:22px;font-weight:800;color:var(--yellow);margin-left:8px;"></span>
-    </div>
+
   </div>
 
   <!-- ══ ROW 3: Leads Run ══ -->
@@ -1457,7 +1293,7 @@
   </div><!-- /viewDashboard -->
 
   <!-- ═══════════════════════════════════════ -->
-  <!-- VIEW 2: LEADS (table + filters)        -->
+  <!-- VIEW 2: INBOUND (table + filters)      -->
   <!-- ═══════════════════════════════════════ -->
   <div class="view-container" id="viewLeads">
 
@@ -1556,6 +1392,92 @@
   </div>
 
   </div><!-- /viewLeads -->
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- VIEW 2b: BOOKED (booked leads table)   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="view-container" id="viewBooked">
+
+  <!-- ── Filters ── -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Created Date</span>
+      <select id="bookedFilterDate">
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+        <option value="mtd" selected>MTD</option>
+        <option value="ytd">YTD</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <div class="sales-custom-date-range" id="bookedCustomDateRange">
+        <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="bookedCustomFrom"></div>
+        <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="bookedCustomTo"></div>
+        <button class="sc-date-apply sales-custom-apply" id="bookedCustomApply">Apply</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Branch</span>
+      <select id="bookedFilterBranch">
+        <option value="all">All Branches</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Owner</span>
+      <select id="bookedFilterOwner">
+        <option value="all">All Owners</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Search</span>
+      <input type="text" id="bookedFilterSearch" placeholder="Name, service...">
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Sort</span>
+      <div style="position:relative;">
+        <button id="bookedSortToggle" class="sort-btn" onclick="toggleBookedSortPanel()">Date &#x2193; <span style="font-size:10px;opacity:0.6;margin-left:4px;">&#x25BE;</span></button>
+        <div id="bookedSortPanel" class="sort-panel">
+          <div id="bookedSortRules"></div>
+          <button class="sort-add-btn" onclick="addBookedSortRule()">+ Add sort</button>
+          <button class="sort-apply-btn" onclick="applyBookedSortRules()">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">&nbsp;</span>
+      <button class="sc-period-btn summary-export-btn" id="bookedExportBtn" title="Export Booked CSV" style="font-size:12px;padding:4px 10px;" onclick="bookedExportCSV()">&#x2913; CSV</button>
+    </div>
+  </div>
+
+  <!-- ── Booked Summary Bar ── -->
+  <div class="sales-summary" id="bookedSummary" style="display:flex;gap:16px;padding:8px 0;font-size:13px;color:var(--text-muted);flex-wrap:wrap;">
+    <div><strong style="color:var(--text);" id="bookedTotalCount">0</strong> booked leads</div>
+  </div>
+
+  <!-- ── Booked Table ── -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Branch</th>
+          <th>Contact</th>
+          <th>Owner</th>
+          <th>Stage</th>
+          <th>Services</th>
+          <th>City</th>
+          <th>Created By</th>
+        </tr>
+      </thead>
+      <tbody id="bookedTableBody">
+        <tr><td colspan="9" class="no-data">Loading booked leads...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  </div><!-- /viewBooked -->
 
   <!-- ═══════════════════════════════════════ -->
   <!-- VIEW 3: SALES (closed/won table)       -->
@@ -2277,21 +2199,20 @@ function buildDoughnutChart(canvasId, leads, existingInstance, colorMap, colorFa
       maintainAspectRatio: false,
       animation: isMobile ? false : undefined,
       cutout: '60%',
-      layout: { padding: { right: document.body.classList.contains('wallboard') ? 2 : 10 } },
+      layout: { padding: { right: 10 } },
       plugins: {
         legend: {
           position: 'right',
           align: 'start',
           labels: {
             color: '#F5F0EB',
-            font: { family: 'Inter', size: document.body.classList.contains('wallboard') ? 9 : 11, weight: '600' },
-            padding: document.body.classList.contains('wallboard') ? 4 : 10,
+            font: { family: 'Inter', size: 11, weight: '600' },
+            padding: 10,
             usePointStyle: true,
-            pointStyleWidth: document.body.classList.contains('wallboard') ? 6 : 10,
+            pointStyleWidth: 10,
             generateLabels: function(chart) {
               const dataset = chart.data.datasets[0];
               const t = dataset.data.reduce((a, b) => a + b, 0);
-              const wb = document.body.classList.contains('wallboard');
               return chart.data.labels.map((label, i) => {
                 const pct = t ? Math.round(dataset.data[i]/t*100) : 0;
                 return {
@@ -2498,17 +2419,15 @@ function buildBranchGrid(gridId, leads, period) {
   const branches = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
   const grid = document.getElementById(gridId);
 
-  if (branches.length === 0 && !document.body.classList.contains('wallboard')) {
+  if (branches.length === 0) {
     grid.innerHTML = '<div class="no-data" style="grid-column:1/-1;padding:40px">No data yet</div>';
     return;
   }
 
   // Force consistent ordering: PestPac branch names, then any extras
   const ORDER = ['Eastern Mass', 'Connecticut', 'Rhode Island', 'USX - Western Mass', 'USX - Upstate New York'];
-  const isWallboard = document.body.classList.contains('wallboard');
-  // Wallboard: always show all 6 (5 branches + Other), even if count is 0
-  const ordered = isWallboard ? [...ORDER, 'Other'] : ORDER.filter(b => counts[b]);
-  if (!isWallboard) branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
+  const ordered = ORDER.filter(b => counts[b]);
+  branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
 
   // Calculate conversion %: booked leads / inbound leads
   let bookedItems;
@@ -2558,8 +2477,8 @@ function buildBranchGrid(gridId, leads, period) {
   `;
   }).join('');
 
-  // Add overall conversion % card (dashboard only — wallboard gets a summary row above the grid)
-  if (!isWallboard) {
+  // Add overall conversion % card
+  {
     html += `
       <div class="branch-card branch-card-conversion">
         <div class="branch-count" style="color: var(--yellow)">${convPct}%</div>
@@ -2571,17 +2490,7 @@ function buildBranchGrid(gridId, leads, period) {
     `;
   }
 
-  // Wallboard: prepend a total conv % summary row, then wrap branch cards in a sub-grid
-  if (isWallboard) {
-    const summaryHtml = `<div class="wallboard-conv-summary">
-      <span class="wallboard-conv-pct">${convPct}%</span>
-      <span class="wallboard-conv-label">CONV. RATE</span>
-      <span class="wallboard-conv-detail">${totalBooked} booked / ${totalInbound} inbound</span>
-    </div>`;
-    grid.innerHTML = summaryHtml + '<div class="wallboard-branch-grid">' + html + '</div>';
-  } else {
-    grid.innerHTML = html;
-  }
+  grid.innerHTML = html;
 }
 
 function renderBranchGrid() {
@@ -2732,6 +2641,7 @@ function render() {
   populateBranches();
   populateMediums();
   if (typeof renderSalesView === 'function') renderSalesView();
+  if (typeof renderBookedView === 'function') renderBookedView();
   updateTimestamp();
 }
 
@@ -2812,6 +2722,7 @@ function _processRawCache(source) {
     scBookedData = _scBucketItems(dedupBooked);
     scSalesData = _scBucketItems(dedupSales);
     scRunData = _scBucketItems(allRun);
+    allBookedRows = dedupBooked;
     _scYtdLoaded = true;
     _scDataReady = true;
     console.log(`✅ _processRawCache(${source}): today=${scBookedData.today.length} booked, ${scSalesData.today.length} sales, ${scRunData.today.length} run`);
@@ -2992,13 +2903,12 @@ function scRenderBookedSection(period) {
   scRenderBookedBlock('bookedCatseye', items, SC_CATSEYE_BRANCHES);
   scRenderBookedBlock('bookedUSX', items, SC_USX_BRANCHES);
   scRenderBookedBlock('bookedCombined', items, SC_ALL_BRANCHES);
-  // Conv% KPI (wallboard only): booked leads / inbound leads for same period
+  // Conv% KPI: booked leads / inbound leads for same period
   const inboundFiltered = (period === 'custom') ? getInboundFilteredLeads() : (inboundUnique ? deduplicateLeads(filterByPeriod(allLeads, period)) : filterByPeriod(allLeads, period));
   const inboundCount = inboundFiltered.length;
   const totalBooked = items.length;
   const convPct = inboundCount > 0 ? Math.round((totalBooked / inboundCount) * 100) : 0;
-  const convEl = document.getElementById('bookedConvPct');
-  if (convEl) convEl.textContent = convPct + '%';
+
 }
 
 // ═══════════════════════════════════════════
@@ -3445,7 +3355,7 @@ function summaryComputeKPIs(salesItems, runItems, branchFilter) {
   });
 
   // Leads Won/Run: exclude countAsLeadRun='No' from won count (not dollars)
-  // Same logic as Dashboard/Trends/Wallboard views
+  // Same logic as Dashboard/Trends views
   const qualifiedSales = filteredSales.filter(s => s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(s.owner || ''));
   const leadsRun = filteredRuns.length;
   const leadsWon = qualifiedSales.length;
@@ -3666,8 +3576,6 @@ function scApplyMasterCustomFilter() {
   // Conv%
   const inboundCount = getInboundFilteredLeads().length;
   const convPct = inboundCount > 0 ? Math.round((bookedItems.length / inboundCount) * 100) : 0;
-  const convEl = document.getElementById('bookedConvPct');
-  if (convEl) convEl.textContent = convPct + '%';
 
   // Leads Run
   let runItems = scRunData.ytd || [];
@@ -3933,7 +3841,24 @@ function _scProcessOpp(opp, isBooked) {
       });
     }
     if (!countAsLead) return null;
-    return { branch, date: created, datetime: opp.createdDate || '' };
+    // Enrich booked item with detail fields for Booked list view
+    let bContactName = opp.contactName || '';
+    let bCity = opp.city || '';
+    if (!bContactName && opp.primaryContact) {
+      bContactName = ((opp.primaryContact.firstName || '') + ' ' + (opp.primaryContact.lastName || '')).trim();
+      bCity = bCity || opp.primaryContact.city || '';
+    }
+    let bServices = opp.services || '';
+    try {
+      if (!bServices && Array.isArray(opp.locations) && opp.locations[0] && Array.isArray(opp.locations[0].services)) {
+        bServices = opp.locations[0].services.map(s => s.name || '').filter(Boolean).join(', ');
+      }
+    } catch(e) {}
+    return {
+      branch, date: created, datetime: opp.createdDate || '',
+      contactName: bContactName, owner: opp.owner || '', stage: opp.salesFunnelStage || '',
+      services: bServices, city: bCity, createdBy: opp.opportunityCreatedBy || opp.createdBy || ''
+    };
   } else {
     // Keep all stages — Sales view filters by stage in UI
     // Convert closedDate from UTC to local timezone
@@ -5739,60 +5664,245 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ═══════════════════════════════════════════
-// VIEW TOGGLE + WALLBOARD AUTO-CYCLE
+// BOOKED VIEW — filterable list of booked leads
+// ═══════════════════════════════════════════
+
+var allBookedRows = []; // enriched booked items for the Booked list view
+
+function getFilteredBookedRows() {
+  let rows = allBookedRows.slice();
+  const dateVal = document.getElementById('bookedFilterDate').value;
+  const branchVal = document.getElementById('bookedFilterBranch').value;
+  const ownerVal = document.getElementById('bookedFilterOwner').value;
+  const searchVal = (document.getElementById('bookedFilterSearch').value || '').toLowerCase().trim();
+
+  // Date filter
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth()+1).padStart(2,'0') + '-' + String(yesterday.getDate()).padStart(2,'0');
+
+  rows = rows.filter(r => {
+    const d = (r.date || '').split('T')[0];
+    if (!d) return true;
+    if (dateVal === 'today') return d === todayStr;
+    if (dateVal === 'yesterday') return d === yesterdayStr;
+    if (dateVal === '7d') { const s = new Date(today); s.setDate(s.getDate()-6); const ss = s.getFullYear()+'-'+String(s.getMonth()+1).padStart(2,'0')+'-'+String(s.getDate()).padStart(2,'0'); return d >= ss && d <= todayStr; }
+    if (dateVal === '30d') { const s = new Date(today); s.setDate(s.getDate()-29); const ss = s.getFullYear()+'-'+String(s.getMonth()+1).padStart(2,'0')+'-'+String(s.getDate()).padStart(2,'0'); return d >= ss && d <= todayStr; }
+    if (dateVal === 'mtd') { const ms = todayStr.slice(0,8) + '01'; return d >= ms && d <= todayStr; }
+    if (dateVal === 'ytd') { const ys = todayStr.slice(0,4) + '-01-01'; return d >= ys && d <= todayStr; }
+    if (dateVal === 'custom') {
+      const cfrom = document.getElementById('bookedCustomFrom').value;
+      const cto = document.getElementById('bookedCustomTo').value;
+      if (cfrom && d < cfrom) return false;
+      if (cto && d > cto) return false;
+    }
+    return true;
+  });
+
+  if (branchVal !== 'all') rows = rows.filter(r => r.branch === branchVal);
+  if (ownerVal !== 'all') rows = rows.filter(r => r.owner === ownerVal);
+  if (searchVal) rows = rows.filter(r => {
+    return (r.contactName || '').toLowerCase().includes(searchVal) ||
+           (r.services || '').toLowerCase().includes(searchVal) ||
+           (r.city || '').toLowerCase().includes(searchVal) ||
+           (r.owner || '').toLowerCase().includes(searchVal) ||
+           (r.branch || '').toLowerCase().includes(searchVal);
+  });
+
+  return rows;
+}
+
+function renderBookedTable(rows) {
+  const tbody = document.getElementById('bookedTableBody');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="no-data">No booked leads match your filters</td></tr>';
+    document.getElementById('bookedTotalCount').textContent = '0';
+    return;
+  }
+
+  // Sort by date descending by default
+  rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  document.getElementById('bookedTotalCount').textContent = rows.length;
+
+  tbody.innerHTML = rows.map(r => {
+    const dateStr = formatDateDisplay(r.date || '');
+    const timeStr = r.datetime ? formatTimeDisplay(r.datetime) : '—';
+    const stageLbl = r.stage || '—';
+    const stageColor = stageLbl.toLowerCase().indexOf('won') > -1 ? 'var(--green)' :
+                       stageLbl.toLowerCase().indexOf('lost') > -1 ? 'var(--red)' :
+                       stageLbl.toLowerCase().indexOf('open') > -1 ? 'var(--blue)' : 'var(--text-muted)';
+    return '<tr>' +
+      '<td>' + dateStr + '</td>' +
+      '<td>' + timeStr + '</td>' +
+      '<td>' + (r.branch || '—') + '</td>' +
+      '<td style="font-weight:600">' + (r.contactName || '—') + '</td>' +
+      '<td style="font-size:12px">' + (r.owner || '—') + '</td>' +
+      '<td><span class="source-badge" style="background:' + stageColor + '22;color:' + stageColor + '">' + stageLbl + '</span></td>' +
+      '<td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (r.services || '').replace(/"/g, '&quot;') + '">' + (r.services || '—') + '</td>' +
+      '<td style="font-size:12px">' + (r.city || '—') + '</td>' +
+      '<td style="font-size:12px;color:var(--text-muted)">' + (r.createdBy || '—') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function populateBookedFilters() {
+  // Branches
+  const branches = [...new Set(allBookedRows.map(r => r.branch).filter(Boolean))];
+  const ORDER = ['Eastern Mass', 'Connecticut', 'Rhode Island', 'USX - Western Mass', 'USX - Upstate New York'];
+  const ordered = ORDER.filter(b => branches.includes(b));
+  branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
+  const branchSel = document.getElementById('bookedFilterBranch');
+  const curBranch = branchSel.value;
+  branchSel.innerHTML = '<option value="all">All Branches</option>';
+  ordered.forEach(b => { branchSel.innerHTML += '<option value="' + b + '">' + b + '</option>'; });
+  branchSel.value = curBranch || 'all';
+
+  // Owners
+  const owners = [...new Set(allBookedRows.map(r => r.owner).filter(Boolean))].sort();
+  const ownerSel = document.getElementById('bookedFilterOwner');
+  const curOwner = ownerSel.value;
+  ownerSel.innerHTML = '<option value="all">All Owners</option>';
+  owners.forEach(o => { ownerSel.innerHTML += '<option value="' + o + '">' + o + '</option>'; });
+  ownerSel.value = curOwner || 'all';
+}
+
+function renderBookedView() {
+  populateBookedFilters();
+  const filtered = getFilteredBookedRows();
+  renderBookedTable(filtered);
+}
+
+function bookedExportCSV() {
+  const filtered = getFilteredBookedRows();
+  if (!filtered.length) return;
+  const headers = ['Date','Time','Branch','Contact','Owner','Stage','Services','City','Created By'];
+  const rows = [headers];
+  filtered.forEach(r => {
+    rows.push([
+      formatDateDisplay(r.date || ''),
+      r.datetime ? formatTimeDisplay(r.datetime) : '',
+      r.branch || '',
+      r.contactName || '',
+      r.owner || '',
+      r.stage || '',
+      (r.services || '').replace(/[\r\n]+/g, ' '),
+      r.city || '',
+      r.createdBy || ''
+    ]);
+  });
+  const csvContent = rows.map(r => r.map(v => {
+    const s = String(v == null ? '' : v);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(',')).join('\n');
+  const dateSuffix = new Date().toISOString().slice(0, 10);
+  const filterDate = document.getElementById('bookedFilterDate').value;
+  const filename = 'BDC_Booked_' + filterDate.toUpperCase() + '_' + dateSuffix + '.csv';
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+// Booked sort panel (simplified — date sort by default)
+var bookedSortRules = [{ field: 'date', dir: 'desc' }];
+function toggleBookedSortPanel() {
+  const p = document.getElementById('bookedSortPanel');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+}
+function addBookedSortRule() {
+  bookedSortRules.push({ field: 'branch', dir: 'asc' });
+  renderBookedSortRules();
+}
+function renderBookedSortRules() {
+  const container = document.getElementById('bookedSortRules');
+  const fields = ['date','branch','contactName','owner','stage','services','city','createdBy'];
+  container.innerHTML = bookedSortRules.map((r, i) => {
+    return '<div class="sort-rule">' +
+      '<select onchange="bookedSortRules[' + i + '].field=this.value">' +
+      fields.map(f => '<option value="' + f + '"' + (f === r.field ? ' selected' : '') + '>' + f + '</option>').join('') +
+      '</select>' +
+      '<select onchange="bookedSortRules[' + i + '].dir=this.value">' +
+      '<option value="asc"' + (r.dir==='asc'?' selected':'') + '>Asc</option>' +
+      '<option value="desc"' + (r.dir==='desc'?' selected':'') + '>Desc</option>' +
+      '</select>' +
+      (i > 0 ? '<button class="sort-remove-btn" onclick="bookedSortRules.splice(' + i + ',1);renderBookedSortRules()">&#x2715;</button>' : '') +
+      '</div>';
+  }).join('');
+}
+function applyBookedSortRules() {
+  document.getElementById('bookedSortPanel').style.display = 'none';
+  const filtered = getFilteredBookedRows();
+  filtered.sort((a, b) => {
+    for (const rule of bookedSortRules) {
+      const av = (a[rule.field] || ''), bv = (b[rule.field] || '');
+      const cmp = String(av).localeCompare(String(bv));
+      if (cmp !== 0) return rule.dir === 'asc' ? cmp : -cmp;
+    }
+    return 0;
+  });
+  renderBookedTable(filtered);
+  // Update button label
+  const labels = { date:'Date', branch:'Branch', contactName:'Contact', owner:'Owner', stage:'Stage', services:'Services', city:'City', createdBy:'Created By' };
+  const first = bookedSortRules[0];
+  document.getElementById('bookedSortToggle').innerHTML = (labels[first.field] || first.field) + ' ' + (first.dir === 'asc' ? '&#x2191;' : '&#x2193;') + ' <span style="font-size:10px;opacity:0.6;margin-left:4px;">&#x25BE;</span>';
+}
+
+// Booked filter event listeners
+['bookedFilterDate','bookedFilterBranch','bookedFilterOwner'].forEach(function(id) {
+  document.getElementById(id).addEventListener('change', function() {
+    if (id === 'bookedFilterDate') {
+      var panel = document.getElementById('bookedCustomDateRange');
+      if (panel) panel.classList.toggle('visible', document.getElementById('bookedFilterDate').value === 'custom');
+      if (document.getElementById('bookedFilterDate').value === 'custom') return; // wait for Apply
+    }
+    var filtered = getFilteredBookedRows();
+    renderBookedTable(filtered);
+  });
+});
+document.getElementById('bookedFilterSearch').addEventListener('input', function() {
+  var filtered = getFilteredBookedRows();
+  renderBookedTable(filtered);
+});
+document.getElementById('bookedCustomApply').addEventListener('click', function() {
+  var filtered = getFilteredBookedRows();
+  renderBookedTable(filtered);
+});
+
+// ═══════════════════════════════════════════
+// VIEW TOGGLE
 // ═══════════════════════════════════════════
 
 const viewTabs = document.querySelectorAll('.view-tab');
 const viewContainers = document.querySelectorAll('.view-container');
-let cycleTimer = null;
-// CYCLE_INTERVAL → config.js
-let wallboardCycleView = 'dashboard'; // tracks which sub-view wallboard is showing
 
 function switchView(viewName) {
   // Update tab highlighting
   viewTabs.forEach(t => t.classList.toggle('active', t.dataset.view === viewName));
 
-  // Determine which content container to show
-  if (viewName === 'wallboard') {
-    // Wallboard shows Dashboard content scaled for TV — single static screen, no cycling
-    document.body.classList.add('wallboard');
-    viewContainers.forEach(c => c.classList.remove('active'));
-    document.getElementById('viewDashboard').classList.add('active');
-    wallboardCycleView = 'dashboard';
-    // Re-render charts so legends resize for wallboard
-    render();
-  } else {
-    const wasWallboard = document.body.classList.contains('wallboard');
-    // Normal views — remove wallboard mode
-    document.body.classList.remove('wallboard');
-    stopCycle();
-    viewContainers.forEach(c => c.classList.toggle('active',
-      c.id === 'view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)));
-    // Re-render charts if leaving wallboard so legends restore
-    if (wasWallboard) render();
-    // Init trend charts when Trends tab is first opened
-    if (viewName === 'trends') {
-      trendInitAll().catch(e => console.error('Trend tab init error:', e));
-    }
-    if (viewName === 'summary') {
-      renderSummaryView();
-    }
+  // Show the matching view container
+  viewContainers.forEach(c => c.classList.toggle('active',
+    c.id === 'view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)));
+  // Init trend charts when Trends tab is first opened
+  if (viewName === 'trends') {
+    trendInitAll().catch(e => console.error('Trend tab init error:', e));
   }
-}
-
-function stopCycle() {
-  if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; }
+  if (viewName === 'summary') {
+    renderSummaryView();
+  }
 }
 
 viewTabs.forEach(tab => {
   tab.addEventListener('click', () => switchView(tab.dataset.view));
 });
 
-// URL param support: ?view=leads or ?view=trends or ?wallboard
+// URL param support: ?view=inbound or ?view=booked or ?view=sales or ?view=trends
 const urlParams = new URLSearchParams(window.location.search);
 const urlView = urlParams.get('view');
-if (urlView === 'leads' || urlView === 'sales' || urlView === 'trends') switchView(urlView);
-if (urlParams.has('wallboard')) switchView('wallboard');
+if (urlView === 'leads' || urlView === 'inbound' || urlView === 'booked' || urlView === 'sales' || urlView === 'trends') switchView(urlView === 'inbound' ? 'leads' : urlView);
 
 // ── Timestamp display ──
 var _lastDataTs = null; // tracks when data was last refreshed from any source (var for hoisting — called before declaration line)
