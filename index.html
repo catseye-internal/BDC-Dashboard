@@ -2435,7 +2435,7 @@ function buildBranchGrid(gridId, leads, period) {
   const ordered = ORDER.filter(b => counts[b]);
   branches.filter(b => !ORDER.includes(b)).sort().forEach(b => ordered.push(b));
 
-  // Calculate conversion %: (booked + sales) / inbound leads
+  // Calculate conversion %: booked / inbound (original metric)
   let bookedItems, salesItems;
   if (period === 'custom') {
     const cf = masterCustomFrom, ct = masterCustomTo;
@@ -2456,20 +2456,17 @@ function buildBranchGrid(gridId, leads, period) {
     salesItems = scSalesData[period] || scSalesData['mtd'] || [];
   }
   const totalBooked = bookedItems.length;
-  const totalSales = salesItems.length;
+  const bdcSalesItems = salesItems.filter(s => s.bdcSold && s.bdcSold.toLowerCase() === 'yes');
+  const totalBdcSales = bdcSalesItems.length;
   const totalInbound = leads.length;
-  const convPct = totalInbound > 0 ? Math.round(((totalBooked + totalSales) / totalInbound) * 100) : 0;
+  const convPctBooked = totalInbound > 0 ? Math.round((totalBooked / totalInbound) * 100) : 0;
+  const convPctBdc = totalInbound > 0 ? Math.round(((totalBooked + totalBdcSales) / totalInbound) * 100) : 0;
 
-  // Count booked + sales items per branch
+  // Count booked items per branch
   const bookedByBranch = {};
   bookedItems.forEach(item => {
     const b = item.branch || 'Other';
     bookedByBranch[b] = (bookedByBranch[b] || 0) + 1;
-  });
-  const salesByBranch = {};
-  salesItems.forEach(item => {
-    const b = item.branch || 'Other';
-    salesByBranch[b] = (salesByBranch[b] || 0) + 1;
   });
 
   // Short display names for branch cards
@@ -2483,9 +2480,8 @@ function buildBranchGrid(gridId, leads, period) {
 
   let html = ordered.map(branch => {
     const branchBooked = bookedByBranch[branch] || 0;
-    const branchSales = salesByBranch[branch] || 0;
     const branchInbound = counts[branch] || 0;
-    const branchConv = branchInbound > 0 ? Math.round(((branchBooked + branchSales) / branchInbound) * 100) : 0;
+    const branchConv = branchInbound > 0 ? Math.round((branchBooked / branchInbound) * 100) : 0;
     return `
     <div class="branch-card">
       <div class="branch-count">${counts[branch] || 0}</div>
@@ -2497,18 +2493,27 @@ function buildBranchGrid(gridId, leads, period) {
   `;
   }).join('');
 
-  // Add overall conversion % card
-  {
-    html += `
-      <div class="branch-card branch-card-conversion">
-        <div class="branch-count" style="color: var(--yellow)">${convPct}%</div>
-        <div class="branch-info">
-          <div class="branch-name">Conv.</div>
-          <div class="branch-sub">${totalBooked + totalSales} (${totalBooked}B + ${totalSales}S) / ${totalInbound} leads</div>
-        </div>
+  // Overall Booked Conv % card (booked / inbound)
+  html += `
+    <div class="branch-card branch-card-conversion">
+      <div class="branch-count" style="color: var(--yellow)">${convPctBooked}%</div>
+      <div class="branch-info">
+        <div class="branch-name">Booked Conv.</div>
+        <div class="branch-sub">${totalBooked} booked / ${totalInbound} leads</div>
       </div>
-    `;
-  }
+    </div>
+  `;
+
+  // Overall BDC Conv % card (booked + BDC sold / inbound)
+  html += `
+    <div class="branch-card branch-card-conversion">
+      <div class="branch-count" style="color: var(--green)">${convPctBdc}%</div>
+      <div class="branch-info">
+        <div class="branch-name">BDC Conv.</div>
+        <div class="branch-sub">${totalBooked + totalBdcSales} (${totalBooked}B + ${totalBdcSales}S) / ${totalInbound} leads</div>
+      </div>
+    </div>
+  `;
 
   grid.innerHTML = html;
 }
