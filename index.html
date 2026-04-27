@@ -5717,14 +5717,26 @@ function renderBookedTable(rows) {
   const tbody = document.getElementById('bookedTableBody');
   if (!rows || rows.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" class="no-data">No booked leads match your filters</td></tr>';
-    document.getElementById('bookedTotalCount').textContent = '0';
+    document.getElementById('bookedSummary').innerHTML = '<div><strong style="color:var(--text);">0</strong> booked leads</div>';
     return;
   }
 
-  // Sort by date descending by default
-  rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // Sort by date+time descending (most recent first)
+  rows.sort((a, b) => (b.datetime || b.date || '').localeCompare(a.datetime || a.date || ''));
 
   document.getElementById('bookedTotalCount').textContent = rows.length;
+
+  // Count by Created By
+  const createdByCounts = {};
+  rows.forEach(r => {
+    const cb = r.createdBy || 'Unknown';
+    createdByCounts[cb] = (createdByCounts[cb] || 0) + 1;
+  });
+  const cbHtml = Object.keys(createdByCounts).sort((a, b) => createdByCounts[b] - createdByCounts[a])
+    .map(name => '<div><strong style="color:var(--text);">' + createdByCounts[name] + '</strong> ' + name + '</div>').join('');
+  document.getElementById('bookedSummary').innerHTML =
+    '<div><strong style="color:var(--text);">' + rows.length + '</strong> booked leads</div>' +
+    '<div style="width:1px;background:var(--border);margin:0 4px;"></div>' + cbHtml;
 
   tbody.innerHTML = rows.map(r => {
     const dateStr = formatDateDisplay(r.date || '');
