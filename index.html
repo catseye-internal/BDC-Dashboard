@@ -1129,6 +1129,7 @@
   .summary-section {
     background: var(--card);
     border: 1px solid var(--border);
+<<<<<<< Updated upstream
     border-radius: 10px;
     padding: 10px 14px;
     margin-bottom: 10px;
@@ -1139,12 +1140,22 @@
   .summary-body { display: flex; gap: 8px; flex-wrap: nowrap; }
   .summary-cat-table-wrap {
     flex: 1 1 0;
+=======
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .summary-body { display: flex; gap: 20px; flex-wrap: wrap; }
+  .summary-cat-table-wrap {
+    flex: 1 1 420px;
+>>>>>>> Stashed changes
     min-width: 0;
     overflow-x: auto;
   }
   .summary-cat-table {
     width: 100%;
     border-collapse: collapse;
+<<<<<<< Updated upstream
     font-size: 12px;
   }
   .summary-cat-table th {
@@ -1163,18 +1174,42 @@
     border-bottom: 1px solid rgba(255,255,255,.04);
     white-space: nowrap;
     font-size: 11px;
+=======
+    font-size: 13px;
+  }
+  .summary-cat-table th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-dim);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-cat-table th:not(:first-child) { text-align: right; }
+  .summary-cat-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+>>>>>>> Stashed changes
   }
   .summary-cat-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
   .summary-cat-table .cat-dot {
     display: inline-block;
+<<<<<<< Updated upstream
     width: 7px; height: 7px;
     border-radius: 50%;
     margin-right: 3px;
+=======
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+>>>>>>> Stashed changes
     vertical-align: middle;
   }
   .summary-cat-table tr.cat-total td {
     font-weight: 700;
     border-top: 2px solid var(--orange);
+<<<<<<< Updated upstream
     padding-top: 4px;
   }
   .summary-kpi-panel {
@@ -1184,11 +1219,21 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 3px;
+=======
+    padding-top: 8px;
+  }
+  .summary-kpi-panel {
+    flex: 1 1 320px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+>>>>>>> Stashed changes
     align-content: start;
   }
   .summary-kpi {
     background: rgba(255,255,255,.03);
     border: 1px solid var(--border);
+<<<<<<< Updated upstream
     border-radius: 5px;
     padding: 2px 3px;
     text-align: center;
@@ -1231,6 +1276,30 @@
     .summary-kpi-panel { grid-template-columns: 1fr 1fr; }
     .summary-cat-table { font-size: 10px; }
     .summary-cat-table td { font-size: 10px; }
+=======
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .summary-kpi-val {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .summary-kpi-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .summary-kpi.wide { grid-column: span 2; }
+  @media (max-width: 768px) {
+    .summary-body { flex-direction: column; }
+    .summary-kpi-panel { grid-template-columns: 1fr 1fr; }
+    .summary-cat-table { font-size: 12px; }
+>>>>>>> Stashed changes
   }
 </style>
 </head>
@@ -1434,6 +1503,7 @@
     </div>
   </div>
 
+  <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
   </div><!-- /viewDashboard -->
 
   <!-- ═══════════════════════════════════════ -->
@@ -1504,6 +1574,10 @@
           <button class="sort-apply-btn" onclick="applySortRules()">Apply</button>
         </div>
       </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">&nbsp;</span>
+      <button class="sc-period-btn summary-export-btn" id="leadsExportBtn" title="Export Leads CSV" style="font-size:12px;padding:4px 10px;" onclick="leadsExportCSV()">&#x2913; CSV</button>
     </div>
   </div>
 
@@ -1650,6 +1724,7 @@
     </table>
   </div>
 
+  <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
   </div><!-- /viewSales -->
 
   <!-- ═══════════════════════════════════════ -->
@@ -1721,6 +1796,7 @@
     <div class="trend-chart-wrap"><canvas id="trendChartSales"></canvas></div>
   </div>
 
+  <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
   </div><!-- /viewTrends -->
 
   <!-- ═══════════════════════════════════════ -->
@@ -1728,6 +1804,7 @@
   <!-- ═══════════════════════════════════════ -->
   <div class="view-container" id="viewSummary">
 
+<<<<<<< Updated upstream
     <div class="sc-section-header" style="margin-bottom:12px">
       <div class="sc-period-toggle">
         <button class="sc-period-btn summary-period-btn" data-period="yesterday">Yesterday</button>
@@ -1745,6 +1822,8 @@
       </div>
     </div>
 
+=======
+>>>>>>> Stashed changes
     <div class="summary-section" id="summaryCombined">
       <div class="sc-section-header" style="margin-bottom:8px">
         <span class="sc-section-title">Combined Summary</span>
@@ -1766,8 +1845,12 @@
       <div class="summary-body"></div>
     </div>
 
+<<<<<<< Updated upstream
     <div id="summaryBranchContainer"></div>
 
+=======
+>>>>>>> Stashed changes
+  <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
   </div><!-- /viewSummary -->
 
 </div><!-- /main -->
@@ -2634,6 +2717,41 @@ function renderTable(leads) {
   `).join('');
 }
 
+function leadsExportCSV() {
+  const filtered = getFilteredLeads();
+  if (!filtered.length) return;
+  const headers = ['Company','Date','Time','Type','Medium','Customer','Phone','Email','City/State','Pest Problem','Branch'];
+  const rows = [headers];
+  filtered.forEach(lead => {
+    rows.push([
+      companyFromLead(lead),
+      formatDateDisplay(lead.DATE_RECEIVED),
+      formatTimeDisplay(lead.TIME_RECEIVED),
+      lead.LEAD_SOURCE || '',
+      lead.MEDIUM || '',
+      lead.CUSTOMER_NAME || '',
+      lead.PHONE || '',
+      lead.EMAIL || '',
+      fixZip(lead.CITY_STATE),
+      (lead.PEST_PROBLEM || '').replace(/[\r\n]+/g, ' '),
+      abbrevBranch(lead.BRANCH, lead)
+    ]);
+  });
+  const csvContent = rows.map(r => r.map(v => {
+    const s = String(v == null ? '' : v);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(',')).join('\n');
+  const dateSuffix = new Date().toISOString().slice(0, 10);
+  const filterDate = document.getElementById('filterDate').value;
+  const filename = 'BDC_Leads_' + filterDate.toUpperCase() + '_' + dateSuffix + '.csv';
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 function populateBranches() {
   const abbrevs = [...new Set(allLeads.map(l => abbrevBranch(l.BRANCH, l)).filter(b => b && b !== 'Other'))];
   const ORDER = ['Eastern Mass', 'Connecticut', 'Rhode Island', 'USX - Western Mass', 'USX - Upstate New York'];
@@ -3042,13 +3160,22 @@ function _scGetCustomFiltered(dataObj) {
   return items;
 }
 
+<<<<<<< Updated upstream
 // Build KPI card HTML for a group
+=======
+// Build KPI cards — one card per group in the array
+// Each group: { label, branches } where branches is an array or null (all)
+>>>>>>> Stashed changes
 function _buildKpiCards(salesItems, runItems, groups) {
   let cards = '';
   for (const g of groups) {
     const allSales = g.branches ? salesItems.filter(s => g.branches.includes(s.branch)) : salesItems;
     const run = g.branches ? runItems.filter(r => g.branches.includes(r.branch)) : runItems;
+<<<<<<< Updated upstream
     const sales = allSales.filter(s => s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(s.owner || ''));
+=======
+    const sales = allSales.filter(s => s.countAsLeadRun !== 'No');
+>>>>>>> Stashed changes
     const wonCount = sales.length;
     const runCount = run.length;
     const closingPct = runCount > 0 ? Math.round((wonCount / runCount) * 100) : 0;
@@ -3132,7 +3259,11 @@ function scRenderByOwner(salesItems, runItems) {
     owners[o].initial += (s.initialValue || 0);
     owners[o].annual += (s.annualValue || 0);
     owners[o].total += (s.totalValue || 0);
+<<<<<<< Updated upstream
     if (s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(o)) {
+=======
+    if (s.countAsLeadRun !== 'No') {
+>>>>>>> Stashed changes
       owners[o].qWon += 1;
     }
   });
@@ -3204,6 +3335,7 @@ function scRenderByOwnerSection(period) {
 }
 
 // ═══════════════════════════════════════════
+<<<<<<< Updated upstream
 // SHARED: Effective pricing after discounts
 // Used by Summary, Sales expansion, and any
 // view that needs post-discount service prices.
@@ -3315,7 +3447,7 @@ function summaryAnalyzeDeal(sale) {
       category: cat,
       initial,
       annual,
-      isProgram: PROGRAM_CATEGORIES.has(cat),
+      isProgram: annual > 0 && !NON_PROGRAM_CATEGORIES.has(cat),
       isFreePlat: false
     });
   });
@@ -3402,12 +3534,188 @@ function summaryComputeKPIs(salesItems, runItems, branchFilter) {
 const _summaryFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 function summaryFmt(val) { return _summaryFmt.format(val); }
 
+=======
+// SUMMARY VIEW — Category Breakdown + KPIs
+// ═══════════════════════════════════════════
+
+// Categorize a single service by its name using SERVICE_CATEGORY_MAP (config.js)
+function summaryGetCategory(serviceName) {
+  const key = (serviceName || '').toUpperCase().trim();
+  return SERVICE_CATEGORY_MAP[key] || null; // null = uncategorized, skip
+}
+
+// Compute effective (post-discount) price for a service
+function summaryEffectiveInitial(svc) {
+  const price = svc.initialPrice || 0;
+  const discAmt = svc.initialDiscountAmount || 0;
+  const discType = (svc.initialDiscountType || 'dollar').toLowerCase();
+  if (!discAmt) return price;
+  if (discType === 'percentage' || discType === 'percent') return price * (1 - discAmt / 100);
+  return Math.max(0, price - discAmt); // dollar discount
+}
+
+function summaryEffectiveRecurring(svc) {
+  const price = svc.recurringPrice || 0;
+  const discAmt = svc.recurringDiscountAmount || 0;
+  const discType = (svc.recurringDiscountType || 'dollar').toLowerCase();
+  if (!discAmt) return price;
+  if (discType === 'percentage' || discType === 'percent') return price * (1 - discAmt / 100);
+  return Math.max(0, price - discAmt);
+}
+
+// Analyze a single deal (Closed/Won opp) and return categorized service totals
+// + Free Plat adjustment. Returns { categories: { [cat]: { count, initial, annual } }, adjustment }
+function summaryAnalyzeDeal(sale) {
+  const details = sale.serviceDetails || [];
+  const cats = {};
+  SUMMARY_CATEGORIES.forEach(c => { cats[c.key] = { count: 0, initial: 0, annual: 0 }; });
+
+  // First pass: identify Free Plat services and compute adjustment
+  let freePlatAnnual = 0; // total annual value of free plat services (pre-discount)
+  let hasFreePlat = false;
+  let hasCatGuard = false;
+
+  details.forEach(svc => {
+    const name = (svc.name || '').toUpperCase().trim();
+    const cat = summaryGetCategory(name);
+    if (cat === 'Cat-Guard') hasCatGuard = true;
+    if (FREE_PLAT_SERVICES.has(name)) {
+      // Check if this is a "free" Total Plat (100% or full-amount recurring discount)
+      const recurPrice = svc.recurringPrice || 0;
+      const discAmt = svc.recurringDiscountAmount || 0;
+      const discType = (svc.recurringDiscountType || 'dollar').toLowerCase();
+      const effRecurring = summaryEffectiveRecurring(svc);
+      if (recurPrice > 0 && effRecurring === 0) {
+        // Fully discounted — this is a free plat
+        hasFreePlat = true;
+        freePlatAnnual += recurPrice * (svc.annualOccurrences || 0);
+      }
+    }
+  });
+
+  // Determine if Cat-Guard + Free Plat adjustment applies
+  const applyAdjustment = hasFreePlat && hasCatGuard && freePlatAnnual > 0;
+
+  // Second pass: categorize each service
+  let catGuardInitialTotal = 0;
+  details.forEach(svc => {
+    const name = (svc.name || '').toUpperCase().trim();
+    const cat = summaryGetCategory(name);
+    if (!cat || !cats[cat]) return; // skip uncategorized
+
+    const qty = svc.quantity || 1;
+    const effInitial = summaryEffectiveInitial(svc) * qty;
+    const effRecurring = summaryEffectiveRecurring(svc);
+    const annual = effRecurring * (svc.annualOccurrences || 0) * qty;
+
+    // If Free Plat with adjustment, use pre-discount annual
+    if (applyAdjustment && FREE_PLAT_SERVICES.has(name) && effRecurring === 0) {
+      const trueAnnual = (svc.recurringPrice || 0) * (svc.annualOccurrences || 0) * qty;
+      cats[cat].count += 1;
+      cats[cat].initial += effInitial;
+      cats[cat].annual += trueAnnual;
+      return;
+    }
+
+    cats[cat].count += 1;
+    cats[cat].initial += effInitial;
+    cats[cat].annual += annual;
+
+    if (cat === 'Cat-Guard') catGuardInitialTotal += effInitial;
+  });
+
+  // Apply Cat-Guard adjustment: deduct freePlatAnnual from Cat-Guard initial
+  if (applyAdjustment && cats['Cat-Guard']) {
+    cats['Cat-Guard'].initial = Math.max(0, cats['Cat-Guard'].initial - freePlatAnnual);
+  }
+
+  return { categories: cats, adjustment: applyAdjustment ? freePlatAnnual : 0 };
+}
+
+// Compute all Summary KPIs for a set of sales and run data
+function summaryComputeKPIs(salesItems, runItems, branchFilter) {
+  const sales = branchFilter
+    ? salesItems.filter(s => branchFilter.includes(s.branch))
+    : salesItems;
+  const run = branchFilter
+    ? runItems.filter(r => branchFilter.includes(r.branch))
+    : runItems;
+
+  // Only count qualified sales (not countAsLeadRun=No) for run-based KPIs
+  const qualifiedSales = sales.filter(s => s.countAsLeadRun !== 'No');
+
+  // Aggregate categories across all deals
+  const totals = {};
+  SUMMARY_CATEGORIES.forEach(c => { totals[c.key] = { count: 0, initial: 0, annual: 0 }; });
+
+  sales.forEach(sale => {
+    const result = summaryAnalyzeDeal(sale);
+    for (const key in result.categories) {
+      if (totals[key]) {
+        totals[key].count += result.categories[key].count;
+        totals[key].initial += result.categories[key].initial;
+        totals[key].annual += result.categories[key].annual;
+      }
+    }
+  });
+
+  // Compute totals row
+  let totalCount = 0, totalInitial = 0, totalAnnual = 0;
+  for (const key in totals) {
+    totalCount += totals[key].count;
+    totalInitial += totals[key].initial;
+    totalAnnual += totals[key].annual;
+  }
+  const totalSales = totalInitial + totalAnnual;
+
+  // Programs = all categories with annual > 0 except Tick & Mosquito and CGW
+  let programs = 0;
+  for (const cat in totals) {
+    if (!NON_PROGRAM_CATEGORIES.has(cat) && totals[cat].annual > 0) {
+      programs += totals[cat].count;
+    }
+  }
+
+  const leadsRun = run.length;
+  const leadsWon = qualifiedSales.length;
+  const closingPct = leadsRun > 0 ? (leadsWon / leadsRun * 100) : 0;
+  const programsPct = leadsRun > 0 ? (programs / leadsRun * 100) : 0;
+  const perLeadInitial = leadsRun > 0 ? totalInitial / leadsRun : 0;
+  const avgInitialSale = leadsWon > 0 ? totalInitial / leadsWon : 0;
+
+  // Average recurring values per category
+  const platCount = (totals['Platinum Recurring'] || {}).count || 0;
+  const commCount = (totals['Commercial Recurring'] || {}).count || 0;
+  const cgCount = (totals['Cat-Guard'] || {}).count || 0;
+  const avgPlatRecurring = platCount > 0 ? (totals['Platinum Recurring'].annual / platCount) : 0;
+  const avgCommRecurring = commCount > 0 ? (totals['Commercial Recurring'].annual / commCount) : 0;
+  const avgCatGuardValue = cgCount > 0 ? (totals['Cat-Guard'].initial / cgCount) : 0;
+  const avgContractValue = leadsWon > 0 ? totalSales / leadsWon : 0;
+
+  return {
+    categories: totals,
+    totalCount, totalInitial, totalAnnual, totalSales,
+    leadsRun, leadsWon, closingPct, programs, programsPct,
+    perLeadInitial, avgInitialSale,
+    avgPlatRecurring, avgCommRecurring, avgCatGuardValue, avgContractValue
+  };
+}
+
+// Format currency
+function summaryFmt(val) {
+  if (val >= 1000) return '$' + Math.round(val).toLocaleString();
+  return '$' + Math.round(val).toLocaleString();
+}
+
+// Render a single Summary section (Combined, Catseye, or USX)
+>>>>>>> Stashed changes
 function summaryRenderSection(containerId, salesItems, runItems, branchFilter) {
   const container = document.getElementById(containerId);
   if (!container) return;
   const body = container.querySelector('.summary-body');
   if (!body) return;
 
+<<<<<<< Updated upstream
   const kpi = summaryComputeKPIs(salesItems, runItems, branchFilter);
 
   // Skip rendering branch sections with zero activity
@@ -3463,10 +3771,72 @@ function summaryRenderSection(containerId, salesItems, runItems, branchFilter) {
     kpiHTML += '<div class="summary-kpi' + (k.wide ? ' wide' : '') + '"><div class="summary-kpi-val">' + display + '</div><div class="summary-kpi-label">' + k.label + '</div></div>';
   });
   kpiHTML += '</div>';
+=======
+  if (salesItems.length === 0 && runItems.length === 0 && !_scDataReady) {
+    body.innerHTML = '<div class="sc-no-data sc-loading-pulse" style="padding:24px;text-align:center">Loading...</div>';
+    return;
+  }
+
+  const kpis = summaryComputeKPIs(salesItems, runItems, branchFilter);
+
+  // Category table
+  let tableRows = '';
+  SUMMARY_CATEGORIES.forEach(cat => {
+    const d = kpis.categories[cat.key] || { count: 0, initial: 0, annual: 0 };
+    if (d.count === 0 && d.initial === 0 && d.annual === 0) {
+      // Still show row but dimmed
+      tableRows += `<tr style="opacity:.4">
+        <td><span class="cat-dot" style="background:${cat.color}"></span>${cat.label}</td>
+        <td>0</td><td>$0</td><td>$0</td><td>$0</td></tr>`;
+    } else {
+      tableRows += `<tr>
+        <td><span class="cat-dot" style="background:${cat.color}"></span>${cat.label}</td>
+        <td>${d.count}</td>
+        <td>${summaryFmt(d.initial)}</td>
+        <td>${summaryFmt(d.annual)}</td>
+        <td>${summaryFmt(d.initial + d.annual)}</td></tr>`;
+    }
+  });
+
+  // Totals row
+  tableRows += `<tr class="cat-total">
+    <td>Total</td>
+    <td>${kpis.totalCount}</td>
+    <td>${summaryFmt(kpis.totalInitial)}</td>
+    <td>${summaryFmt(kpis.totalAnnual)}</td>
+    <td>${summaryFmt(kpis.totalSales)}</td></tr>`;
+
+  const tableHTML = `<div class="summary-cat-table-wrap">
+    <table class="summary-cat-table">
+      <thead><tr>
+        <th>Category</th><th>Count</th><th>Initial</th><th>Annual</th><th>Total</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table></div>`;
+
+  // KPI panel
+  const kpiHTML = `<div class="summary-kpi-panel">
+    <div class="summary-kpi"><div class="summary-kpi-val">${kpis.leadsRun}</div><div class="summary-kpi-label">Leads Run</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${kpis.leadsWon}</div><div class="summary-kpi-label">Leads Won</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${kpis.closingPct.toFixed(0)}%</div><div class="summary-kpi-label">Closing %</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${kpis.programs}</div><div class="summary-kpi-label"># Programs</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${kpis.programsPct.toFixed(0)}%</div><div class="summary-kpi-label">% Programs</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${summaryFmt(kpis.perLeadInitial)}</div><div class="summary-kpi-label">$/Lead Initial</div></div>
+    <div class="summary-kpi wide"><div class="summary-kpi-val">${summaryFmt(kpis.totalInitial)}</div><div class="summary-kpi-label">Total Initial Sales</div></div>
+    <div class="summary-kpi wide"><div class="summary-kpi-val">${summaryFmt(kpis.totalAnnual)}</div><div class="summary-kpi-label">Total Annual Sales</div></div>
+    <div class="summary-kpi wide"><div class="summary-kpi-val" style="color:var(--orange)">${summaryFmt(kpis.totalSales)}</div><div class="summary-kpi-label">Total Sales</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${summaryFmt(kpis.avgInitialSale)}</div><div class="summary-kpi-label">Avg Initial Sale</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${summaryFmt(kpis.avgContractValue)}</div><div class="summary-kpi-label">Avg Contract Value</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${summaryFmt(kpis.avgPlatRecurring)}</div><div class="summary-kpi-label">Avg Plat Recurring</div></div>
+    <div class="summary-kpi"><div class="summary-kpi-val">${summaryFmt(kpis.avgCommRecurring)}</div><div class="summary-kpi-label">Avg Comm Recurring</div></div>
+    <div class="summary-kpi wide"><div class="summary-kpi-val">${summaryFmt(kpis.avgCatGuardValue)}</div><div class="summary-kpi-label">Avg Cat-Guard Value</div></div>
+  </div>`;
+>>>>>>> Stashed changes
 
   body.innerHTML = tableHTML + kpiHTML;
 }
 
+<<<<<<< Updated upstream
 // Summary view has its own independent period state
 let summaryPeriod = 'mtd';
 let summaryCustomFrom = '', summaryCustomTo = '';
@@ -3572,6 +3942,37 @@ function summaryExportCSV() {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(link.href);
+=======
+// Render all 3 Summary sections using current filter period
+function renderSummaryView() {
+  const period = masterPeriod;
+  let salesItems, runItems;
+  if (period === 'custom') {
+    const from = masterCustomFrom, to = masterCustomTo;
+    salesItems = (scSalesData.ytd || []).filter(d => {
+      if (!d.date) return true;
+      if (from && d.date < from) return false;
+      if (to && d.date > to) return false;
+      return true;
+    });
+    runItems = (scRunData.ytd || []).filter(d => {
+      if (!d.date) return true;
+      if (from && d.date < from) return false;
+      if (to && d.date > to) return false;
+      return true;
+    });
+  } else {
+    salesItems = _scGetPeriodItems(scSalesData, period);
+    runItems = _scGetPeriodItems(scRunData, period);
+  }
+
+  // Combined (no branch filter)
+  summaryRenderSection('summaryCombined', salesItems, runItems, null);
+  // Catseye
+  summaryRenderSection('summaryCatseye', salesItems, runItems, SC_CATSEYE_BRANCHES);
+  // USX
+  summaryRenderSection('summaryUSX', salesItems, runItems, SC_USX_BRANCHES);
+>>>>>>> Stashed changes
 }
 
 // ═══════════════════════════════════════════
@@ -4082,6 +4483,10 @@ function renderSalesCenter() {
     scRenderSalesSection(masterPeriod);
     scRenderKPISection(masterPeriod);
     scRenderByOwnerSection(masterPeriod);
+  }
+  // Update Summary view if it's visible
+  if (document.getElementById('viewSummary') && document.getElementById('viewSummary').classList.contains('active')) {
+    renderSummaryView();
   }
 }
 
@@ -5680,8 +6085,30 @@ function switchView(viewName) {
     if (viewName === 'trends') {
       trendInitAll().catch(e => console.error('Trend tab init error:', e));
     }
+<<<<<<< Updated upstream
     if (viewName === 'summary') {
       renderSummaryView();
+=======
+    // Render Summary view when tab is opened
+    if (viewName === 'summary') {
+      renderSummaryView();
+    }
+  }
+}
+
+function startCycle() {
+  if (cycleTimer) clearInterval(cycleTimer);
+  cycleTimer = setInterval(() => {
+    // Toggle between Dashboard and Leads content while staying in wallboard mode
+    if (wallboardCycleView === 'dashboard') {
+      wallboardCycleView = 'leads';
+      viewContainers.forEach(c => c.classList.remove('active'));
+      document.getElementById('viewLeads').classList.add('active');
+    } else {
+      wallboardCycleView = 'dashboard';
+      viewContainers.forEach(c => c.classList.remove('active'));
+      document.getElementById('viewDashboard').classList.add('active');
+>>>>>>> Stashed changes
     }
   }
 }

@@ -288,7 +288,7 @@ const SERVICE_CATEGORY_MAP = {
 const FREE_PLAT_SERVICES = new Set([
   '_TOTAL PLAT', '_TOTAL NO CGW', '_USX TOTAL PLAT', '_USX TOTALNOWAR',
 ]);
-const PROGRAM_CATEGORIES = new Set(['Platinum Recurring', 'Commercial Recurring']);
+const NON_PROGRAM_CATEGORIES = new Set(['Tick & Mosquito', 'CGW']);
 const SUMMARY_CATEGORIES = [
   { key: 'Platinum Recurring',  label: 'Platinum',        color: '#F47B20' },
   { key: 'Commercial Recurring', label: 'Commercial',     color: '#60A5FA' },

@@ -1,0 +1,4 @@
+*.bak
+*.patch
+*.sh
+.DS_Store
