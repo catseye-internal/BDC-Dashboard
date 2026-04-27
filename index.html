@@ -5762,8 +5762,6 @@ function renderBookedTable(rows) {
   // Sort by date+time descending (most recent first)
   rows.sort((a, b) => (b.datetime || b.date || '').localeCompare(a.datetime || a.date || ''));
 
-  document.getElementById('bookedTotalCount').textContent = rows.length;
-
   // Count by Created By
   const createdByCounts = {};
   rows.forEach(r => {
