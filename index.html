@@ -766,6 +766,7 @@
   body.wallboard .sc-conv-kpi { display: none; }
   body.wallboard #scSalesKPIs { display: none; }
   body.wallboard #scByOwner { display: none; }
+  body.wallboard .sales-disclaimer { display: none; }
 
   /* Wallboard: Conv summary row above the branch grid */
   .wallboard-conv-summary { display: none; }
@@ -1434,7 +1435,7 @@
     </div>
   </div>
 
-  <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
+  <div class="sales-disclaimer" style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
   </div><!-- /viewDashboard -->
 
   <!-- ═══════════════════════════════════════ -->
@@ -1655,7 +1656,7 @@
     </table>
   </div>
 
-  <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
+  <div class="sales-disclaimer" style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
   </div><!-- /viewSales -->
 
   <!-- ═══════════════════════════════════════ -->
@@ -1727,7 +1728,7 @@
     <div class="trend-chart-wrap"><canvas id="trendChartSales"></canvas></div>
   </div>
 
-  <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
+  <div class="sales-disclaimer" style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
   </div><!-- /viewTrends -->
 
   <!-- ═══════════════════════════════════════ -->
@@ -1752,7 +1753,7 @@
       </div>
     </div>
 
-  <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
+  <div class="sales-disclaimer" style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text-muted);opacity:0.7;">NOTE: Sales accuracy may vary prior to May 2026</div>
   </div><!-- /viewSummary -->
 
 </div><!-- /main -->
@@ -2233,14 +2234,14 @@ function buildDoughnutChart(canvasId, leads, existingInstance, colorMap, colorFa
       layout: { padding: { right: document.body.classList.contains('wallboard') ? 2 : 10 } },
       plugins: {
         legend: {
-          position: document.body.classList.contains('wallboard') ? 'bottom' : 'right',
+          position: 'right',
           align: 'start',
           labels: {
             color: '#F5F0EB',
-            font: { family: 'Inter', size: document.body.classList.contains('wallboard') ? 11 : 11, weight: '600' },
-            padding: document.body.classList.contains('wallboard') ? 6 : 10,
+            font: { family: 'Inter', size: document.body.classList.contains('wallboard') ? 9 : 11, weight: '600' },
+            padding: document.body.classList.contains('wallboard') ? 4 : 10,
             usePointStyle: true,
-            pointStyleWidth: document.body.classList.contains('wallboard') ? 8 : 10,
+            pointStyleWidth: document.body.classList.contains('wallboard') ? 6 : 10,
             generateLabels: function(chart) {
               const dataset = chart.data.datasets[0];
               const t = dataset.data.reduce((a, b) => a + b, 0);
