@@ -579,6 +579,10 @@
   }
   .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .filter-group select { max-width: 180px; text-overflow: ellipsis; }
+  .sales-custom-date-range { display: none; flex-direction: column; gap: 4px; margin-top: 4px; }
+  .sales-custom-date-range.visible { display: flex; }
+  .sales-custom-apply { background: var(--orange); color: #fff; border: none; padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
+  .sales-custom-apply:hover { filter: brightness(1.1); }
   .sort-btn {
     font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
     padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
@@ -1575,7 +1579,13 @@
         <option value="30d">Last 30 Days</option>
         <option value="mtd">MTD</option>
         <option value="ytd">YTD</option>
+        <option value="custom">Custom Range</option>
       </select>
+      <div class="sales-custom-date-range" id="salesCustomDateRange">
+        <div class="sc-date-row"><span class="sc-date-label">From</span><input type="date" class="sc-date-input" id="salesCustomFrom"></div>
+        <div class="sc-date-row"><span class="sc-date-label">To</span><input type="date" class="sc-date-input" id="salesCustomTo"></div>
+        <button class="sc-date-apply sales-custom-apply" id="salesCustomApply">Apply</button>
+      </div>
     </div>
     <div class="filter-group">
       <span class="filter-label">Stage</span>
@@ -1696,8 +1706,8 @@
       </div>
       <span class="iu-divider"></span>
       <span class="inbound-unique-toggle" id="trendsUniqueToggle">
-        <button class="sc-period-btn iu-btn active" data-tiu="all">All</button>
-        <button class="sc-period-btn iu-btn" data-tiu="unique">Unique</button>
+        <button class="sc-period-btn iu-btn" data-tiu="all">All</button>
+        <button class="sc-period-btn iu-btn active" data-tiu="unique">Unique</button>
       </span>
       <span class="iu-divider"></span>
       <span class="compare-group" id="compareGroup">
@@ -1805,7 +1815,7 @@ var _data2025Loading = false;
 var _data2025Loaded = false;
 var inboundUnique = true; // All vs Unique toggle — false = show all, true = deduplicate
 var leadsViewUnique = true; // All vs Unique toggle for the Leads tab table
-var trendsInboundUnique = false; // All vs Unique toggle for Trends tab (independent of Dashboard)
+var trendsInboundUnique = true; // All vs Unique toggle for Trends tab (independent of Dashboard)
 // chart instances managed inside renderTypeChart / renderSourceChart
 let refreshTimer = null;
 let isRefreshing = false; // guard against overlapping refreshes
@@ -5309,6 +5319,12 @@ function filterSalesRows(rows) {
     if (dateVal === '30d' && d < d30Str) return false;
     if (dateVal === 'mtd' && d < mtdStr) return false;
     if (dateVal === 'ytd' && d < ytdStr) return false;
+    if (dateVal === 'custom') {
+      const cfrom = document.getElementById('salesCustomFrom').value;
+      const cto = document.getElementById('salesCustomTo').value;
+      if (cfrom && d < cfrom) return false;
+      if (cto && d > cto) return false;
+    }
 
     // Dropdowns
     if (branchVal !== 'all' && s.branch !== branchVal) return false;
@@ -5502,10 +5518,22 @@ function renderSalesView() {
 // Wire up sales filter events
 ['salesFilterDate','salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun'].forEach(id => {
   document.getElementById(id).addEventListener('change', () => {
+    // Show/hide custom date range inputs
+    if (id === 'salesFilterDate') {
+      const panel = document.getElementById('salesCustomDateRange');
+      if (panel) panel.classList.toggle('visible', document.getElementById('salesFilterDate').value === 'custom');
+      if (document.getElementById('salesFilterDate').value === 'custom') return; // wait for Apply
+    }
     const filtered = filterSalesRows(allSalesRows);
     renderSalesTable(filtered);
     if (typeof updateSalesFilterCount === 'function') updateSalesFilterCount();
   });
+});
+// Sales custom date range Apply button
+document.getElementById('salesCustomApply').addEventListener('click', () => {
+  const filtered = filterSalesRows(allSalesRows);
+  renderSalesTable(filtered);
+  if (typeof updateSalesFilterCount === 'function') updateSalesFilterCount();
 });
 document.getElementById('salesFilterSearch').addEventListener('input', () => {
   const filtered = filterSalesRows(allSalesRows);
@@ -5663,6 +5691,11 @@ function updateSalesFilterCount() {
   let count = 0;
   const dateVal = document.getElementById('salesFilterDate')?.value;
   if (dateVal && dateVal !== 'today') count++;
+  if (dateVal === 'custom') {
+    const cf = document.getElementById('salesCustomFrom')?.value;
+    const ct = document.getElementById('salesCustomTo')?.value;
+    if (cf || ct) count++; // extra badge for custom range being set
+  }
   const stageVal = document.getElementById('salesFilterStage')?.value;
   if (stageVal && stageVal !== 'won') count++;
   ['salesFilterBranch','salesFilterOwner','salesFilterCreatedBy','salesFilterBDC','salesFilterLeadRun'].forEach(id => {
