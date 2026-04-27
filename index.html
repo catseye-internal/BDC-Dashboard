@@ -1737,6 +1737,10 @@
 
 let allLeads = [];
 
+// ── Hoisted declarations (must be above render() call) ──
+var allBookedRows = [];
+var salesSortRules = [{ column: 'date', dir: 'desc' }];
+
 // ── 2025 Historical Data (loaded lazily from cache-2025.json) ──
 var _data2025 = null;       // { booked: [], sales: [], leadsRun: [], leads: [] }
 var _data2025Loading = false;
@@ -5525,7 +5529,7 @@ const SALES_SORT_COLUMNS = [
   { key: 'techSold', label: 'Tech SOLD' }
 ];
 
-let salesSortRules = [{ column: 'date', dir: 'desc' }];
+// salesSortRules hoisted to top of script
 
 function toggleSalesSortPanel() {
   const panel = document.getElementById('salesSortPanel');
@@ -5703,7 +5707,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // BOOKED VIEW — filterable list of booked leads
 // ═══════════════════════════════════════════
 
-var allBookedRows = []; // enriched booked items for the Booked list view
+// allBookedRows hoisted to top of script
 
 function getFilteredBookedRows() {
   let rows = allBookedRows.slice();
