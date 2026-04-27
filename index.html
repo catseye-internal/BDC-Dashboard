@@ -1510,8 +1510,8 @@
     <div class="filter-group">
       <span class="filter-label">Dedup</span>
       <span class="inbound-unique-toggle" id="leadsUniqueToggle">
-        <button class="sc-period-btn iu-btn" data-liu="all">All</button>
-        <button class="sc-period-btn iu-btn active" data-liu="unique">Unique</button>
+        <button class="sc-period-btn iu-btn active" data-liu="all">All</button>
+        <button class="sc-period-btn iu-btn" data-liu="unique">Unique</button>
       </span>
     </div>
     <div class="filter-group" style="margin-left:auto;">
@@ -1814,7 +1814,7 @@ var _data2025 = null;       // { booked: [], sales: [], leadsRun: [], leads: [] 
 var _data2025Loading = false;
 var _data2025Loaded = false;
 var inboundUnique = true; // All vs Unique toggle — false = show all, true = deduplicate
-var leadsViewUnique = true; // All vs Unique toggle for the Leads tab table
+var leadsViewUnique = false; // All vs Unique toggle for the Leads tab table
 var trendsInboundUnique = true; // All vs Unique toggle for Trends tab (independent of Dashboard)
 // chart instances managed inside renderTypeChart / renderSourceChart
 let refreshTimer = null;
