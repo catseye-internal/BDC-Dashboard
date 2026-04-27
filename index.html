@@ -809,19 +809,20 @@
   body.wallboard .wallboard-branch-grid .branch-card {
     flex-direction: row;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    min-width: unset;
+    gap: 6px;
+    padding: 6px 8px;
+    min-width: 0;
     flex: 1;
+    overflow: hidden;
   }
   body.wallboard .wallboard-branch-grid .branch-card .branch-info {
-    display: flex; flex-direction: column; flex: 1; min-width: 0;
+    display: flex; flex-direction: column; flex: 1; min-width: 0; overflow: hidden;
   }
   body.wallboard .branch-card-conversion { display: none; }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 28px; }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 11px; margin-top: 0; text-align: left; }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-sub { font-size: 10px; margin-top: 2px; }
-  body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 14px; font-weight: 700; }
+  body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 20px; }
+  body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 9px; margin-top: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.wallboard .wallboard-branch-grid .branch-card .branch-sub { font-size: 8px; margin-top: 1px; }
+  body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 11px; font-weight: 700; }
 
   /* Wallboard: prevent overflow in branch grid and conv summary */
   body.wallboard .wallboard-conv-summary {
@@ -846,10 +847,10 @@
     body.wallboard .wallboard-conv-label { font-size: 9px; }
     body.wallboard .wallboard-conv-detail { font-size: 9px; }
     body.wallboard .wallboard-branch-grid { gap: 4px; }
-    body.wallboard .wallboard-branch-grid .branch-card { padding: 5px 7px; gap: 5px; }
-    body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 20px; }
-    body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 9px; }
-    body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 11px; }
+    body.wallboard .wallboard-branch-grid .branch-card { padding: 4px 6px; gap: 4px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-count { font-size: 16px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-name { font-size: 8px; }
+    body.wallboard .wallboard-branch-grid .branch-card .branch-conv { font-size: 9px; }
     body.wallboard .chart-container { height: 100px; }
   }
   @media (max-width: 1100px) {
