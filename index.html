@@ -7,6 +7,7 @@
 <link rel="preload" href="./cache.json" as="fetch" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script>if(!window.jspdf){document.write('<script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"><\/script>')}</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -5788,6 +5789,7 @@ document.getElementById('trendExportPdf').addEventListener('click', function() {
 
   setTimeout(() => {
     try {
+      if (!window.jspdf) { alert('PDF library failed to load. Please hard-refresh (Cmd+Shift+R) and try again.'); btn.textContent = '\u{1F4C4} Export PDF'; btn.disabled = false; return; }
       const { jsPDF } = window.jspdf;
       // Landscape letter: 11 x 8.5 inches
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter' });
