@@ -1300,6 +1300,7 @@
           <tr>
             <th class="owner-col-name">Created By</th>
             <th class="owner-col-num">Booked</th>
+            <th class="owner-col-num">Run</th>
             <th class="owner-col-num">Won</th>
             <th class="owner-col-money">Initial</th>
             <th class="owner-col-money">Annual</th>
@@ -3239,7 +3240,7 @@ function scRenderByBDC(salesItems, bookedItems) {
   if (!tbody) return;
 
   if (salesItems.length === 0 && bookedItems.length === 0 && !_scDataReady) {
-    tbody.innerHTML = '<tr><td colspan="6" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
     tfoot.innerHTML = '';
     return;
   }
@@ -3250,14 +3251,17 @@ function scRenderByBDC(salesItems, bookedItems) {
   // Count booked leads per creator
   bookedItems.forEach(b => {
     const c = b.createdBy || 'Unknown';
-    if (!creators[c]) creators[c] = { booked: 0, won: 0, initial: 0, annual: 0, total: 0 };
+    if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, initial: 0, annual: 0, total: 0 };
     creators[c].booked += 1;
   });
 
-  // Sum sales per creator
+  // Count run (qualified won: countAsLeadRun != No) + sum all sales per creator
   salesItems.forEach(s => {
     const c = s.createdBy || 'Unknown';
-    if (!creators[c]) creators[c] = { booked: 0, won: 0, initial: 0, annual: 0, total: 0 };
+    if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, initial: 0, annual: 0, total: 0 };
+    if (s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(s.owner || '')) {
+      creators[c].run += 1;
+    }
     creators[c].won += 1;
     creators[c].initial += (s.initialValue || 0);
     creators[c].annual += (s.annualValue || 0);
@@ -3268,13 +3272,14 @@ function scRenderByBDC(salesItems, bookedItems) {
   const sorted = Object.entries(creators).sort((a, b) => b[1].total - a[1].total);
 
   // Build rows
-  let tBooked = 0, tWon = 0, tInitial = 0, tAnnual = 0, tTotal = 0;
+  let tBooked = 0, tRun = 0, tWon = 0, tInitial = 0, tAnnual = 0, tTotal = 0;
   let html = '';
   sorted.forEach(([name, d]) => {
-    tBooked += d.booked; tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total;
+    tBooked += d.booked; tRun += d.run; tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total;
     html += '<tr>' +
       '<td>' + name + '</td>' +
       '<td class="owner-col-num">' + d.booked + '</td>' +
+      '<td class="owner-col-num">' + d.run + '</td>' +
       '<td class="owner-col-num">' + d.won + '</td>' +
       '<td class="owner-col-money owner-val-initial">' + scFmt.format(d.initial) + '</td>' +
       '<td class="owner-col-money owner-val-annual">' + scFmt.format(d.annual) + '</td>' +
@@ -3286,6 +3291,7 @@ function scRenderByBDC(salesItems, bookedItems) {
   tfoot.innerHTML = '<tr>' +
     '<td>Total</td>' +
     '<td class="owner-col-num">' + tBooked + '</td>' +
+    '<td class="owner-col-num">' + tRun + '</td>' +
     '<td class="owner-col-num">' + tWon + '</td>' +
     '<td class="owner-col-money owner-val-initial">' + scFmt.format(tInitial) + '</td>' +
     '<td class="owner-col-money owner-val-annual">' + scFmt.format(tAnnual) + '</td>' +
