@@ -3266,10 +3266,19 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
   // Falls back to locationId (internal ID) if locationCode not available.
   if (runItems && runItems.length > 0) {
     const allBooked = typeof allBookedRows !== 'undefined' ? allBookedRows : bookedItems;
+    // Include 2025 booked items for matching (customers booked last year)
+    const booked2025 = (_data2025 && _data2025.booked) ? _data2025.booked : [];
     // Build lookup maps: locationCode (primary), locationId (fallback), billToId (last resort)
     const codeToBDC = {};
     const locToBDC = {};
     const billToBDC = {};
+    // 2025 first so 2026 creators take priority if same location was rebooked
+    booked2025.forEach(b => {
+      const creator = b.createdBy || 'Unknown';
+      if (b.locationCode) codeToBDC[String(b.locationCode)] = creator;
+      if (b.locationId) locToBDC[String(b.locationId)] = creator;
+      if (b.billToId) billToBDC[String(b.billToId)] = creator;
+    });
     allBooked.forEach(b => {
       const creator = b.createdBy || 'Unknown';
       if (b.locationCode) codeToBDC[String(b.locationCode)] = creator;
@@ -5013,14 +5022,23 @@ async function load2025Data() {
     var cached = await cacheGetAsync('bdc_2025');
     if (cached && cached.data) {
       _data2025 = cached.data;
-      _data2025Loaded = true;
-      _data2025Loading = false;
-      console.log('⚡ Loaded 2025 data from IndexedDB (' +
-        (_data2025.booked || []).length + ' booked, ' +
-        (_data2025.sales || []).length + ' sales, ' +
-        (_data2025.leadsRun || []).length + ' run, ' +
-        (_data2025.leads || []).length + ' leads)');
-      return _data2025;
+      // Convert object-with-numeric-keys to array (old cache format)
+      if (_data2025.booked && !Array.isArray(_data2025.booked)) _data2025.booked = Object.values(_data2025.booked);
+      if (_data2025.sales && !Array.isArray(_data2025.sales)) _data2025.sales = Object.values(_data2025.sales);
+      if (_data2025.leadsRun && !Array.isArray(_data2025.leadsRun)) _data2025.leadsRun = Object.values(_data2025.leadsRun);
+      // If cached 2025 booked items lack locationCode, force re-fetch from server
+      if (_data2025.booked.length > 0 && !_data2025.booked[0].locationCode) {
+        console.log('⚠️ Stale 2025 IndexedDB cache (no locationCode) — re-fetching from server');
+      } else {
+        _data2025Loaded = true;
+        _data2025Loading = false;
+        console.log('⚡ Loaded 2025 data from IndexedDB (' +
+          (_data2025.booked || []).length + ' booked, ' +
+          (_data2025.sales || []).length + ' sales, ' +
+          (_data2025.leadsRun || []).length + ' run, ' +
+          (_data2025.leads || []).length + ' leads)');
+        return _data2025;
+      }
     }
 
     // Fetch from GitHub Pages
@@ -5030,10 +5048,17 @@ async function load2025Data() {
     var data = await resp.json();
     if (!data || !data.year) throw new Error('Invalid cache-2025 data');
 
+    // Convert object-with-numeric-keys to array (old cache format)
+    var rawBooked = data.booked || [];
+    if (!Array.isArray(rawBooked)) rawBooked = Object.values(rawBooked);
+    var rawSales = data.sales || [];
+    if (!Array.isArray(rawSales)) rawSales = Object.values(rawSales);
+    var rawRun = data.leadsRun || [];
+    if (!Array.isArray(rawRun)) rawRun = Object.values(rawRun);
     _data2025 = {
-      booked: data.booked || [],
-      sales: data.sales || [],
-      leadsRun: data.leadsRun || [],
+      booked: rawBooked,
+      sales: rawSales,
+      leadsRun: rawRun,
       leads: data.leads || []
     };
 
@@ -5383,6 +5408,15 @@ document.getElementById('filterSearch').addEventListener('input', render);
 })();
 
 refresh(true).then(() => { refreshTimer = setInterval(() => refresh(false), 60000); });
+
+// Eagerly load 2025 data in background for BDC run matching
+// (customers booked in 2025 need to be in the matching maps)
+load2025Data().then(() => {
+  if (_data2025 && _data2025.booked && _data2025.booked.length > 0) {
+    console.log('📦 2025 data loaded (' + _data2025.booked.length + ' booked) — re-rendering BDC');
+    try { renderSalesCenter(); } catch(e) {}
+  }
+}).catch(() => {});
 
 // Safety net: never show "Loading..." for more than 4 seconds
 // If data hasn't arrived by then, try self-healing from raw cache first, then force render
