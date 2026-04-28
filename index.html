@@ -3268,23 +3268,46 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
   });
 
   // Attribute PestPac run items to BDC reps via tech→owner→createdBy bridge
+  // Uses proportional distribution: if Amanda booked 3/4 leads for an inspector,
+  // she gets 75% of that inspector's runs (fractional, summed across all inspectors)
   if (runItems && runItems.length > 0) {
+    // Group runs by inspector (owner via TECH_OWNER_MAP)
+    const runsByOwner = {};
     runItems.forEach(r => {
       const tech = (r.tech || '').toUpperCase();
       const ownerName = TECH_OWNER_MAP[tech];
       if (!ownerName) return;
-      const bdcDist = ownerToBDC[ownerName];
-      if (!bdcDist) return;
-      // Attribute to the BDC rep who booked the most leads for this inspector
-      let topBDC = null, topCount = 0;
-      for (const [bdc, cnt] of Object.entries(bdcDist)) {
-        if (cnt > topCount) { topBDC = bdc; topCount = cnt; }
-      }
-      if (topBDC) {
-        if (!creators[topBDC]) creators[topBDC] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
-        creators[topBDC].run += 1;
-      }
+      runsByOwner[ownerName] = (runsByOwner[ownerName] || 0) + 1;
     });
+    // Distribute each inspector's runs proportionally to BDC reps
+    for (const [ownerName, runCount] of Object.entries(runsByOwner)) {
+      const bdcDist = ownerToBDC[ownerName];
+      if (!bdcDist) continue;
+      const totalBooked = Object.values(bdcDist).reduce((a, b) => a + b, 0);
+      if (totalBooked === 0) continue;
+      // Allocate proportionally, using largest-remainder for whole numbers
+      const shares = {};
+      let allocated = 0;
+      const entries = Object.entries(bdcDist);
+      entries.forEach(([bdc, cnt]) => {
+        const exact = (cnt / totalBooked) * runCount;
+        shares[bdc] = { floor: Math.floor(exact), remainder: exact - Math.floor(exact) };
+        allocated += Math.floor(exact);
+      });
+      // Distribute remaining runs to highest remainders
+      let remaining = runCount - allocated;
+      const byRemainder = entries.sort((a, b) => shares[b[0]].remainder - shares[a[0]].remainder);
+      byRemainder.forEach(([bdc]) => {
+        if (remaining > 0) { shares[bdc].floor += 1; remaining -= 1; }
+      });
+      // Apply
+      for (const [bdc, s] of Object.entries(shares)) {
+        if (s.floor > 0) {
+          if (!creators[bdc]) creators[bdc] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
+          creators[bdc].run += s.floor;
+        }
+      }
+    }
   }
 
   // Sum sales per creator
