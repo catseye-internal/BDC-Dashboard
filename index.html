@@ -3264,21 +3264,23 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
   // Falls back to locationId (internal ID) if locationCode not available.
   if (runItems && runItems.length > 0) {
     const allBooked = typeof allBookedRows !== 'undefined' ? allBookedRows : bookedItems;
-    // Build locationCode → createdBy map (primary)
+    // Build lookup maps: locationCode (primary), locationId (fallback), billToId (last resort)
     const codeToBDC = {};
-    // Build locationId → createdBy map (fallback)
     const locToBDC = {};
+    const billToBDC = {};
     allBooked.forEach(b => {
       const creator = b.createdBy || 'Unknown';
       if (b.locationCode) codeToBDC[String(b.locationCode)] = creator;
       if (b.locationId) locToBDC[String(b.locationId)] = creator;
+      if (b.billToId) billToBDC[String(b.billToId)] = creator;
     });
 
     runItems.forEach(r => {
       const code = r.locationCode ? String(r.locationCode) : '';
       const lid = r.locationId ? String(r.locationId) : '';
-      // Try locationCode first, then fall back to locationId
-      const bdc = (code && codeToBDC[code]) || (lid && locToBDC[lid]) || null;
+      const bid = r.billToId ? String(r.billToId) : '';
+      // Try locationCode first, then locationId, then billToId
+      const bdc = (code && codeToBDC[code]) || (lid && locToBDC[lid]) || (bid && billToBDC[bid]) || null;
       if (bdc) {
         if (!creators[bdc]) creators[bdc] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
         creators[bdc].run += 1;
