@@ -2879,9 +2879,10 @@ function scAggregate(opportunities, branches) {
   opportunities.forEach(opp => {
     const branch = opp.branch || '';
     if (!branches.includes(branch)) return;
-    result[branch].initial += (opp.initialValue || 0);
-    result[branch].annual  += (opp.annualValue || 0);
-    result[branch].total   += (opp.totalValue || 0);
+    const eff = computeEffectiveValues(opp);
+    result[branch].initial += eff.initial;
+    result[branch].annual  += eff.annual;
+    result[branch].total   += eff.total;
     rawTotal += 1;
     // Badge count: only count qualified leads won (excl. countAsLeadRun='No' + EXCLUDED_WON_OWNERS)
     if (opp.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(opp.owner || '')) {
@@ -3162,9 +3163,10 @@ function scRenderByOwner(salesItems, runItems) {
     const o = s.owner || 'Unknown';
     if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, qWon: 0, bdcSold: 0 };
     owners[o].won += 1;
-    owners[o].initial += (s.initialValue || 0);
-    owners[o].annual += (s.annualValue || 0);
-    owners[o].total += (s.totalValue || 0);
+    const oEff = computeEffectiveValues(s);
+    owners[o].initial += oEff.initial;
+    owners[o].annual += oEff.annual;
+    owners[o].total += oEff.total;
     if (s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(o)) {
       owners[o].qWon += 1;
     }
@@ -3291,9 +3293,10 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
     const c = s.createdBy || 'Unknown';
     if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
     creators[c].won += 1;
-    creators[c].initial += (s.initialValue || 0);
-    creators[c].annual += (s.annualValue || 0);
-    creators[c].total += (s.totalValue || 0);
+    const cEff = computeEffectiveValues(s);
+    creators[c].initial += cEff.initial;
+    creators[c].annual += cEff.annual;
+    creators[c].total += cEff.total;
     const o = s.owner || '';
     if (s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(o)) {
       creators[c].qWon += 1;
