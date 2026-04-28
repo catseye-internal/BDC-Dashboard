@@ -3233,8 +3233,8 @@ function scRenderByOwnerSection(period) {
   scRenderByOwner(salesItems, runItems);
 }
 
-// ── Sales by BDC (Created By) table ──
-function scRenderByBDC(salesItems, bookedItems) {
+// ── BDC Performance (Created By) table ──
+function scRenderByBDC(salesItems, bookedItems, runItems) {
   const tbody = document.getElementById('bdcTableBody');
   const tfoot = document.getElementById('bdcTableFoot');
   if (!tbody) return;
@@ -3248,20 +3248,45 @@ function scRenderByBDC(salesItems, bookedItems) {
   // Group by createdBy
   const creators = {};
 
-  // Count booked leads per creator
+  // Build owner→createdBy bridge from booked items
+  // For each inspector (owner), track which BDC reps booked leads for them
+  const ownerToBDC = {};
   bookedItems.forEach(b => {
     const c = b.createdBy || 'Unknown';
+    const o = b.owner || '';
     if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, initial: 0, annual: 0, total: 0 };
     creators[c].booked += 1;
+    // Track BDC rep distribution per owner for run attribution
+    if (o) {
+      if (!ownerToBDC[o]) ownerToBDC[o] = {};
+      ownerToBDC[o][c] = (ownerToBDC[o][c] || 0) + 1;
+    }
   });
 
-  // Count run (qualified won: countAsLeadRun != No) + sum all sales per creator
+  // Attribute PestPac run items to BDC reps via tech→owner→createdBy bridge
+  if (runItems && runItems.length > 0) {
+    runItems.forEach(r => {
+      const tech = (r.tech || '').toUpperCase();
+      const ownerName = TECH_OWNER_MAP[tech];
+      if (!ownerName) return;
+      const bdcDist = ownerToBDC[ownerName];
+      if (!bdcDist) return;
+      // Attribute to the BDC rep who booked the most leads for this inspector
+      let topBDC = null, topCount = 0;
+      for (const [bdc, cnt] of Object.entries(bdcDist)) {
+        if (cnt > topCount) { topBDC = bdc; topCount = cnt; }
+      }
+      if (topBDC) {
+        if (!creators[topBDC]) creators[topBDC] = { booked: 0, run: 0, won: 0, initial: 0, annual: 0, total: 0 };
+        creators[topBDC].run += 1;
+      }
+    });
+  }
+
+  // Sum sales per creator
   salesItems.forEach(s => {
     const c = s.createdBy || 'Unknown';
     if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, initial: 0, annual: 0, total: 0 };
-    if (s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(s.owner || '')) {
-      creators[c].run += 1;
-    }
     creators[c].won += 1;
     creators[c].initial += (s.initialValue || 0);
     creators[c].annual += (s.annualValue || 0);
@@ -3302,7 +3327,8 @@ function scRenderByBDC(salesItems, bookedItems) {
 function scRenderByBDCSection(period) {
   const salesItems = _scGetPeriodItems(scSalesData, period);
   const bookedItems = _scGetPeriodItems(scBookedData, period);
-  scRenderByBDC(salesItems, bookedItems);
+  const runItems = _scGetPeriodItems(scRunData, period);
+  scRenderByBDC(salesItems, bookedItems, runItems);
 }
 
 // ═══════════════════════════════════════════
@@ -3733,7 +3759,7 @@ function scApplyMasterCustomFilter() {
   // KPIs + By Owner (use the already-filtered items)
   scRenderKPIs(salesOpps, runItems);
   scRenderByOwner(salesOpps, runItems);
-  scRenderByBDC(salesOpps, bookedItems);
+  scRenderByBDC(salesOpps, bookedItems, runItems);
 }
 
 // Master dashboard filter toggle
