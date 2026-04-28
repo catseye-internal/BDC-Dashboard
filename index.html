@@ -3388,6 +3388,54 @@ function isFullyDiscountedRecurring(svc) {
   return effectiveRecurring(svc) === 0 && (svc.recurringPrice || 0) > 0;
 }
 
+// Compute effective Initial/Annual/Total for a sale after Free Plat reallocation
+// This matches the expanded service breakdown logic exactly
+function computeEffectiveValues(sale) {
+  const svcs = sale.serviceDetails || [];
+  if (!svcs.length) return { initial: sale.initialValue || 0, annual: sale.annualValue || 0, total: sale.totalValue || 0 };
+
+  let freePlatAnnualPool = 0;
+  const freePlatIdxs = new Set();
+  let hasCatGuard = false;
+
+  svcs.forEach((svc, si) => {
+    const upper = (svc.name || '').trim().toUpperCase();
+    const cat = summaryGetCategory(svc.name);
+    if (FREE_PLAT_SERVICES.has(upper) || FREE_PLAT_SERVICES.has('_' + upper.replace(/^_/, ''))) {
+      if (isFullyDiscountedRecurring(svc)) {
+        freePlatAnnualPool += (svc.recurringPrice || 0) * (svc.annualOccurrences || 12);
+        freePlatIdxs.add(si);
+      }
+    }
+    if (cat === 'Cat-Guard') hasCatGuard = true;
+  });
+
+  let remainingPool = freePlatAnnualPool;
+  let totalInit = 0, totalAnnual = 0;
+
+  svcs.forEach((svc, si) => {
+    let effInit = effectiveInitial(svc);
+    let displayAnnual;
+
+    if (freePlatIdxs.has(si)) {
+      displayAnnual = (svc.recurringPrice || 0) * (svc.annualOccurrences || 12);
+    } else {
+      displayAnnual = effectiveRecurring(svc) * (svc.annualOccurrences || 0);
+    }
+
+    const cat = summaryGetCategory(svc.name);
+    if (cat === 'Cat-Guard' && hasCatGuard && remainingPool > 0) {
+      effInit = Math.max(0, effInit - remainingPool);
+      remainingPool = 0;
+    }
+
+    totalInit += effInit;
+    totalAnnual += displayAnnual;
+  });
+
+  return { initial: totalInit, annual: totalAnnual, total: totalInit + totalAnnual };
+}
+
 // ═══════════════════════════════════════════
 // SUMMARY VIEW — Category Breakdown + KPIs
 // ═══════════════════════════════════════════
@@ -5462,6 +5510,8 @@ function formatMoney(v) {
 
 function renderSalesTable(rows) {
   const tbody = document.getElementById('salesTableBody');
+  // Pre-compute effective values for each row (Free Plat reallocation)
+  rows.forEach(s => { s._eff = computeEffectiveValues(s); });
   if (rows.length === 0) {
     tbody.innerHTML = '<tr><td colspan="15" class="no-data">No sales match your filters</td></tr>';
   } else {
@@ -5565,9 +5615,9 @@ function renderSalesTable(rows) {
         <td style="font-size:12px">${s.city || '—'}</td>
         <td style="font-size:12px;font-family:monospace">${s.serviceLocationId || '—'}</td>
         <td class="wrap" style="font-size:11px;max-width:180px" title="${(s.services||'').replace(/"/g,'&quot;')}">${truncate(s.services, 40)}</td>
-        <td style="font-family:monospace;font-size:12px;text-align:right">${formatMoney(s.initialValue)}</td>
-        <td style="font-family:monospace;font-size:12px;text-align:right">${formatMoney(s.annualValue)}</td>
-        <td style="font-family:monospace;font-size:12px;text-align:right;font-weight:600;color:var(--green)">${formatMoney(s.totalValue)}</td>
+        <td style="font-family:monospace;font-size:12px;text-align:right">${formatMoney(s._eff ? s._eff.initial : s.initialValue)}</td>
+        <td style="font-family:monospace;font-size:12px;text-align:right">${formatMoney(s._eff ? s._eff.annual : s.annualValue)}</td>
+        <td style="font-family:monospace;font-size:12px;text-align:right;font-weight:600;color:var(--green)">${formatMoney(s._eff ? s._eff.total : s.totalValue)}</td>
         <td style="font-size:12px">${s.createdBy || '—'}</td>
         <td style="font-size:12px">${s.countAsLeadRun || '—'}</td>
         <td style="font-size:12px">${s.bdcSold || '—'}</td>
@@ -5578,9 +5628,9 @@ function renderSalesTable(rows) {
 
   // Summary
   document.getElementById('salesCount').textContent = rows.length;
-  const totInit = rows.reduce((a,s) => a + (Number(s.initialValue)||0), 0);
-  const totAnn  = rows.reduce((a,s) => a + (Number(s.annualValue)||0), 0);
-  const totVal  = rows.reduce((a,s) => a + (Number(s.totalValue)||0), 0);
+  const totInit = rows.reduce((a,s) => a + (s._eff ? s._eff.initial : (Number(s.initialValue)||0)), 0);
+  const totAnn  = rows.reduce((a,s) => a + (s._eff ? s._eff.annual : (Number(s.annualValue)||0)), 0);
+  const totVal  = rows.reduce((a,s) => a + (s._eff ? s._eff.total : (Number(s.totalValue)||0)), 0);
   document.getElementById('salesInitialValue').textContent = formatMoney(totInit);
   document.getElementById('salesAnnualValue').textContent = formatMoney(totAnn);
   document.getElementById('salesTotalValue').textContent = formatMoney(totVal);
@@ -5734,9 +5784,9 @@ function getSalesSortValue(s, key) {
     case 'city': return (s.city || '').toLowerCase();
     case 'locationId': return (s.serviceLocationId || '').toLowerCase();
     case 'services': return (s.services || '').toLowerCase();
-    case 'initial': return Number(s.initialValue) || 0;
-    case 'annual': return Number(s.annualValue) || 0;
-    case 'total': return Number(s.totalValue) || 0;
+    case 'initial': return s._eff ? s._eff.initial : (Number(s.initialValue) || 0);
+    case 'annual': return s._eff ? s._eff.annual : (Number(s.annualValue) || 0);
+    case 'total': return s._eff ? s._eff.total : (Number(s.totalValue) || 0);
     case 'createdBy': return (s.createdBy || '').toLowerCase();
     case 'leadRun': return (s.countAsLeadRun || '').toLowerCase();
     case 'bdcSold': return (s.bdcSold || '').toLowerCase();
