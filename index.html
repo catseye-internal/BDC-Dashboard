@@ -3280,11 +3280,9 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
       const lid = r.locationId ? String(r.locationId) : '';
       const bid = r.billToId ? String(r.billToId) : '';
       // Try locationCode first, then locationId, then billToId
-      const bdc = (code && codeToBDC[code]) || (lid && locToBDC[lid]) || (bid && billToBDC[bid]) || null;
-      if (bdc) {
-        if (!creators[bdc]) creators[bdc] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
-        creators[bdc].run += 1;
-      }
+      const bdc = (code && codeToBDC[code]) || (lid && locToBDC[lid]) || (bid && billToBDC[bid]) || 'Unmatched';
+      if (!creators[bdc]) creators[bdc] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
+      creators[bdc].run += 1;
     });
   }
 
