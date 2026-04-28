@@ -1277,6 +1277,7 @@
             <th class="owner-col-name">Owner</th>
             <th class="owner-col-num">Run</th>
             <th class="owner-col-num">Won</th>
+            <th class="owner-col-num">BDC SOLD</th>
             <th class="owner-col-money">Initial</th>
             <th class="owner-col-money">Annual</th>
             <th class="owner-col-money">Total</th>
@@ -1302,9 +1303,11 @@
             <th class="owner-col-num">Booked</th>
             <th class="owner-col-num">Run</th>
             <th class="owner-col-num">Won</th>
+            <th class="owner-col-num">BDC SOLD</th>
             <th class="owner-col-money">Initial</th>
             <th class="owner-col-money">Annual</th>
             <th class="owner-col-money">Total</th>
+            <th class="owner-col-pct">Close %</th>
           </tr>
         </thead>
         <tbody id="bdcTableBody"></tbody>
@@ -3148,7 +3151,7 @@ function scRenderByOwner(salesItems, runItems) {
   if (!tbody) return;
 
   if (salesItems.length === 0 && !_scDataReady) {
-    tbody.innerHTML = '<tr><td colspan="7" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
     tfoot.innerHTML = '';
     return;
   }
@@ -3157,13 +3160,16 @@ function scRenderByOwner(salesItems, runItems) {
   const owners = {};
   salesItems.forEach(s => {
     const o = s.owner || 'Unknown';
-    if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, qWon: 0 };
+    if (!owners[o]) owners[o] = { won: 0, initial: 0, annual: 0, total: 0, qWon: 0, bdcSold: 0 };
     owners[o].won += 1;
     owners[o].initial += (s.initialValue || 0);
     owners[o].annual += (s.annualValue || 0);
     owners[o].total += (s.totalValue || 0);
     if (s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(o)) {
       owners[o].qWon += 1;
+    }
+    if (s.bdcSold && s.bdcSold.toLowerCase() === 'yes') {
+      owners[o].bdcSold += 1;
     }
   });
 
@@ -3172,7 +3178,7 @@ function scRenderByOwner(salesItems, runItems) {
     const tech = (r.tech || '').toUpperCase();
     const ownerName = TECH_OWNER_MAP[tech];
     if (ownerName && !owners[ownerName]) {
-      owners[ownerName] = { won: 0, initial: 0, annual: 0, total: 0, qWon: 0 };
+      owners[ownerName] = { won: 0, initial: 0, annual: 0, total: 0, qWon: 0, bdcSold: 0 };
     }
   });
 
@@ -3185,7 +3191,7 @@ function scRenderByOwner(salesItems, runItems) {
   });
 
   // Totals
-  let tWon = 0, tInitial = 0, tAnnual = 0, tTotal = 0, tRun = 0;
+  let tqWon = 0, tBdcSold = 0, tInitial = 0, tAnnual = 0, tTotal = 0, tRun = 0;
   const totalRunAll = runItems.length;
   const hasTechMap = Object.keys(TECH_OWNER_MAP).length > 0;
 
@@ -3195,13 +3201,14 @@ function scRenderByOwner(salesItems, runItems) {
     const hasRun = runCount !== null;
     const closePct = hasRun && runCount > 0 ? Math.round((d.qWon / runCount) * 100) + '%' : '—';
 
-    tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total;
+    tqWon += d.qWon; tBdcSold += d.bdcSold; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total;
     if (hasRun) tRun += runCount;
 
     html += `<tr>
       <td>${name}</td>
       <td class="owner-col-num">${hasRun ? runCount : '—'}</td>
-      <td class="owner-col-num">${d.won}</td>
+      <td class="owner-col-num">${d.qWon}</td>
+      <td class="owner-col-num">${d.bdcSold}</td>
       <td class="owner-col-money owner-val-initial">${scFmt.format(d.initial)}</td>
       <td class="owner-col-money owner-val-annual">${scFmt.format(d.annual)}</td>
       <td class="owner-col-money owner-val-total">${scFmt.format(d.total)}</td>
@@ -3210,16 +3217,13 @@ function scRenderByOwner(salesItems, runItems) {
   });
   tbody.innerHTML = html;
 
-  // Footer totals — Close % excludes countAsLeadRun=No deals
-  let tqWon = 0;
-  sorted.forEach(([name, d]) => {
-    tqWon += d.qWon;
-  });
+  // Footer totals — Close % uses qualified won / total runs
   const totalClosePct = totalRunAll > 0 ? Math.round((tqWon / totalRunAll) * 100) + '%' : '—';
   tfoot.innerHTML = `<tr>
     <td>Total</td>
     <td class="owner-col-num">${totalRunAll}</td>
-    <td class="owner-col-num">${tWon}</td>
+    <td class="owner-col-num">${tqWon}</td>
+    <td class="owner-col-num">${tBdcSold}</td>
     <td class="owner-col-money owner-val-initial">${scFmt.format(tInitial)}</td>
     <td class="owner-col-money owner-val-annual">${scFmt.format(tAnnual)}</td>
     <td class="owner-col-money owner-val-total">${scFmt.format(tTotal)}</td>
@@ -3240,7 +3244,7 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
   if (!tbody) return;
 
   if (salesItems.length === 0 && bookedItems.length === 0 && !_scDataReady) {
-    tbody.innerHTML = '<tr><td colspan="7" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="sc-no-data sc-loading-pulse" style="text-align:center;padding:24px">Loading...</td></tr>';
     tfoot.innerHTML = '';
     return;
   }
@@ -3254,7 +3258,7 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
   bookedItems.forEach(b => {
     const c = b.createdBy || 'Unknown';
     const o = b.owner || '';
-    if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, initial: 0, annual: 0, total: 0 };
+    if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
     creators[c].booked += 1;
     // Track BDC rep distribution per owner for run attribution
     if (o) {
@@ -3277,7 +3281,7 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
         if (cnt > topCount) { topBDC = bdc; topCount = cnt; }
       }
       if (topBDC) {
-        if (!creators[topBDC]) creators[topBDC] = { booked: 0, run: 0, won: 0, initial: 0, annual: 0, total: 0 };
+        if (!creators[topBDC]) creators[topBDC] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
         creators[topBDC].run += 1;
       }
     });
@@ -3286,41 +3290,55 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
   // Sum sales per creator
   salesItems.forEach(s => {
     const c = s.createdBy || 'Unknown';
-    if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, initial: 0, annual: 0, total: 0 };
+    if (!creators[c]) creators[c] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
     creators[c].won += 1;
     creators[c].initial += (s.initialValue || 0);
     creators[c].annual += (s.annualValue || 0);
     creators[c].total += (s.totalValue || 0);
+    const o = s.owner || '';
+    if (s.countAsLeadRun !== 'No' && !EXCLUDED_WON_OWNERS.has(o)) {
+      creators[c].qWon += 1;
+    }
+    if (s.bdcSold && s.bdcSold.toLowerCase() === 'yes') {
+      creators[c].bdcSold += 1;
+    }
   });
 
   // Sort by total $ desc
   const sorted = Object.entries(creators).sort((a, b) => b[1].total - a[1].total);
 
   // Build rows
-  let tBooked = 0, tRun = 0, tWon = 0, tInitial = 0, tAnnual = 0, tTotal = 0;
+  let tBooked = 0, tRun = 0, tqWon = 0, tBdcSold = 0, tInitial = 0, tAnnual = 0, tTotal = 0;
   let html = '';
   sorted.forEach(([name, d]) => {
-    tBooked += d.booked; tRun += d.run; tWon += d.won; tInitial += d.initial; tAnnual += d.annual; tTotal += d.total;
+    const closePct = d.run > 0 ? Math.round((d.qWon / d.run) * 100) + '%' : '—';
+    tBooked += d.booked; tRun += d.run; tqWon += d.qWon; tBdcSold += d.bdcSold;
+    tInitial += d.initial; tAnnual += d.annual; tTotal += d.total;
     html += '<tr>' +
       '<td>' + name + '</td>' +
       '<td class="owner-col-num">' + d.booked + '</td>' +
       '<td class="owner-col-num">' + d.run + '</td>' +
-      '<td class="owner-col-num">' + d.won + '</td>' +
+      '<td class="owner-col-num">' + d.qWon + '</td>' +
+      '<td class="owner-col-num">' + d.bdcSold + '</td>' +
       '<td class="owner-col-money owner-val-initial">' + scFmt.format(d.initial) + '</td>' +
       '<td class="owner-col-money owner-val-annual">' + scFmt.format(d.annual) + '</td>' +
       '<td class="owner-col-money owner-val-total">' + scFmt.format(d.total) + '</td>' +
+      '<td class="owner-col-pct owner-val-closing">' + closePct + '</td>' +
     '</tr>';
   });
   tbody.innerHTML = html;
 
+  const totalClosePct = tRun > 0 ? Math.round((tqWon / tRun) * 100) + '%' : '—';
   tfoot.innerHTML = '<tr>' +
     '<td>Total</td>' +
     '<td class="owner-col-num">' + tBooked + '</td>' +
     '<td class="owner-col-num">' + tRun + '</td>' +
-    '<td class="owner-col-num">' + tWon + '</td>' +
+    '<td class="owner-col-num">' + tqWon + '</td>' +
+    '<td class="owner-col-num">' + tBdcSold + '</td>' +
     '<td class="owner-col-money owner-val-initial">' + scFmt.format(tInitial) + '</td>' +
     '<td class="owner-col-money owner-val-annual">' + scFmt.format(tAnnual) + '</td>' +
     '<td class="owner-col-money owner-val-total">' + scFmt.format(tTotal) + '</td>' +
+    '<td class="owner-col-pct owner-val-closing">' + totalClosePct + '</td>' +
   '</tr>';
 }
 
