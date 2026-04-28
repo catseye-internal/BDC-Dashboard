@@ -3259,20 +3259,26 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
     creators[c].booked += 1;
   });
 
-  // Attribute PestPac run items to BDC reps via LocationID matching
-  // Each run has a locationId (from PestPac LocationID); each booked opp has a
-  // locationId (from Sales Center loc.locationId). Same PestPac location = same deal.
+  // Attribute PestPac run items to BDC reps via locationCode matching
+  // locationCode = Service Location Number (e.g. 227842), shared between PestPac and Sales Center.
+  // Falls back to locationId (internal ID) if locationCode not available.
   if (runItems && runItems.length > 0) {
-    // Build locationId → createdBy lookup from ALL booked items (YTD)
     const allBooked = typeof allBookedRows !== 'undefined' ? allBookedRows : bookedItems;
+    // Build locationCode → createdBy map (primary)
+    const codeToBDC = {};
+    // Build locationId → createdBy map (fallback)
     const locToBDC = {};
     allBooked.forEach(b => {
-      if (b.locationId) locToBDC[String(b.locationId)] = b.createdBy || 'Unknown';
+      const creator = b.createdBy || 'Unknown';
+      if (b.locationCode) codeToBDC[String(b.locationCode)] = creator;
+      if (b.locationId) locToBDC[String(b.locationId)] = creator;
     });
 
     runItems.forEach(r => {
+      const code = r.locationCode ? String(r.locationCode) : '';
       const lid = r.locationId ? String(r.locationId) : '';
-      const bdc = lid ? locToBDC[lid] : null;
+      // Try locationCode first, then fall back to locationId
+      const bdc = (code && codeToBDC[code]) || (lid && locToBDC[lid]) || null;
       if (bdc) {
         if (!creators[bdc]) creators[bdc] = { booked: 0, run: 0, won: 0, qWon: 0, bdcSold: 0, initial: 0, annual: 0, total: 0 };
         creators[bdc].run += 1;
