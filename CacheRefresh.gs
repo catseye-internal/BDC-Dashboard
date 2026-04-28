@@ -108,7 +108,31 @@ function processOpp(opp, isBooked) {
       });
     }
     if (!countAsLead) return null;
-    return { branch: branch, date: created, datetime: opp.createdDate || '' };
+    // Enrich booked item with detail fields for Booked list view
+    var bContactName = '';
+    var bCity = '';
+    var pc = opp.primaryContact || {};
+    bContactName = ((pc.firstName || '') + ' ' + (pc.lastName || '')).trim();
+    bCity = pc.city || '';
+    var bServices = '';
+    try {
+      if (Array.isArray(opp.locations) && opp.locations.length > 0 && Array.isArray(opp.locations[0].services)) {
+        bServices = opp.locations[0].services.map(function(s) { return s.name || ''; }).filter(Boolean).join(', ');
+      }
+    } catch(e) {}
+
+    // Extract locationId for run attribution (matches PestPac LocationID)
+    var bLocationId = null;
+    if (Array.isArray(opp.locations) && opp.locations.length > 0) {
+      bLocationId = opp.locations[0].locationId || null;
+    }
+
+    return {
+      branch: branch, date: created, datetime: opp.createdDate || '',
+      contactName: bContactName, owner: opp.owner || '', stage: opp.salesFunnelStage || '',
+      services: bServices, city: bCity, createdBy: opp.opportunityCreatedBy || '',
+      locationId: bLocationId
+    };
   } else {
     var stage = (opp.salesFunnelStage || '').toLowerCase();
     // Keep all stages (won, lost, open) — Sales view filters by stage in UI
@@ -268,6 +292,7 @@ function fetchLeadsRun(startDate, endDate) {
     return [];
   }
   var orders = JSON.parse(resp.getContentText());
+
   // Exclude specific techs (these are non-sales estimates)
   var EXCLUDE_TECHS = ['ABG', 'ABG2', 'LAM', 'LAM2', 'SLM', 'KJA'];
   // Only include sales-related Origins (matches PestPac Service Order List report)
@@ -279,7 +304,7 @@ function fetchLeadsRun(startDate, endDate) {
   }).map(function(o) {
     var fullWd = o.WorkDate || '';
     var wd = fullWd.split('T')[0];
-    return { branch: o.Branch || '', date: wd, datetime: fullWd, tech: o.Tech1 || '' };
+    return { branch: o.Branch || '', date: wd, datetime: fullWd, tech: o.Tech1 || '', locationId: o.LocationID || null };
   }).filter(function(o) { return o.branch && o.date; });
 }
 
