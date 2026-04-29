@@ -3422,8 +3422,20 @@ function computeEffectiveValues(sale) {
     if (cat === 'Cat-Guard') hasCatGuard = true;
   });
 
-  let remainingPool = freePlatAnnualPool;
   let totalInit = 0, totalAnnual = 0;
+
+  // Find the largest Cat-Guard service index (deduct free plat only from that one)
+  let largestCGIdx = -1, largestCGInit = -1;
+  if (hasCatGuard && freePlatAnnualPool > 0) {
+    svcs.forEach((svc, si) => {
+      if (freePlatIdxs.has(si)) return;
+      const cat = summaryGetCategory(svc.name);
+      if (cat === 'Cat-Guard') {
+        const ei = effectiveInitial(svc);
+        if (ei > largestCGInit) { largestCGInit = ei; largestCGIdx = si; }
+      }
+    });
+  }
 
   svcs.forEach((svc, si) => {
     let effInit = effectiveInitial(svc);
@@ -3435,10 +3447,8 @@ function computeEffectiveValues(sale) {
       displayAnnual = effectiveRecurring(svc) * (svc.annualOccurrences || 0);
     }
 
-    const cat = summaryGetCategory(svc.name);
-    if (cat === 'Cat-Guard' && hasCatGuard && remainingPool > 0) {
-      effInit = Math.max(0, effInit - remainingPool);
-      remainingPool = 0;
+    if (si === largestCGIdx) {
+      effInit = Math.max(0, effInit - freePlatAnnualPool);
     }
 
     totalInit += effInit;
@@ -3502,6 +3512,18 @@ function summaryAnalyzeDeal(sale) {
     });
   });
 
+  // Find the largest Cat-Guard service (deduct free plat only from that one)
+  let largestCGName = null, largestCGInit = -1;
+  if (hasCatGuard && freePlatAnnualValue > 0) {
+    otherSvcs.forEach(svc => {
+      const cat = summaryGetCategory(svc.name);
+      if (cat === 'Cat-Guard') {
+        const ei = effectiveInitial(svc);
+        if (ei > largestCGInit) { largestCGInit = ei; largestCGName = svc.name; }
+      }
+    });
+  }
+
   // Process other services
   otherSvcs.forEach(svc => {
     const cat = summaryGetCategory(svc.name);
@@ -3510,8 +3532,8 @@ function summaryAnalyzeDeal(sale) {
     const effRecurring = effectiveRecurring(svc);
     const annual = effRecurring * (svc.annualOccurrences || 1);
 
-    // If Cat-Guard and we found free plat, deduct plat annual from CG initial
-    if (cat === 'Cat-Guard' && hasCatGuard && freePlatAnnualValue > 0) {
+    // Deduct free plat annual only from the largest Cat-Guard service
+    if (cat === 'Cat-Guard' && svc.name === largestCGName && freePlatAnnualValue > 0) {
       initial = Math.max(0, initial - freePlatAnnualValue);
       freePlatAnnualValue = 0; // Only deduct once
     }
@@ -5591,7 +5613,18 @@ function renderSalesTable(rows) {
                     if (cat === 'Cat-Guard') hasCatGuard = true;
                   });
 
-                  let remainingPool = freePlatAnnualPool;
+                  // Find the largest Cat-Guard service (deduct free plat only from that one)
+                  let largestCGIdx = -1, largestCGInit = -1;
+                  if (hasCatGuard && freePlatAnnualPool > 0) {
+                    svcs.forEach((svc, si) => {
+                      if (freePlatIdxs.has(si)) return;
+                      const cat = summaryGetCategory(svc.name);
+                      if (cat === 'Cat-Guard') {
+                        const ei = effectiveInitial(svc);
+                        if (ei > largestCGInit) { largestCGInit = ei; largestCGIdx = si; }
+                      }
+                    });
+                  }
 
                   return svcs.map((svc, si) => {
                     let effInit = effectiveInitial(svc);
@@ -5616,12 +5649,10 @@ function renderSalesTable(rows) {
                       displayAnnual = effRec * (svc.annualOccurrences || 0);
                     }
 
-                    // Cat-Guard: deduct free plat annual from initial
-                    const cat = summaryGetCategory(svc.name);
-                    if (cat === 'Cat-Guard' && hasCatGuard && remainingPool > 0) {
+                    // Cat-Guard: deduct free plat annual from largest CG service only
+                    if (si === largestCGIdx) {
                       const origInit = effInit;
-                      effInit = Math.max(0, effInit - remainingPool);
-                      remainingPool = 0;
+                      effInit = Math.max(0, effInit - freePlatAnnualPool);
                       if (effInit !== origInit) {
                         initColor = ';color:#2ecc71';
                         initTitle = 'Free Plat adjusted: ' + formatMoney(origInit) + ' → ' + formatMoney(effInit) + ' (Plat annual moved)';
