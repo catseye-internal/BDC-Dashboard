@@ -3637,11 +3637,8 @@ function summaryRenderSection(containerId, salesItems, runItems, branchFilter) {
 
   const kpi = summaryComputeKPIs(salesItems, runItems, branchFilter);
 
-  // Skip rendering branch sections with zero activity
-  if (branchFilter && typeof branchFilter === 'string' && !['catseye','usx'].includes(branchFilter)) {
-    if (kpi.leadsRun === 0 && kpi.leadsWon === 0) { container.style.display = 'none'; return; }
-    else { container.style.display = ''; }
-  }
+  // Always show all branch sections (even with zero activity)
+  container.style.display = '';
 
   // Build category table
   let tableHTML = '<div class="summary-cat-table-wrap"><table class="summary-cat-table">';
