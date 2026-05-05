@@ -1280,11 +1280,11 @@
             <th class="owner-col-num">BDC SOLD</th>
             <th class="owner-col-num">Prog</th>
             <th class="owner-col-money">Initial</th>
-            <th class="owner-col-money">$/Lead</th>
             <th class="owner-col-money">Annual</th>
             <th class="owner-col-money">Total</th>
-            <th class="owner-col-pct">Prog %</th>
             <th class="owner-col-pct">Close %</th>
+            <th class="owner-col-pct">Prog %</th>
+            <th class="owner-col-money">$/Lead</th>
           </tr>
         </thead>
         <tbody id="ownerTableBody"></tbody>
@@ -1309,11 +1309,11 @@
             <th class="owner-col-num">BDC SOLD</th>
             <th class="owner-col-num">Prog</th>
             <th class="owner-col-money">Initial</th>
-            <th class="owner-col-money">$/Lead</th>
             <th class="owner-col-money">Annual</th>
             <th class="owner-col-money">Total</th>
-            <th class="owner-col-pct">Prog %</th>
             <th class="owner-col-pct">Close %</th>
+            <th class="owner-col-pct">Prog %</th>
+            <th class="owner-col-money">$/Lead</th>
           </tr>
         </thead>
         <tbody id="bdcTableBody"></tbody>
@@ -3222,11 +3222,11 @@ function scRenderByOwner(salesItems, runItems) {
       <td class="owner-col-num">${d.bdcSold}</td>
       <td class="owner-col-num">${d.programs}</td>
       <td class="owner-col-money owner-val-initial">${scFmt.format(d.initial)}</td>
-      <td class="owner-col-money">${perLead}</td>
       <td class="owner-col-money owner-val-annual">${scFmt.format(d.annual)}</td>
       <td class="owner-col-money owner-val-total">${scFmt.format(d.total)}</td>
-      <td class="owner-col-pct">${progPct}</td>
       <td class="owner-col-pct owner-val-closing">${closePct}</td>
+      <td class="owner-col-pct">${progPct}</td>
+      <td class="owner-col-money">${perLead}</td>
     </tr>`;
   });
   tbody.innerHTML = html;
@@ -3242,11 +3242,11 @@ function scRenderByOwner(salesItems, runItems) {
     <td class="owner-col-num">${tBdcSold}</td>
     <td class="owner-col-num">${tPrograms}</td>
     <td class="owner-col-money owner-val-initial">${scFmt.format(tInitial)}</td>
-    <td class="owner-col-money">${totalPerLead}</td>
     <td class="owner-col-money owner-val-annual">${scFmt.format(tAnnual)}</td>
     <td class="owner-col-money owner-val-total">${scFmt.format(tTotal)}</td>
-    <td class="owner-col-pct">${totalProgPct}</td>
     <td class="owner-col-pct owner-val-closing">${totalClosePct}</td>
+    <td class="owner-col-pct">${totalProgPct}</td>
+    <td class="owner-col-money">${totalPerLead}</td>
   </tr>`;
 }
 
@@ -3353,11 +3353,11 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
       '<td class="owner-col-num">' + d.bdcSold + '</td>' +
       '<td class="owner-col-num">' + d.programs + '</td>' +
       '<td class="owner-col-money owner-val-initial">' + scFmt.format(d.initial) + '</td>' +
-      '<td class="owner-col-money">' + perLead + '</td>' +
       '<td class="owner-col-money owner-val-annual">' + scFmt.format(d.annual) + '</td>' +
       '<td class="owner-col-money owner-val-total">' + scFmt.format(d.total) + '</td>' +
-      '<td class="owner-col-pct">' + progPct + '</td>' +
       '<td class="owner-col-pct owner-val-closing">' + closePct + '</td>' +
+      '<td class="owner-col-pct">' + progPct + '</td>' +
+      '<td class="owner-col-money">' + perLead + '</td>' +
     '</tr>';
   });
   tbody.innerHTML = html;
@@ -3373,11 +3373,11 @@ function scRenderByBDC(salesItems, bookedItems, runItems) {
     '<td class="owner-col-num">' + tBdcSold + '</td>' +
     '<td class="owner-col-num">' + tPrograms + '</td>' +
     '<td class="owner-col-money owner-val-initial">' + scFmt.format(tInitial) + '</td>' +
-    '<td class="owner-col-money">' + totalPerLead + '</td>' +
     '<td class="owner-col-money owner-val-annual">' + scFmt.format(tAnnual) + '</td>' +
     '<td class="owner-col-money owner-val-total">' + scFmt.format(tTotal) + '</td>' +
-    '<td class="owner-col-pct">' + totalProgPct + '</td>' +
     '<td class="owner-col-pct owner-val-closing">' + totalClosePct + '</td>' +
+    '<td class="owner-col-pct">' + totalProgPct + '</td>' +
+    '<td class="owner-col-money">' + totalPerLead + '</td>' +
   '</tr>';
 }
 
